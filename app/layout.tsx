@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next"; // Importe 'Viewport' aqui
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -12,19 +12,27 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// 1. Configuração de Título e Descrição
 export const metadata: Metadata = {
   title: "J Finanças",
-  description: "Criado por Jhon",
-  icons: "/logo.png", // Sua logo que já configuramos antes
+  description: "Gerenciador Financeiro Pessoal - Criado por Jhon",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "J Finanças",
+  },
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
-// 2. Configuração que TRAVA o ZOOM (Essencial para mobile)
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  userScalable: false, // Isso impede o movimento de pinça (zoom)
+  userScalable: false,
+  themeColor: "#0f172a", // Define a cor da barra de status no Android
 };
 
 export default function RootLayout({
@@ -33,10 +41,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-br"> {/* Alterei para pt-br para melhor acessibilidade */}
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <html lang="pt-br">
+      <head>
+        {/* Este link extra ajuda o Android a encontrar o manifesto mais rápido */}
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="mobile-web-app-capable" content="yes" />
+      </head>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-950`}>
         {children}
       </body>
     </html>
