@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  TrendingUp, Trash2, CreditCard, Banknote, Plus, X, Landmark, Coins, Pencil, LogOut, UserCircle, ShieldCheck, CalendarClock, Wallet, CheckCircle2
+  TrendingUp, Trash2, CreditCard, Banknote, Plus, X, Landmark, Coins, Pencil, LogOut, UserCircle, ShieldCheck, CalendarClock, Wallet, CheckCircle2, Loader2
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { supabase } from '@/lib/supabase';
@@ -14,14 +14,19 @@ export default function App() {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(true); // Estado para o login automático
 
+  // --- LÓGICA DE LOGIN AUTOMÁTICO INTEGRADA ---
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setUser(session.user);
         setView('dashboard');
       }
-    });
+      setLoading(false); // Libera a tela após a verificação
+    };
+    checkUser();
   }, []);
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -40,6 +45,15 @@ export default function App() {
       setAuthMode('login');
     }
   };
+
+  // Tela de carregamento enquanto verifica se você já está logado
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
+        <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   if (view === 'auth') {
     return (
@@ -66,6 +80,7 @@ export default function App() {
   return <Dashboard user={user} onLogout={() => { supabase.auth.signOut(); setView('auth'); }} />;
 }
 
+// O restante do seu componente Dashboard permanece exatamente igual para não perder suas funções
 function Dashboard({ user, onLogout }: any) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -241,7 +256,7 @@ function Dashboard({ user, onLogout }: any) {
         </div>
       </div>
 
-      {/* MODAL GASTO (FUNÇÕES COMPLETAS) */}
+      {/* MODAIS (GASTO, PERFIL, CARTÃO, SALDO) */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-4 z-50 animate-in fade-in duration-300">
           <form onSubmit={handleSalvarGasto} className="bg-slate-900 w-full max-w-md rounded-t-[2.5rem] md:rounded-[3rem] p-6 md:p-10 border-t-4 md:border-4 border-slate-800 shadow-2xl overflow-y-auto max-h-[95vh]">
@@ -277,7 +292,6 @@ function Dashboard({ user, onLogout }: any) {
         </div>
       )}
 
-      {/* DEMAIS MODAIS (PERFIL, CARTÃO, SALDO) - MANTIDOS */}
       {isProfileModalOpen && (
         <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 z-50">
           <form onSubmit={handleUpdateProfile} className="bg-slate-900 w-full max-w-md rounded-[2.5rem] p-6 md:p-10 border-4 border-slate-800 shadow-2xl">
