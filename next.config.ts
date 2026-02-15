@@ -8,11 +8,12 @@ const withPWA = withPWAInit({
   reloadOnOnline: true,
   disable: process.env.NODE_ENV === "development",
   register: true,
-  // CORREÇÃO: Removido 'skipWaiting' da raiz, pois a biblioteca já trata isso internamente 
-  // ou através da propriedade 'workboxOptions' se você quisesse customizar.
 });
 
 const nextConfig: NextConfig = {
+  // ADICIONE ESTA LINHA ABAIXO PARA CORRIGIR O ERRO DA IMAGEM:
+  turbopack: {}, 
+  
   /* Suas outras configurações aqui */
 };
 
