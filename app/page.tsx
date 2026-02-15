@@ -19,6 +19,7 @@ export default function App() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // SISTEMA DE ALERTA PREMIUM
   const [alertConfig, setAlertConfig] = useState<{show: boolean, msg: string, type: 'error' | 'success'}>({
     show: false, msg: '', type: 'success'
   });
@@ -51,7 +52,7 @@ export default function App() {
       if (error) return showAlert(error.message, 'error');
       setUser(data.user);
       setView('dashboard');
-      showAlert("Bem-vindo!", 'success');
+      showAlert("Acesso autorizado!", 'success');
     } else {
       const { error } = await supabase.auth.signUp({ 
         email, password, options: { data: { full_name: nome } } 
@@ -66,18 +67,19 @@ export default function App() {
 
   return (
     <>
+      {/* COMPONENTE DE ALERTA FLUTUANTE */}
       {alertConfig.show && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[1000] animate-in fade-in slide-in-from-top-4 duration-300 px-4 w-full max-w-sm">
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[1000] animate-in fade-in slide-in-from-top-4 duration-300 px-4 w-full max-w-sm leading-none italic">
           <div className={`flex items-center gap-3 p-4 rounded-2xl border-2 shadow-2xl backdrop-blur-xl ${alertConfig.type === 'error' ? 'bg-rose-950/80 border-rose-500 text-rose-200' : 'bg-emerald-950/80 border-emerald-500 text-emerald-200'}`}>
             {alertConfig.type === 'error' ? <AlertCircle size={20}/> : <CheckCircle size={20}/>}
-            <p className="text-xs font-black uppercase tracking-widest leading-tight italic">{alertConfig.msg}</p>
-            <button onClick={() => setAlertConfig(prev => ({...prev, show: false}))} className="ml-auto opacity-50 hover:opacity-100"><X size={16}/></button>
+            <p className="text-xs font-black uppercase tracking-widest leading-tight">{alertConfig.msg}</p>
+            <button onClick={() => setAlertConfig(prev => ({...prev, show: false}))} className="ml-auto opacity-50"><X size={16}/></button>
           </div>
         </div>
       )}
 
       {view === 'auth' ? (
-        <div className="min-h-screen flex items-center justify-center p-4 bg-slate-955 text-white text-sm">
+        <div className="min-h-screen flex items-center justify-center p-4 bg-slate-955 text-white text-sm italic leading-none">
           <form onSubmit={handleAuth} className="bg-slate-900 w-full max-w-md rounded-[2.5rem] p-6 md:p-10 border-4 border-slate-800 shadow-2xl">
             <div className="flex flex-col items-center mb-8">
               <div className="bg-blue-600 p-4 rounded-3xl text-white mb-4 shadow-lg"><TrendingUp size={32} /></div>
@@ -90,14 +92,14 @@ export default function App() {
               <input type="email" placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-white focus:border-blue-600 transition-all" required />
               <div className="relative">
                 <input type={showPassword ? "text" : "password"} placeholder="Senha" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-white pr-12 focus:border-blue-600 transition-all" required />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-all">
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
-              <button type="submit" className="w-full bg-blue-600 text-white font-black py-5 rounded-[2rem] shadow-xl hover:bg-blue-700 transition-all uppercase text-sm mt-4 tracking-widest active:scale-95 leading-none">
+              <button type="submit" className="w-full bg-blue-600 text-white font-black py-5 rounded-[2rem] shadow-xl hover:bg-blue-700 transition-all uppercase text-sm mt-4 tracking-widest active:scale-95 leading-none italic">
                 {authMode === 'login' ? 'Entrar' : 'Cadastrar'}
               </button>
-              <button type="button" onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="w-full text-center text-[10px] font-black text-slate-500 uppercase mt-4 tracking-widest active:text-blue-500 transition-all leading-none">
+              <button type="button" onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="w-full text-center text-[10px] font-black text-slate-500 uppercase mt-4 tracking-widest active:text-blue-500 leading-none italic">
                 {authMode === 'login' ? 'Criar nova conta' : 'Já tenho conta'}
               </button>
             </div>
@@ -164,19 +166,20 @@ function Dashboard({ user, onLogout, showAlert }: any) {
 
   const fetchContagemUsuarios = async () => {
     setBuscandoUsers(true);
-    const { count, error } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true });
-
-    if (!error && count !== null) {
-      setTotalUsuarios(count);
-    }
+    const { count, error } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+    if (!error && count !== null) setTotalUsuarios(count);
     setBuscandoUsers(false);
   };
 
   useEffect(() => {
     if (isAdmin && adminTab === 'users' && isAdminMenuOpen) fetchContagemUsuarios();
   }, [adminTab, isAdminMenuOpen]);
+
+  // TRAVA DE SEGURANÇA NO NOME DO CARTÃO
+  const handleNomeCartaoChange = (valor: string) => {
+    const apenasLetras = valor.replace(/[0-9]/g, '');
+    if (apenasLetras.length <= 12) setNomeCartao(apenasLetras);
+  };
 
   const enviarNotificacaoManual = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -215,7 +218,8 @@ function Dashboard({ user, onLogout, showAlert }: any) {
     e.preventDefault();
     const vTotal = Number(valorDisplay.replace(/\./g, '').replace(',', '.'));
     const { error } = await supabase.from('transacoes').insert([{ descricao: descricao.toUpperCase(), valor: vTotal, forma_pagamento: formaPagamento, data_ordenacao: data, user_id: user.id }]);
-    if (!error) { fetchDados(); setIsModalOpen(false); setDescricao(''); setValorDisplay(''); showAlert("Salvo!", 'success'); }
+    if (!error) { fetchDados(); setIsModalOpen(false); setDescricao(''); setValorDisplay(''); showAlert("Lançamento OK!", 'success'); }
+    else showAlert(error.message, 'error');
   };
 
   const handleSalvarCartao = async (e: React.FormEvent) => {
@@ -234,20 +238,20 @@ function Dashboard({ user, onLogout, showAlert }: any) {
   const saldoAtual = saldoInicial - transacoes.reduce((acc, t) => acc + Number(t.valor), 0);
 
   return (
-    <div className="min-h-screen bg-slate-955 p-2 md:p-8 text-white font-sans overflow-x-hidden pb-20 italic">
-      <header className="flex flex-col gap-4 mb-6 bg-slate-900 p-4 md:p-6 rounded-[2rem] border border-slate-800 shadow-2xl relative leading-none italic">
+    <div className="min-h-screen bg-slate-955 p-2 md:p-8 text-white font-sans overflow-x-hidden pb-20 italic leading-none">
+      <header className="flex flex-col gap-4 mb-6 bg-slate-900 p-4 md:p-6 rounded-[2rem] border border-slate-800 shadow-2xl relative">
         <div className="flex justify-between items-center w-full leading-none italic">
           <div className="flex items-center gap-3 italic">
-            <div className="bg-blue-600 p-2.5 rounded-2xl text-white shadow-lg shadow-blue-500/20"><TrendingUp size={22} /></div>
+            <div className="bg-blue-600 p-2.5 rounded-2xl text-white shadow-lg"><TrendingUp size={22} /></div>
             <div>
-              <h1 className="text-lg md:text-xl font-black uppercase tracking-tighter leading-none italic">J FINANÇAS</h1>
-              <p className="text-[9px] md:text-[10px] font-black text-blue-400 mt-1 uppercase leading-none italic">Olá, {user?.user_metadata?.full_name?.split(' ')[0]}</p>
+              <h1 className="text-lg md:text-xl font-black uppercase tracking-tighter italic">J FINANÇAS</h1>
+              <p className="text-[9px] md:text-[10px] font-black text-blue-400 mt-1 uppercase italic">Olá, {user?.user_metadata?.full_name?.split(' ')[0]}</p>
             </div>
           </div>
           
-          <div className="flex gap-2 italic leading-none">
+          <div className="flex gap-2 leading-none">
             {isAdmin && (
-              <button onClick={() => setIsAdminMenuOpen(true)} className="bg-amber-500 text-slate-950 p-2.5 rounded-full shadow-lg border-2 border-amber-400/50 active:scale-95 transition-all">
+              <button onClick={() => setIsAdminMenuOpen(true)} className="bg-amber-500 text-slate-950 p-2.5 rounded-full shadow-lg border-2 border-amber-400/50 hover:scale-110 active:scale-95 transition-all">
                 <ShieldCheck size={20} />
               </button>
             )}
@@ -260,23 +264,22 @@ function Dashboard({ user, onLogout, showAlert }: any) {
                 <div className="absolute right-0 mt-2 w-64 bg-slate-900 border-2 border-slate-800 rounded-[2rem] shadow-2xl z-[110] overflow-hidden animate-in fade-in slide-in-from-top-2 italic leading-none">
                   <div className="p-3 space-y-1">
                     <div className="p-4 bg-slate-800/50 rounded-2xl border border-slate-700 mb-1 leading-none italic">
-                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">Conta</p>
-                       <p className="text-xs font-bold text-white truncate mt-1 italic">{user?.email}</p>
+                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic leading-none">Conta Logada</p>
+                       <p className="text-xs font-bold text-white truncate mt-1 leading-none">{user?.email}</p>
                     </div>
                     <button onClick={toggleNotifications} className="w-full flex items-center justify-between p-4 hover:bg-slate-800 rounded-2xl transition-all italic leading-none">
                       <div className="flex items-center gap-3">
                         {notifPermission === 'granted' ? <Bell className="text-emerald-500" size={18} /> : <BellOff className="text-rose-500" size={18} />}
-                        <span className="text-[10px] font-black uppercase text-slate-300 italic">Notificações</span>
+                        <span className="text-[10px] font-black uppercase text-slate-300 italic leading-none">Notificações</span>
                       </div>
                       <span className={`text-[8px] font-black px-2 py-0.5 rounded-full ${notifPermission === 'granted' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-rose-500/20 text-rose-500'}`}>{notifPermission === 'granted' ? 'ON' : 'OFF'}</span>
                     </button>
                     <button onClick={() => { setIsProfileMenuOpen(false); setIsProfileEditModalOpen(true); }} className="w-full flex items-center gap-3 p-4 hover:bg-slate-800 rounded-2xl transition-all italic leading-none">
                       <Settings className="text-slate-500" size={18} />
-                      <span className="text-[10px] font-black uppercase text-slate-300 italic">Configurações</span>
+                      <span className="text-[10px] font-black uppercase text-slate-300 italic leading-none">Meu Perfil</span>
                     </button>
-                    <button onClick={onLogout} className="w-full flex items-center gap-3 p-4 hover:bg-rose-900/20 text-rose-500 rounded-2xl transition-all border-t border-slate-800/50 mt-1 italic leading-none">
-                      <LogOut size={18} />
-                      <span className="text-[10px] font-black uppercase tracking-widest italic leading-none">Sair</span>
+                    <button onClick={onLogout} className="w-full flex items-center gap-3 p-4 hover:bg-rose-900/20 text-rose-500 rounded-2xl transition-all border-t border-slate-800/50 mt-1 leading-none font-black uppercase text-[10px] italic">
+                      <LogOut size={18} /> Sair do App
                     </button>
                   </div>
                 </div>
@@ -291,14 +294,16 @@ function Dashboard({ user, onLogout, showAlert }: any) {
         </div>
       </header>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 italic leading-none">
-        <Card title="Saldo Caixa" value={`R$ ${formatarMoeda(saldoAtual)}`} icon={<Banknote size={20}/>} color="bg-slate-900 border-b-8 border-blue-600 text-white" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 leading-none italic">
+        <Card title="Saldo em Caixa" value={`R$ ${formatarMoeda(saldoAtual)}`} icon={<Banknote size={20}/>} color="bg-slate-900 border-b-8 border-blue-600 text-white" />
         <Card title={`Gasto ${filtroCartao}`} value={`R$ ${formatarMoeda(gastoTotalFiltrado)}`} icon={<CreditCard size={20}/>} color="bg-slate-900 border-b-8 border-rose-600 text-white" />
         <Card title="Saldo Inicial" value={`R$ ${formatarMoeda(saldoInicial)}`} icon={<Coins size={20}/>} color="bg-slate-900 border-b-8 border-emerald-600 text-white" />
-        <div className="relative group italic leading-none">
-          <button onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} className="w-full bg-slate-900 p-4 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl border-b-8 border-amber-500 flex flex-col justify-between h-32 md:h-36 text-left active:scale-95 transition-all italic leading-none">
+        
+        {/* CARD DE FILTRO INTEGRADO */}
+        <div className="relative italic leading-none">
+          <button onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} className="w-full bg-slate-900 p-4 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl border-b-8 border-amber-500 flex flex-col justify-between h-32 md:h-36 text-left active:scale-95 transition-all italic">
             <div className="flex justify-between items-start w-full italic leading-none">
-              <span className="text-white/40 font-black text-[7px] md:text-[10px] uppercase tracking-widest italic leading-none">Filtrar por:</span>
+              <span className="text-white/40 font-black text-[7px] md:text-[10px] uppercase tracking-widest italic leading-none">Filtrar Gastos</span>
               <div className="p-1.5 bg-white/5 rounded-xl border border-white/5 opacity-50"><Filter size={20}/></div>
             </div>
             <div className="flex items-center justify-between w-full italic leading-none">
@@ -308,12 +313,12 @@ function Dashboard({ user, onLogout, showAlert }: any) {
           </button>
           {isFilterMenuOpen && (
             <div className="absolute bottom-full left-0 right-0 mb-2 bg-slate-900 border-2 border-slate-800 rounded-3xl shadow-2xl z-[100] overflow-hidden animate-in fade-in slide-in-from-bottom-2 italic leading-none">
-              <div className="p-2 max-h-60 overflow-y-auto italic leading-none">
-                <button onClick={() => { setFiltroCartao('Todos'); setIsFilterMenuOpen(false); }} className="w-full text-left p-4 hover:bg-slate-800 rounded-2xl flex flex-col uppercase font-black text-[10px] italic leading-none">Todos os Gastos</button>
-                <button onClick={() => { setFiltroCartao('Pix'); setIsFilterMenuOpen(false); }} className="w-full text-left p-4 hover:bg-slate-800 rounded-2xl border-t border-slate-800/50 uppercase font-black text-[10px] text-emerald-400 italic leading-none">Pix / Dinheiro</button>
+              <div className="p-2 max-h-60 overflow-y-auto italic">
+                <button onClick={() => { setFiltroCartao('Todos'); setIsFilterMenuOpen(false); }} className="w-full text-left p-4 hover:bg-slate-800 rounded-2xl uppercase font-black text-[10px] italic leading-none">Geral / Todos</button>
+                <button onClick={() => { setFiltroCartao('Pix'); setIsFilterMenuOpen(false); }} className="w-full text-left p-4 hover:bg-slate-800 rounded-2xl border-t border-slate-800/50 uppercase font-black text-[10px] text-emerald-400 italic leading-none">Pix / À Vista</button>
                 {cartoes.map(c => (
-                  <button key={c.id} onClick={() => { setFiltroCartao(c.banco); setIsFilterMenuOpen(false); }} className="w-full text-left p-4 hover:bg-slate-800 rounded-2xl border-t border-slate-800/50 uppercase font-black text-[10px] text-blue-400 italic leading-none">
-                    {c.banco} <br/><span className="text-[7px] text-slate-500 lowercase font-medium italic leading-none">{c.nome_cartao}</span>
+                  <button key={c.id} onClick={() => { setFiltroCartao(c.banco); setIsFilterMenuOpen(false); }} className="w-full text-left p-4 hover:bg-slate-800 rounded-2xl border-t border-slate-800/50 uppercase font-black text-[10px] text-blue-400 leading-tight italic">
+                    {c.banco} <br/><span className="text-[7px] text-slate-500 lowercase font-medium italic">{c.nome_cartao}</span>
                   </button>
                 ))}
               </div>
@@ -328,7 +333,7 @@ function Dashboard({ user, onLogout, showAlert }: any) {
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={[...transacoesFiltradas].reverse().map(t => ({ name: t.data_ordenacao, valor: t.valor }))}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
-                <Tooltip formatter={(v: any) => [`R$ ${formatarMoeda(v)}`, 'Gasto']} contentStyle={{backgroundColor: '#0f172a', border: 'none', borderRadius: '15px'}} />
+                <Tooltip formatter={(v: any) => [`R$ ${formatarMoeda(v)}`, 'Valor']} contentStyle={{backgroundColor: '#0f172a', border: 'none', borderRadius: '15px'}} />
                 <Area type="monotone" dataKey="valor" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.1} strokeWidth={4} />
               </AreaChart>
             </ResponsiveContainer>
@@ -341,14 +346,14 @@ function Dashboard({ user, onLogout, showAlert }: any) {
                   <div className="flex items-center gap-3 italic leading-none">
                     <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center border border-slate-700 p-1.5 italic leading-none"><CreditCard size={20}/></div>
                     <div className="italic leading-none">
-                      <p className="text-[8px] font-black text-slate-500 uppercase leading-none mb-1 italic leading-none">{c.banco}</p>
-                      <p className="font-black text-xs uppercase italic leading-none mb-1 italic leading-none">{c.nome_cartao}</p>
-                      <p className="text-[9px] font-bold text-blue-400 leading-none italic leading-none">DIA {c.vencimento}</p>
+                      <p className="text-[8px] font-black text-slate-500 uppercase leading-none mb-1 italic">{c.banco}</p>
+                      <p className="font-black text-xs uppercase italic leading-none mb-1">{c.nome_cartao}</p>
+                      <p className="text-[9px] font-bold text-blue-400 leading-none italic">DIA {c.vencimento}</p>
                     </div>
                   </div>
                   <div className="flex gap-2 italic leading-none">
-                    <button onClick={() => { setEditingCardId(c.id); setBanco(c.banco); setNomeCartao(c.nome_cartao); setVencimento(c.vencimento.toString()); setIsCardModalOpen(true); }} className="text-slate-500 hover:text-blue-500 italic leading-none"><Pencil size={16} /></button>
-                    <button onClick={async () => { if(confirm("Remover?")) { await supabase.from('cartoes').delete().eq('id', c.id); fetchDados(); showAlert("Removido", 'success'); } }} className="text-slate-500 hover:text-rose-500 italic leading-none"><Trash2 size={16} /></button>
+                    <button onClick={() => { setEditingCardId(c.id); setBanco(c.banco); setNomeCartao(c.nome_cartao); setVencimento(c.vencimento.toString()); setIsCardModalOpen(true); }} className="text-slate-500 hover:text-blue-500 italic"><Pencil size={16} /></button>
+                    <button onClick={async () => { if(confirm("Apagar?")) { await supabase.from('cartoes').delete().eq('id', c.id); fetchDados(); showAlert("Removido", 'success'); } }} className="text-slate-500 hover:text-rose-500 italic leading-none"><Trash2 size={16} /></button>
                   </div>
                 </div>
               ))}
@@ -361,45 +366,46 @@ function Dashboard({ user, onLogout, showAlert }: any) {
             {transacoesFiltradas.length > 0 ? transacoesFiltradas.map((t) => (
               <div key={t.id} className="flex justify-between items-center p-4 bg-slate-800/40 rounded-2xl border border-slate-800 hover:bg-slate-800/60 transition-all italic leading-none">
                 <div className="flex-1 min-w-0 mr-3 italic leading-none">
-                  <p className="font-black text-slate-200 text-[10px] uppercase tracking-tight truncate leading-none mb-1 italic leading-none">{t.descricao}</p>
-                  <p className="text-[8px] text-slate-500 font-bold uppercase italic leading-none italic leading-none">{t.data_ordenacao}</p>
+                  <p className="font-black text-slate-200 text-[10px] uppercase tracking-tight truncate leading-none mb-1 italic">{t.descricao}</p>
+                  <p className="text-[8px] text-slate-500 font-bold uppercase italic leading-none italic">{t.data_ordenacao}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0 italic leading-none">
                   <span className="font-black text-xs text-rose-500 whitespace-nowrap italic leading-none italic leading-none">R$ {formatarMoeda(t.valor)}</span>
                   <button onClick={async () => { if(confirm("Apagar?")) { await supabase.from('transacoes').delete().eq('id', t.id); fetchDados(); showAlert("Removido", 'success'); } }} className="text-slate-700 hover:text-rose-500 transition-all italic leading-none"><Trash2 size={14} /></button>
                 </div>
               </div>
-            )) : <p className="text-center text-slate-600 font-black text-[9px] uppercase mt-10 italic leading-none italic leading-none">Sem registros</p>}
+            )) : <p className="text-center text-slate-600 font-black text-[9px] uppercase mt-10 italic leading-none italic leading-none">Histórico Vazio</p>}
           </div>
         </div>
       </div>
 
+      {/* PAINEL ADMIN COM CONTADOR */}
       {isAdminMenuOpen && (
         <div className="fixed inset-0 bg-black/98 backdrop-blur-xl flex items-center justify-center p-4 z-[500] animate-in fade-in duration-300 italic leading-none">
           <div className="bg-slate-900 w-full max-w-lg rounded-[3rem] border-4 border-amber-500/30 shadow-2xl overflow-hidden italic leading-none">
             <div className="bg-amber-500 p-6 flex justify-between items-center text-slate-950 italic leading-none">
-              <div className="italic leading-none"><h2 className="font-black uppercase tracking-tighter text-xl italic leading-none">Admin Panel</h2><p className="text-[10px] font-bold uppercase mt-1 italic leading-none">Monitoramento Superior</p></div>
+              <div className="italic leading-none leading-none"><h2 className="font-black uppercase tracking-tighter text-xl italic leading-none">Admin Panel</h2><p className="text-[10px] font-bold uppercase mt-1 italic leading-none italic">Controle Superior de Dados</p></div>
               <button onClick={() => setIsAdminMenuOpen(false)} className="bg-slate-950/20 p-2 rounded-full italic leading-none"><X size={24} /></button>
             </div>
             <div className="flex border-b border-slate-800 uppercase font-black text-[9px] italic leading-none">
-              <button onClick={() => setAdminTab('alerts')} className={`flex-1 py-4 italic leading-none ${adminTab === 'alerts' ? 'bg-slate-800 text-amber-500 border-b-2 border-amber-500' : 'text-slate-500'}`}><Megaphone size={14} className="inline mr-2"/> Alertas</button>
-              <button onClick={() => setAdminTab('users')} className={`flex-1 py-4 italic leading-none ${adminTab === 'users' ? 'bg-slate-800 text-amber-500 border-b-2 border-amber-500' : 'text-slate-500'}`}><Users size={14} className="inline mr-2"/> Usuários</button>
+              <button onClick={() => setAdminTab('alerts')} className={`flex-1 py-4 italic leading-none ${adminTab === 'alerts' ? 'bg-slate-800 text-amber-500 border-b-2 border-amber-500' : 'text-slate-500'}`}><Megaphone size={14} className="inline mr-2 leading-none"/> Alertas</button>
+              <button onClick={() => setAdminTab('users')} className={`flex-1 py-4 italic leading-none ${adminTab === 'users' ? 'bg-slate-800 text-amber-500 border-b-2 border-amber-500' : 'text-slate-500'}`}><Users size={14} className="inline mr-2 leading-none"/> Usuários</button>
             </div>
             <div className="p-8 italic leading-none">
               {adminTab === 'alerts' ? (
                 <form onSubmit={enviarNotificacaoManual} className="space-y-4 italic leading-none">
-                  <input value={notifTitulo} onChange={(e) => setNotifTitulo(e.target.value)} placeholder="TÍTULO" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs uppercase outline-none focus:border-amber-500 italic leading-none" required />
+                  <input value={notifTitulo} onChange={(e) => setNotifTitulo(e.target.value)} placeholder="TÍTULO DO COMUNICADO" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs uppercase outline-none focus:border-amber-500 italic leading-none" required />
                   <textarea value={notifMensagem} onChange={(e) => setNotifMensagem(e.target.value)} placeholder="MENSAGEM..." rows={3} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs uppercase outline-none focus:border-amber-500 italic leading-none" required />
-                  <button type="submit" className="w-full bg-amber-500 text-slate-950 font-black py-5 rounded-[2rem] uppercase text-sm flex items-center justify-center gap-2 italic active:scale-95 italic leading-none"><Send size={18} /> Enviar Comunicado</button>
+                  <button type="submit" className="w-full bg-amber-500 text-slate-950 font-black py-5 rounded-[2rem] uppercase text-sm flex items-center justify-center gap-2 italic active:scale-95 italic leading-none font-black italic"><Send size={18} /> Disparar para Todos</button>
                 </form>
               ) : (
-                <div className="space-y-4 flex flex-col items-center justify-center p-6 bg-slate-800/50 rounded-[2.5rem] border-2 border-amber-500/10 italic leading-none">
-                   <Users size={40} className="text-amber-500 mb-2 opacity-50 italic leading-none" />
-                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic leading-none">Total de Usuários</span>
-                   <div className="text-6xl font-black text-white tracking-tighter italic leading-none py-2 italic leading-none">
-                     {buscandoUsers ? <Loader2 className="animate-spin h-8 w-8 text-amber-500" /> : totalUsuarios}
+                <div className="space-y-4 flex flex-col items-center justify-center p-8 bg-slate-800/50 rounded-[2.5rem] border-2 border-amber-500/10 italic leading-none">
+                   <Users size={48} className="text-amber-500 mb-2 opacity-50 italic leading-none leading-none" />
+                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] italic leading-none">Base Geral de Usuários</span>
+                   <div className="text-7xl font-black text-white tracking-tighter italic leading-none py-2 italic leading-none">
+                     {buscandoUsers ? <Loader2 className="animate-spin h-8 w-8 text-amber-500 leading-none" /> : totalUsuarios}
                    </div>
-                   <p className="text-[7px] text-amber-500/40 font-bold uppercase tracking-[0.3em] italic leading-none">Base de Dados Supabase</p>
+                   <p className="text-[7px] text-amber-500/30 font-bold uppercase tracking-[0.4em] italic leading-none">Sincronizado com Supabase</p>
                 </div>
               )}
             </div>
@@ -409,62 +415,75 @@ function Dashboard({ user, onLogout, showAlert }: any) {
 
       {/* MODAL GASTO */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-4 z-[200] italic leading-none">
-          <form onSubmit={handleSalvarGasto} className="bg-slate-900 w-full max-w-md rounded-t-[2.5rem] md:rounded-[3rem] p-6 md:p-10 border-t-4 md:border-4 border-slate-800 shadow-2xl overflow-y-auto max-h-[95vh] text-white italic leading-none">
-            <h2 className="text-xl font-black uppercase italic mb-6 leading-none italic leading-none">Novo Gasto</h2>
-            <div className="space-y-4 italic leading-none">
-              <input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="DESCRIÇÃO" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs uppercase outline-none focus:border-blue-600 transition-all italic leading-none" required />
-              <div className="relative italic leading-none"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500 font-black text-sm italic leading-none">R$</span><input type="text" value={valorDisplay} onChange={(e) => setValorDisplay(aplicarMascara(e.target.value))} placeholder="0,00" className="w-full pl-10 p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 font-black text-blue-400 text-lg outline-none focus:border-blue-600 transition-all italic leading-none" required /></div>
-              <select value={formaPagamento} onChange={(e) => setFormaPagamento(e.target.value)} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs uppercase outline-none focus:border-blue-600 transition-all italic leading-none">
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-4 z-[200] italic leading-none leading-none">
+          <form onSubmit={handleSalvarGasto} className="bg-slate-900 w-full max-w-md rounded-t-[2.5rem] md:rounded-[3rem] p-6 md:p-10 border-t-4 md:border-4 border-slate-800 shadow-2xl overflow-y-auto max-h-[95vh] text-white italic leading-none leading-none">
+            <h2 className="text-xl font-black uppercase italic mb-6 leading-none italic leading-none leading-none">Novo Gasto</h2>
+            <div className="space-y-4 italic leading-none italic">
+              <input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="DESCRIÇÃO DA COMPRA" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs uppercase outline-none focus:border-blue-600 transition-all italic leading-none leading-none" required />
+              <div className="relative italic leading-none italic"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500 font-black text-sm italic leading-none leading-none">R$</span><input type="text" value={valorDisplay} onChange={(e) => setValorDisplay(aplicarMascara(e.target.value))} placeholder="0,00" className="w-full pl-10 p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 font-black text-blue-400 text-lg outline-none focus:border-blue-600 transition-all italic leading-none leading-none" required /></div>
+              <select value={formaPagamento} onChange={(e) => setFormaPagamento(e.target.value)} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs uppercase outline-none focus:border-blue-600 transition-all italic leading-none leading-none">
                 <option value="Pix">Pix / Dinheiro</option>
                 {cartoes.map(c => (<option key={c.id} value={`${c.banco} - ${c.nome_cartao}`}>{c.banco} ({c.nome_cartao})</option>))}
               </select>
-              <input type="date" value={data} onChange={(e) => setData(e.target.value)} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 font-bold text-white outline-none focus:border-blue-600 transition-all italic leading-none" required />
-              <button type="submit" className="w-full bg-blue-600 text-white font-black py-5 rounded-[2rem] shadow-xl uppercase text-sm mt-2 active:scale-95 transition-all italic leading-none italic leading-none">Lançar Agora</button>
-              <button type="button" onClick={() => setIsModalOpen(false)} className="w-full text-slate-500 font-bold uppercase text-[9px] mt-2 text-center italic leading-none italic leading-none">Cancelar</button>
+              <input type="date" value={data} onChange={(e) => setData(e.target.value)} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 font-bold text-white outline-none focus:border-blue-600 transition-all italic leading-none leading-none" required />
+              <button type="submit" className="w-full bg-blue-600 text-white font-black py-5 rounded-[2rem] shadow-xl uppercase text-sm mt-2 active:scale-95 transition-all italic leading-none italic leading-none italic font-black">Lançar Gasto</button>
+              <button type="button" onClick={() => setIsModalOpen(false)} className="w-full text-slate-500 font-bold uppercase text-[9px] mt-2 text-center italic leading-none italic leading-none italic leading-none font-bold">Fechar</button>
             </div>
           </form>
         </div>
       )}
 
-      {/* MODAIS: PERFIL EDIT / CARTÃO / SALDO (Mantidos) */}
+      {/* MODAL PERFIL EDIT */}
       {isProfileEditModalOpen && (
         <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 z-[200] italic leading-none">
-          <form onSubmit={handleUpdateProfile} className="bg-slate-900 w-full max-w-md rounded-[2.5rem] p-8 border-4 border-slate-800 shadow-2xl text-white italic leading-none">
-            <h2 className="text-xl font-black text-white uppercase italic mb-6 text-center leading-none italic leading-none">Meu Perfil</h2>
-            <div className="space-y-4 italic leading-none">
-              <input value={novoNome} onChange={(e) => setNovoNome(e.target.value)} placeholder="Nome" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs uppercase outline-none transition-all italic leading-none" />
-              <input type="password" placeholder="Nova Senha" value={novaSenha} onChange={(e) => setNovaSenha(e.target.value)} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs outline-none transition-all italic leading-none" />
-              <input type="password" placeholder="Confirmar" value={confirmarNovaSenha} onChange={(e) => setConfirmarNovaSenha(e.target.value)} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs outline-none transition-all italic leading-none" />
-              <button type="submit" className="w-full bg-blue-600 text-white font-black py-5 rounded-3xl uppercase text-xs mt-2 active:scale-95 transition-all italic leading-none italic leading-none">Salvar Alterações</button>
-              <button type="button" onClick={() => setIsProfileEditModalOpen(false)} className="w-full text-slate-500 font-bold uppercase text-[9px] mt-4 text-center tracking-widest leading-none italic leading-none italic leading-none">Fechar</button>
+          <form onSubmit={handleUpdateProfile} className="bg-slate-900 w-full max-w-md rounded-[2.5rem] p-8 border-4 border-slate-800 shadow-2xl text-white italic leading-none leading-none">
+            <h2 className="text-xl font-black text-white uppercase italic mb-6 text-center leading-none italic leading-none leading-none">Meu Perfil</h2>
+            <div className="space-y-4 italic leading-none italic">
+              <input value={novoNome} onChange={(e) => setNovoNome(e.target.value)} placeholder="Alterar Nome" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs uppercase outline-none transition-all italic leading-none leading-none" />
+              <input type="password" placeholder="Nova Senha" value={novaSenha} onChange={(e) => setNovaSenha(e.target.value)} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs outline-none transition-all italic leading-none leading-none" />
+              <input type="password" placeholder="Repetir Senha" value={confirmarNovaSenha} onChange={(e) => setConfirmarNovaSenha(e.target.value)} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs outline-none transition-all italic leading-none leading-none" />
+              <button type="submit" className="w-full bg-blue-600 text-white font-black py-5 rounded-3xl uppercase text-xs mt-2 active:scale-95 transition-all italic leading-none italic leading-none italic">Atualizar Perfil</button>
+              <button type="button" onClick={() => setIsProfileEditModalOpen(false)} className="w-full text-slate-500 font-bold uppercase text-[9px] mt-4 text-center tracking-widest leading-none italic leading-none italic leading-none italic">Cancelar</button>
             </div>
           </form>
         </div>
       )}
 
+      {/* MODAL CARTÃO COM TRAVAS DE SEGURANÇA */}
       {isCardModalOpen && (
         <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 z-[200] italic leading-none">
-          <form onSubmit={handleSalvarCartao} className="bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-6 md:p-10 border-4 border-slate-800 shadow-2xl text-white italic leading-none">
-            <h2 className="text-xl font-black mb-6 text-white text-center uppercase tracking-widest italic leading-none italic leading-none">{editingCardId ? 'Editar' : 'Novo'} Cartão</h2>
-            <div className="space-y-4 italic leading-none">
-              <input value={banco} onChange={(e) => setBanco(e.target.value)} placeholder="BANCO (EX: NUBANK)" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs uppercase outline-none focus:border-blue-600 transition-all italic leading-none" required />
-              <input value={nomeCartao} onChange={(e) => setNomeCartao(e.target.value)} placeholder="NOME NO CARTÃO" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs uppercase outline-none focus:border-blue-600 transition-all italic leading-none" required />
-              <input type="number" min="1" max="31" value={vencimento} onChange={(e) => setVencimento(e.target.value)} placeholder="VENCIMENTO (DIA)" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs outline-none focus:border-blue-600 transition-all italic leading-none" required />
-              <button type="submit" className="w-full bg-blue-600 text-white font-black py-5 rounded-3xl uppercase text-xs mt-2 active:scale-95 transition-all italic leading-none italic leading-none">Salvar Cartão</button>
-              <button type="button" onClick={() => setIsCardModalOpen(false)} className="w-full text-slate-500 font-bold uppercase text-[9px] mt-2 text-center leading-none italic leading-none italic leading-none font-white">Cancelar</button>
+          <form onSubmit={handleSalvarCartao} className="bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-6 md:p-10 border-4 border-slate-800 shadow-2xl text-white italic leading-none leading-none">
+            <h2 className="text-xl font-black mb-6 text-white text-center uppercase tracking-widest italic leading-none italic leading-none leading-none italic">{editingCardId ? 'Editar' : 'Novo'} Cartão</h2>
+            <div className="space-y-4 italic leading-none italic">
+              <input value={banco} onChange={(e) => setBanco(e.target.value)} placeholder="BANCO (EX: INTER)" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs uppercase outline-none focus:border-blue-600 transition-all italic leading-none leading-none" required />
+              
+              <div className="space-y-1">
+                <input 
+                    value={nomeCartao} 
+                    onChange={(e) => handleNomeCartaoChange(e.target.value)} // BLOQUEIO DE NÚMEROS
+                    placeholder="NOME NO CARTÃO" 
+                    className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs uppercase outline-none focus:border-blue-600 transition-all italic leading-none leading-none" 
+                    required 
+                />
+                <p className="text-[7px] text-slate-500 ml-2 uppercase font-bold italic leading-none italic">Apenas letras. Máximo 12 caracteres.</p>
+              </div>
+
+              <input type="number" min="1" max="31" value={vencimento} onChange={(e) => setVencimento(e.target.value)} placeholder="DIA DO VENCIMENTO" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs outline-none focus:border-blue-600 transition-all italic leading-none leading-none" required />
+              <button type="submit" className="w-full bg-blue-600 text-white font-black py-5 rounded-3xl uppercase text-xs mt-2 active:scale-95 transition-all italic leading-none italic leading-none italic leading-none font-black italic">Salvar Cartão</button>
+              <button type="button" onClick={() => setIsCardModalOpen(false)} className="w-full text-slate-500 font-bold uppercase text-[9px] mt-2 text-center leading-none italic leading-none italic leading-none font-bold italic">Cancelar</button>
             </div>
           </form>
         </div>
       )}
 
+      {/* MODAL SALDO INICIAL */}
       {isSaldoModalOpen && (
         <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 z-[200] italic leading-none">
-          <div className="bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-6 md:p-10 border-4 border-slate-800 shadow-2xl text-white italic leading-none">
-            <h2 className="text-xl font-black mb-6 text-emerald-500 text-center uppercase italic leading-none italic leading-none">Saldo Inicial</h2>
-            <div className="relative mb-6 italic leading-none"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-600 font-black text-lg leading-none italic leading-none">R$</span><input type="text" value={saldoDisplay} onChange={(e) => setSaldoDisplay(aplicarMascara(e.target.value))} placeholder="0,00" className="w-full pl-12 p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 font-black text-emerald-500 text-xl outline-none focus:border-emerald-600 transition-all italic leading-none" /></div>
-            <button onClick={() => { const v = Number(saldoDisplay.replace(/\./g, '').replace(',', '.')); setSaldoInicial(v); localStorage.setItem(`@jfinancas:saldo:${user.id}`, v.toString()); setIsSaldoModalOpen(false); setSaldoDisplay(''); showAlert("Saldo atualizado", 'success'); }} className="w-full bg-emerald-600 text-white font-black py-5 rounded-3xl uppercase text-xs shadow-lg shadow-emerald-500/20 active:scale-95 transition-all leading-none italic leading-none">Atualizar Saldo</button>
-            <button type="button" onClick={() => setIsSaldoModalOpen(false)} className="w-full text-slate-500 font-bold uppercase text-[9px] mt-4 text-center tracking-widest leading-none italic leading-none italic leading-none font-white">Cancelar</button>
+          <div className="bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-6 md:p-10 border-4 border-slate-800 shadow-2xl text-white italic leading-none leading-none">
+            <h2 className="text-xl font-black mb-6 text-emerald-500 text-center uppercase italic leading-none italic leading-none leading-none italic leading-none">Saldo em Caixa</h2>
+            <div className="relative mb-6 italic leading-none italic leading-none"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-600 font-black text-lg leading-none italic leading-none leading-none italic leading-none">R$</span><input type="text" value={saldoDisplay} onChange={(e) => setSaldoDisplay(aplicarMascara(e.target.value))} placeholder="0,00" className="w-full pl-12 p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 font-black text-emerald-500 text-xl outline-none focus:border-emerald-600 transition-all italic leading-none leading-none italic leading-none" /></div>
+            <button onClick={() => { const v = Number(saldoDisplay.replace(/\./g, '').replace(',', '.')); setSaldoInicial(v); localStorage.setItem(`@jfinancas:saldo:${user.id}`, v.toString()); setIsSaldoModalOpen(false); setSaldoDisplay(''); showAlert("Saldo ajustado!", 'success'); }} className="w-full bg-emerald-600 text-white font-black py-5 rounded-3xl uppercase text-xs shadow-lg shadow-emerald-500/20 active:scale-95 transition-all leading-none italic leading-none italic leading-none font-black">Confirmar Saldo</button>
+            <button type="button" onClick={() => setIsSaldoModalOpen(false)} className="w-full text-slate-500 font-bold uppercase text-[9px] mt-4 text-center tracking-widest leading-none italic leading-none italic leading-none italic font-bold">Fechar</button>
           </div>
         </div>
       )}
@@ -475,11 +494,11 @@ function Dashboard({ user, onLogout, showAlert }: any) {
 function Card({ title, value, icon, color }: any) {
   return (
     <div className={`${color} p-4 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl transition-transform active:scale-[0.98] border-black/20 flex flex-col justify-between h-32 md:h-36 text-white text-left italic leading-none`}>
-      <div className="flex justify-between items-start w-full leading-none italic leading-none">
-        <span className="text-white/40 font-black text-[7px] md:text-[10px] uppercase tracking-widest leading-none truncate italic leading-none">{title}</span>
-        <div className="p-1.5 md:p-3 bg-white/5 rounded-xl backdrop-blur-md border border-white/5 opacity-50 italic leading-none">{icon}</div>
+      <div className="flex justify-between items-start w-full leading-none italic leading-none leading-none">
+        <span className="text-white/40 font-black text-[7px] md:text-[10px] uppercase tracking-widest leading-none truncate italic leading-none leading-none">{title}</span>
+        <div className="p-1.5 md:p-3 bg-white/5 rounded-xl backdrop-blur-md border border-white/5 opacity-50 italic leading-none leading-none">{icon}</div>
       </div>
-      <div className="text-sm md:text-2xl font-black leading-none tracking-tighter truncate italic uppercase italic leading-none italic leading-none">{value}</div>
+      <div className="text-sm md:text-2xl font-black leading-none tracking-tighter truncate italic uppercase italic leading-none italic leading-none italic">{value}</div>
     </div>
   );
 }
