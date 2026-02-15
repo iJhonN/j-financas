@@ -338,7 +338,7 @@ function Dashboard({ user, onLogout, showAlert }: any) {
       </div>
 
       {isAdminMenuOpen && (
-        <div className="fixed inset-0 bg-black/98 backdrop-blur-xl flex items-center justify-center p-4 z-[500] animate-in fade-in duration-300 italic">
+        <div className="fixed inset-0 bg-black/10 backdrop-blur-xl flex items-center justify-center p-4 z-[500] animate-in fade-in duration-300 italic">
           <div className="bg-slate-900 w-full max-w-lg rounded-[3rem] border-4 border-amber-500/30 shadow-2xl overflow-hidden leading-normal">
             <div className="bg-amber-500 p-6 flex justify-between items-center text-slate-950 leading-none">
               <div><h2 className="font-black uppercase tracking-tighter text-xl italic px-1">Admin Panel</h2><p className="text-[10px] font-bold uppercase mt-1">Gestão</p></div>
@@ -359,7 +359,7 @@ function Dashboard({ user, onLogout, showAlert }: any) {
 
       {/* MODAL GASTO */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-4 z-[200]">
+        <div className="fixed inset-0 bg-black/10 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-4 z-[200]">
           <form onSubmit={handleSalvarGasto} className="bg-slate-900 w-full max-w-md rounded-t-[2.5rem] md:rounded-[3rem] p-6 md:p-10 border-t-4 md:border-4 border-slate-800 shadow-2xl overflow-y-auto max-h-[95vh] text-white">
             <h2 className="text-xl font-black uppercase italic px-1 mb-6 leading-normal">Novo Gasto</h2>
             <div className="space-y-4 font-bold">
@@ -379,7 +379,7 @@ function Dashboard({ user, onLogout, showAlert }: any) {
 
       {/* MODAL SALDO */}
       {isSaldoModalOpen && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 z-[200]">
+        <div className="fixed inset-0 bg-black/10 backdrop-blur-md flex items-center justify-center p-4 z-[200]">
           <div className="bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-6 md:p-10 border-4 border-slate-800 shadow-2xl text-white">
             <h2 className="text-xl font-black mb-6 text-emerald-500 text-center uppercase italic px-1 leading-normal">Saldo Caixa</h2>
             <div className="relative mb-6"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-600 font-black text-lg italic px-1">R$</span><input type="text" value={saldoDisplay} onChange={(e) => setSaldoDisplay(aplicarMascara(e.target.value))} placeholder="0,00" className="w-full pl-12 p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 font-black text-emerald-500 text-xl outline-none focus:border-emerald-600 transition-all" /></div>
@@ -391,7 +391,7 @@ function Dashboard({ user, onLogout, showAlert }: any) {
 
       {/* MODAL CARTÃO */}
       {isCardModalOpen && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 z-[200]">
+        <div className="fixed inset-0 bg-black/10 backdrop-blur-md flex items-center justify-center p-4 z-[200]">
           <form onSubmit={handleSalvarCartao} className="bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-6 md:p-10 border-4 border-slate-800 shadow-2xl text-white">
             <h2 className="text-xl font-black mb-6 text-white text-center uppercase tracking-widest italic px-1 leading-normal">{editingCardId ? 'Editar' : 'Novo'} Cartão</h2>
             <div className="space-y-4 font-black">
