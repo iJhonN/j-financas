@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  TrendingUp, Trash2, CreditCard, Banknote, Plus, X, Landmark, Coins, Pencil, LogOut, UserCircle, ShieldCheck, CalendarClock, Wallet, CheckCircle2, Loader2, Filter
+  TrendingUp, Trash2, CreditCard, Banknote, Plus, X, Landmark, Coins, Pencil, LogOut, UserCircle, ShieldCheck, CalendarClock, Wallet, CheckCircle2, Loader2, Filter, ChevronDown
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { supabase } from '@/lib/supabase';
@@ -47,7 +47,7 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
+      <div className="min-h-screen flex items-center justify-center bg-slate-955 text-white">
         <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
       </div>
     );
@@ -83,14 +83,13 @@ function Dashboard({ user, onLogout }: any) {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isSaldoModalOpen, setIsSaldoModalOpen] = useState(false);
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false); // Menu de Filtro
   
   const [transacoes, setTransacoes] = useState<any[]>([]);
   const [cartoes, setCartoes] = useState<any[]>([]);
-  
-  // --- NOVO: ESTADO PARA FILTRAR POR CARTÃO ---
   const [filtroCartao, setFiltroCartao] = useState('Todos');
   
-  const [novoNome, setNovoNome] = useState(user?.user_metadata?.full_name || "");
+  const [novoNome, setNome] = useState(user?.user_metadata?.full_name || "");
   const [novaSenha, setNovaSenha] = useState('');
   const [confirmarNovaSenha, setConfirmarNovaSenha] = useState('');
 
@@ -130,9 +129,7 @@ function Dashboard({ user, onLogout }: any) {
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (novoNome !== user?.user_metadata?.full_name) {
-      await supabase.auth.updateUser({ data: { full_name: novoNome } });
-    }
+    await supabase.auth.updateUser({ data: { full_name: novoNome } });
     if (novaSenha && novaSenha === confirmarNovaSenha) {
       await supabase.auth.updateUser({ password: novaSenha });
       alert("Senha alterada!");
@@ -145,13 +142,10 @@ function Dashboard({ user, onLogout }: any) {
     e.preventDefault();
     const vTotal = Number(valorDisplay.replace(/\./g, '').replace(',', '.'));
     let descFinal = descricao;
-    if (tipoPagamento === 'recorrente') descFinal += ` (Mensal - Dia ${diaCobranca})`;
-    else if (tipoPagamento === 'debito') descFinal += ` (Débito Automático)`;
-    else if (tipoPagamento === 'parcelado' && parcelas > 1) descFinal += ` (${parcelas}x)`;
-    else if (tipoPagamento === 'avista') descFinal += ` (À Vista)`;
-
-    const { error } = await supabase.from('transacoes').insert([{ descricao: descFinal, valor: vTotal, forma_pagamento: formaPagamento, data_ordenacao: data, user_id: user.id }]);
-    if (!error) { fetchDados(); setIsModalOpen(false); setDescricao(''); setValorDisplay(''); setParcelas(1); setTipoPagamento('avista'); setDiaCobranca(''); }
+    const { error } = await supabase.from('transacoes').insert([{ 
+        descricao: descFinal, valor: vTotal, forma_pagamento: formaPagamento, data_ordenacao: data, user_id: user.id 
+    }]);
+    if (!error) { fetchDados(); setIsModalOpen(false); setDescricao(''); setValorDisplay(''); }
   };
 
   const handleSalvarCartao = async (e: React.FormEvent) => {
@@ -162,12 +156,12 @@ function Dashboard({ user, onLogout }: any) {
     } else {
       await supabase.from('cartoes').insert([{ banco, nome_cartao: nomeCartao, vencimento: Number(vencimento), logo_url: logoUrl, user_id: user.id }]);
     }
-    fetchDados(); setEditingCardId(null); setIsCardModalOpen(false); setBanco(''); setNomeCartao(''); setVencimento('');
+    fetchDados(); setEditingCardId(null); setIsCardModalOpen(false);
   };
 
   const formatarMoeda = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
   
-  // --- LÓGICA DE FILTRAGEM ---
+  // Lógica de Filtro
   const transacoesFiltradas = filtroCartao === 'Todos' 
     ? transacoes 
     : transacoes.filter(t => t.forma_pagamento.includes(filtroCartao));
@@ -177,7 +171,7 @@ function Dashboard({ user, onLogout }: any) {
 
   return (
     <div className="min-h-screen bg-slate-955 p-2 md:p-8 text-white font-sans overflow-x-hidden">
-      <header className="flex flex-col gap-4 mb-6 bg-slate-900 p-4 md:p-6 rounded-[2rem] md:rounded-[2.5rem] border border-slate-800 shadow-2xl">
+      <header className="flex flex-col gap-4 mb-6 bg-slate-900 p-4 md:p-6 rounded-[2rem] border border-slate-800 shadow-2xl relative">
         <div className="flex justify-between items-center w-full">
           <div className="flex items-center gap-3 md:gap-4">
             <div className="bg-blue-600 p-2 md:p-3 rounded-2xl text-white"><TrendingUp size={24} /></div>
@@ -187,52 +181,60 @@ function Dashboard({ user, onLogout }: any) {
             </div>
           </div>
           <div className="flex gap-2">
+            {/* BOTÃO DE FILTRO (MENU) */}
+            <div className="relative">
+                <button 
+                  onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-full border border-slate-700 font-black text-[10px] uppercase transition-all ${filtroCartao !== 'Todos' ? 'bg-blue-600 border-blue-500 text-white' : 'bg-slate-800 text-slate-300'}`}
+                >
+                  <Filter size={14} />
+                  <span className="max-w-[80px] truncate">{filtroCartao}</span>
+                  <ChevronDown size={14} className={`transition-transform ${isFilterMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* DROPDOWN DO MENU */}
+                {isFilterMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-56 bg-slate-900 border-2 border-slate-800 rounded-3xl shadow-2xl z-[100] overflow-hidden animate-in fade-in zoom-in duration-200">
+                    <div className="p-2 max-h-80 overflow-y-auto custom-scrollbar">
+                      <button onClick={() => { setFiltroCartao('Todos'); setIsFilterMenuOpen(false); }} className="w-full text-left p-4 hover:bg-slate-800 rounded-2xl transition-all flex flex-col">
+                        <span className="text-[10px] font-black uppercase text-white">Todos os Gastos</span>
+                        <span className="text-[8px] text-slate-500 font-bold uppercase tracking-widest">Geral</span>
+                      </button>
+                      <button onClick={() => { setFiltroCartao('Pix'); setIsFilterMenuOpen(false); }} className="w-full text-left p-4 hover:bg-slate-800 rounded-2xl transition-all flex flex-col">
+                        <span className="text-[10px] font-black uppercase text-emerald-400">Pix / Dinheiro</span>
+                        <span className="text-[8px] text-slate-500 font-bold uppercase tracking-widest">À Vista</span>
+                      </button>
+                      {cartoes.map(c => (
+                        <button key={c.id} onClick={() => { setFiltroCartao(c.banco); setIsFilterMenuOpen(false); }} className="w-full text-left p-4 hover:bg-slate-800 rounded-2xl transition-all flex flex-col border-t border-slate-800/50">
+                          <span className="text-[10px] font-black uppercase text-blue-400">{c.banco}</span>
+                          <span className="text-[8px] text-slate-500 font-bold uppercase tracking-widest truncate">{c.nome_cartao}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+            </div>
+
             <button onClick={() => setIsProfileModalOpen(true)} className="bg-slate-800 text-slate-300 p-2.5 rounded-full border border-slate-700 hover:bg-blue-600 transition-all"><UserCircle size={20} /></button>
             <button onClick={onLogout} className="bg-slate-800 text-rose-500 p-2.5 rounded-full border border-slate-700 hover:bg-rose-600 transition-all"><LogOut size={20} /></button>
           </div>
         </div>
-        
-        {/* ABAS DE FILTRO POR CARTÃO */}
-        <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
-          <button 
-            onClick={() => setFiltroCartao('Todos')}
-            className={`px-4 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all whitespace-nowrap border-2 ${filtroCartao === 'Todos' ? 'bg-blue-600 border-blue-500 text-white shadow-lg' : 'bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-600'}`}
-          >
-            Todos
-          </button>
-          <button 
-            onClick={() => setFiltroCartao('Pix')}
-            className={`px-4 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all whitespace-nowrap border-2 ${filtroCartao === 'Pix' ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg' : 'bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-600'}`}
-          >
-            Pix
-          </button>
-          {cartoes.map(c => (
-            <button 
-              key={c.id}
-              onClick={() => setFiltroCartao(c.banco)}
-              className={`px-4 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all whitespace-nowrap border-2 ${filtroCartao === c.banco ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg' : 'bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-600'}`}
-            >
-              {c.banco}
-            </button>
-          ))}
-        </div>
-
         <div className="flex flex-wrap gap-2 w-full">
           <button onClick={() => setIsSaldoModalOpen(true)} className="flex-1 bg-emerald-900/20 text-emerald-400 p-3 rounded-2xl border border-emerald-800/50 font-black text-[10px] uppercase flex items-center justify-center gap-2 shadow-inner"><Coins size={14} /> Saldo</button>
-          <button onClick={() => { setEditingCardId(null); setBanco(''); setNomeCartao(''); setVencimento(''); setIsCardModalOpen(true); }} className="flex-1 bg-slate-800/50 text-slate-300 p-3 rounded-2xl border border-slate-700 font-black text-[10px] uppercase flex items-center justify-center gap-2 shadow-inner"><CreditCard size={14} /> Cartão</button>
+          <button onClick={() => { setEditingCardId(null); setIsCardModalOpen(true); }} className="flex-1 bg-slate-800/50 text-slate-300 p-3 rounded-2xl border border-slate-700 font-black text-[10px] uppercase flex items-center justify-center gap-2 shadow-inner"><CreditCard size={14} /> Cartão</button>
           <button onClick={() => setIsModalOpen(true)} className="w-full md:w-auto bg-blue-600 text-white p-3.5 rounded-2xl shadow-lg font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-700 active:scale-95 transition-all"><Plus size={18} /> Novo Gasto</button>
         </div>
       </header>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6">
-        <Card title="Saldo Caixa" value={`R$ ${formatarMoeda(saldoAtual)}`} icon={<Banknote />} color="bg-slate-900 border-b-4 md:border-b-8 border-blue-600" />
-        <Card title={`Gasto ${filtroCartao}`} value={`R$ ${formatarMoeda(gastoTotalFiltrado)}`} icon={<CreditCard />} color="bg-slate-900 border-b-4 md:border-b-8 border-rose-600" />
-        <Card title="Saldo Inicial" value={`R$ ${formatarMoeda(saldoInicial)}`} icon={<Coins />} color="bg-slate-900 border-b-4 md:border-b-8 border-emerald-600" />
-        <Card title="Status" value={filtroCartao} icon={<Filter />} color="bg-slate-900 border-b-4 md:border-b-8 border-amber-500" />
+        <Card title="Saldo Caixa" value={`R$ ${formatarMoeda(saldoAtual)}`} icon={<Banknote />} color="bg-slate-900 border-b-4 border-blue-600" />
+        <Card title={`Gasto ${filtroCartao}`} value={`R$ ${formatarMoeda(gastoTotalFiltrado)}`} icon={<CreditCard />} color="bg-slate-900 border-b-4 border-rose-600" />
+        <Card title="Saldo Inicial" value={`R$ ${formatarMoeda(saldoInicial)}`} icon={<Coins />} color="bg-slate-900 border-b-4 border-emerald-600" />
+        <Card title="Filtro" value={filtroCartao} icon={<Filter />} color="bg-slate-900 border-b-4 border-amber-500" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-        <div className="lg:col-span-2 space-y-4 md:space-y-6">
+        <div className="lg:col-span-2 space-y-4">
           <div className="bg-slate-900 p-4 md:p-8 rounded-[2rem] border border-slate-800 h-64 md:h-80 shadow-2xl">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={[...transacoesFiltradas].reverse().map(t => ({ name: t.data_ordenacao, valor: t.valor }))}>
@@ -246,16 +248,16 @@ function Dashboard({ user, onLogout }: any) {
 
           <div className="bg-slate-900 p-5 md:p-8 rounded-[2rem] border border-slate-800 shadow-2xl">
             <h2 className="text-white font-black mb-4 uppercase text-[10px] tracking-widest">Meus Cartões</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {cartoes.map(c => (
-                <div key={c.id} className={`p-4 md:p-5 border-2 rounded-2xl flex justify-between items-center transition-all group ${filtroCartao === c.banco ? 'border-blue-600 bg-blue-900/10' : 'border-slate-800 bg-slate-950/50 hover:border-blue-500'}`}>
-                  <div className="flex items-center gap-3 md:gap-4">
-                    <div className="w-10 h-10 md:w-12 md:h-12 bg-slate-800 rounded-xl flex items-center justify-center overflow-hidden border border-slate-700 p-1.5">
+                <div key={c.id} className="p-4 border-2 border-slate-800 rounded-2xl flex justify-between items-center bg-slate-950/50 hover:border-blue-500 transition-all">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center overflow-hidden border border-slate-700 p-1.5">
                       <img src={c.logo_url} alt={c.banco} className="w-full h-full object-contain" onError={(e: any) => e.target.src = "https://cdn-icons-png.flaticon.com/512/60/60378.png"} />
                     </div>
                     <div>
-                      <p className="text-[8px] md:text-[9px] font-black text-slate-500 uppercase">{c.banco}</p>
-                      <p className="font-black text-xs md:text-sm">{c.nome_cartao}</p>
+                      <p className="text-[8px] font-black text-slate-500 uppercase">{c.banco}</p>
+                      <p className="font-black text-xs">{c.nome_cartao}</p>
                       <p className="text-[9px] font-bold text-blue-400 uppercase tracking-tighter">Dia {c.vencimento}</p>
                     </div>
                   </div>
@@ -275,27 +277,25 @@ function Dashboard({ user, onLogout }: any) {
             {transacoesFiltradas.length > 0 ? transacoesFiltradas.map((t) => (
               <div key={t.id} className="flex justify-between items-center p-3.5 bg-slate-800/40 rounded-2xl border border-slate-800 hover:bg-slate-800/60 transition-all">
                 <div className="flex-1 min-w-0 mr-3">
-                  <p className="font-black text-slate-200 text-[10px] md:text-[11px] uppercase tracking-tight truncate">{t.descricao}</p>
-                  <p className="text-[8px] md:text-[9px] text-slate-500 font-black uppercase">{t.data_ordenacao}</p>
-                  <p className="text-[7px] md:text-[8px] font-bold text-blue-400 uppercase tracking-tighter truncate">{t.forma_pagamento}</p>
+                  <p className="font-black text-slate-200 text-[10px] uppercase tracking-tight truncate">{t.descricao}</p>
+                  <p className="text-[8px] text-slate-500 font-black uppercase">{t.data_ordenacao}</p>
+                  <p className="text-[7px] font-bold text-blue-400 uppercase tracking-tighter truncate">{t.forma_pagamento}</p>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className="font-black text-xs md:text-sm text-rose-500">R$ {formatarMoeda(t.valor)}</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-black text-xs text-rose-500">R$ {formatarMoeda(t.valor)}</span>
                   <button onClick={async () => { if(confirm("Apagar?")) await supabase.from('transacoes').delete().eq('id', t.id); fetchDados(); }} className="text-slate-700 hover:text-rose-500"><Trash2 size={14} /></button>
                 </div>
               </div>
-            )) : (
-              <p className="text-center text-slate-600 font-black text-[10px] uppercase mt-10">Nenhum gasto neste cartão</p>
-            )}
+            )) : <p className="text-center text-slate-600 font-black text-[10px] uppercase mt-10">Vazio</p>}
           </div>
         </div>
       </div>
 
       {/* MODAL GASTO */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-4 z-50 animate-in fade-in duration-300">
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-4 z-[200]">
           <form onSubmit={handleSalvarGasto} className="bg-slate-900 w-full max-w-md rounded-t-[2.5rem] md:rounded-[3rem] p-6 md:p-10 border-t-4 md:border-4 border-slate-800 shadow-2xl overflow-y-auto max-h-[95vh]">
-            <h2 className="text-xl md:text-2xl font-black text-white uppercase tracking-tighter mb-6">Novo Gasto</h2>
+            <h2 className="text-xl font-black text-white uppercase tracking-tighter mb-6">Novo Gasto</h2>
             <div className="space-y-4">
               <input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="DESCRIÇÃO" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white uppercase text-xs font-bold focus:border-blue-600 outline-none" required />
               <div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500 font-black text-sm">R$</span><input type="text" value={valorDisplay} onChange={(e) => setValorDisplay(aplicarMascara(e.target.value))} placeholder="0,00" className="w-full pl-10 p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 font-black text-blue-400 text-lg outline-none focus:border-blue-600" required /></div>
@@ -306,19 +306,6 @@ function Dashboard({ user, onLogout }: any) {
                   {cartoes.map(c => (<option key={c.id} value={`${c.banco} - ${c.nome_cartao}`}>{c.banco} ({c.nome_cartao})</option>))}
                 </select>
               </div>
-
-              {formaPagamento !== "Pix" && (
-                <div className="bg-slate-950/50 p-4 rounded-3xl border-2 border-slate-800 space-y-3">
-                  <div className="grid grid-cols-2 gap-2">
-                    <button type="button" onClick={() => setTipoPagamento('avista')} className={`p-3 rounded-xl border-2 text-[8px] font-black uppercase transition-all flex items-center justify-center gap-1 ${tipoPagamento === 'avista' ? 'border-blue-600 bg-blue-600/10 text-blue-400' : 'border-slate-800 text-slate-600'}`}><CheckCircle2 size={12}/> À Vista</button>
-                    <button type="button" onClick={() => setTipoPagamento('parcelado')} className={`p-3 rounded-xl border-2 text-[8px] font-black uppercase transition-all flex items-center justify-center gap-1 ${tipoPagamento === 'parcelado' ? 'border-blue-600 bg-blue-600/10 text-blue-400' : 'border-slate-800 text-slate-600'}`}><CreditCard size={12}/> Parcelado</button>
-                    <button type="button" onClick={() => setTipoPagamento('recorrente')} className={`p-3 rounded-xl border-2 text-[8px] font-black uppercase transition-all flex items-center justify-center gap-1 ${tipoPagamento === 'recorrente' ? 'border-blue-600 bg-blue-600/10 text-blue-400' : 'border-slate-800 text-slate-600'}`}><CalendarClock size={12}/> Recorrente</button>
-                    <button type="button" onClick={() => setTipoPagamento('debito')} className={`p-3 rounded-xl border-2 text-[8px] font-black uppercase transition-all flex items-center justify-center gap-1 ${tipoPagamento === 'debito' ? 'border-emerald-600 bg-emerald-600/10 text-emerald-400' : 'border-slate-800 text-slate-600'}`}><Wallet size={12}/> Débito</button>
-                  </div>
-                  {tipoPagamento === 'recorrente' && (<div className="space-y-1 animate-in fade-in"><label className="text-[9px] font-black text-slate-400 uppercase">Dia Mensal:</label><input type="number" min="1" max="31" value={diaCobranca} onChange={(e) => setDiaCobranca(e.target.value)} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs" required /></div>)}
-                  {tipoPagamento === 'parcelado' && (<div className="space-y-1 animate-in fade-in"><label className="text-[9px] font-black text-slate-400 uppercase">Parcelas:</label><input type="number" min="2" max="48" value={parcelas} onChange={(e) => setParcelas(Number(e.target.value))} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs" /></div>)}
-                </div>
-              )}
               <input type="date" value={data} onChange={(e) => setData(e.target.value)} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 font-bold text-white outline-none" required />
               <button type="submit" className="w-full bg-blue-600 text-white font-black py-5 rounded-[2rem] shadow-xl uppercase text-sm mt-2">Lançar Agora</button>
               <button type="button" onClick={() => setIsModalOpen(false)} className="w-full text-slate-500 font-bold uppercase text-[9px] mt-2 text-center">Fechar</button>
@@ -329,14 +316,14 @@ function Dashboard({ user, onLogout }: any) {
 
       {/* MODAL PERFIL */}
       {isProfileModalOpen && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 z-[200]">
           <form onSubmit={handleUpdateProfile} className="bg-slate-900 w-full max-w-md rounded-[2.5rem] p-6 md:p-10 border-4 border-slate-800 shadow-2xl">
             <h2 className="text-xl md:text-2xl font-black text-white uppercase tracking-tighter mb-6 text-center">Perfil</h2>
             <div className="space-y-4">
-              <input value={novoNome} onChange={(e) => setNovoNome(e.target.value)} placeholder="NOME" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs uppercase outline-none" />
+              <input value={novoNome} onChange={(e) => setNome(e.target.value)} placeholder="NOME" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs uppercase outline-none" />
               <input type="password" placeholder="NOVA SENHA" value={novaSenha} onChange={(e) => setNovaSenha(e.target.value)} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs outline-none" />
               <input type="password" placeholder="CONFIRMAR SENHA" value={confirmarNovaSenha} onChange={(e) => setConfirmarNovaSenha(e.target.value)} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs outline-none" />
-              <button type="submit" className="w-full bg-blue-600 text-white font-black py-5 rounded-3xl uppercase text-xs mt-2">Salvar Alterações</button>
+              <button type="submit" className="w-full bg-blue-600 text-white font-black py-5 rounded-3xl uppercase text-xs mt-2">Salvar</button>
               <button type="button" onClick={() => setIsProfileModalOpen(false)} className="w-full text-slate-500 font-bold uppercase text-[9px] mt-2 text-center">Fechar</button>
             </div>
           </form>
@@ -345,7 +332,7 @@ function Dashboard({ user, onLogout }: any) {
 
       {/* MODAL CARTÃO */}
       {isCardModalOpen && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 z-[200]">
           <form onSubmit={handleSalvarCartao} className="bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-6 md:p-10 border-4 border-slate-800 shadow-2xl">
             <h2 className="text-xl font-black mb-6 text-white text-center uppercase tracking-widest">{editingCardId ? 'Editar' : 'Novo'} Cartão</h2>
             <div className="space-y-4">
@@ -361,7 +348,7 @@ function Dashboard({ user, onLogout }: any) {
 
       {/* MODAL SALDO */}
       {isSaldoModalOpen && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 z-[200]">
           <div className="bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-6 md:p-10 border-4 border-slate-800 shadow-2xl">
             <h2 className="text-xl font-black mb-6 text-emerald-500 text-center uppercase tracking-widest">Saldo Inicial</h2>
             <div className="relative mb-6"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-600 font-black text-lg">R$</span><input type="text" value={saldoDisplay} onChange={(e) => setSaldoDisplay(aplicarMascara(e.target.value))} placeholder="0,00" className="w-full pl-12 p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 font-black text-emerald-500 text-xl outline-none" /></div>
