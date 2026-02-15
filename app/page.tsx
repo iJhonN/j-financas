@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  TrendingUp, Trash2, CreditCard, Banknote, Plus, X, Landmark, Coins, Pencil, LogOut, UserCircle, ShieldCheck, CalendarClock, Wallet, CheckCircle2, Loader2
+  TrendingUp, Trash2, CreditCard, Banknote, Plus, X, Landmark, Coins, Pencil, LogOut, UserCircle, ShieldCheck, CalendarClock, Wallet, CheckCircle2, Loader2, Filter
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { supabase } from '@/lib/supabase';
@@ -14,9 +14,8 @@ export default function App() {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(true); // Estado para o login automático
+  const [loading, setLoading] = useState(true);
 
-  // --- LÓGICA DE LOGIN AUTOMÁTICO INTEGRADA ---
   useEffect(() => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -24,7 +23,7 @@ export default function App() {
         setUser(session.user);
         setView('dashboard');
       }
-      setLoading(false); // Libera a tela após a verificação
+      setLoading(false);
     };
     checkUser();
   }, []);
@@ -46,7 +45,6 @@ export default function App() {
     }
   };
 
-  // Tela de carregamento enquanto verifica se você já está logado
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
@@ -80,7 +78,6 @@ export default function App() {
   return <Dashboard user={user} onLogout={() => { supabase.auth.signOut(); setView('auth'); }} />;
 }
 
-// O restante do seu componente Dashboard permanece exatamente igual para não perder suas funções
 function Dashboard({ user, onLogout }: any) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -89,6 +86,9 @@ function Dashboard({ user, onLogout }: any) {
   
   const [transacoes, setTransacoes] = useState<any[]>([]);
   const [cartoes, setCartoes] = useState<any[]>([]);
+  
+  // --- NOVO: ESTADO PARA FILTRAR POR CARTÃO ---
+  const [filtroCartao, setFiltroCartao] = useState('Todos');
   
   const [novoNome, setNovoNome] = useState(user?.user_metadata?.full_name || "");
   const [novaSenha, setNovaSenha] = useState('');
@@ -166,6 +166,13 @@ function Dashboard({ user, onLogout }: any) {
   };
 
   const formatarMoeda = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+  
+  // --- LÓGICA DE FILTRAGEM ---
+  const transacoesFiltradas = filtroCartao === 'Todos' 
+    ? transacoes 
+    : transacoes.filter(t => t.forma_pagamento.includes(filtroCartao));
+
+  const gastoTotalFiltrado = transacoesFiltradas.reduce((acc, t) => acc + Number(t.valor), 0);
   const saldoAtual = saldoInicial - transacoes.reduce((acc, t) => acc + Number(t.valor), 0);
 
   return (
@@ -184,6 +191,32 @@ function Dashboard({ user, onLogout }: any) {
             <button onClick={onLogout} className="bg-slate-800 text-rose-500 p-2.5 rounded-full border border-slate-700 hover:bg-rose-600 transition-all"><LogOut size={20} /></button>
           </div>
         </div>
+        
+        {/* ABAS DE FILTRO POR CARTÃO */}
+        <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+          <button 
+            onClick={() => setFiltroCartao('Todos')}
+            className={`px-4 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all whitespace-nowrap border-2 ${filtroCartao === 'Todos' ? 'bg-blue-600 border-blue-500 text-white shadow-lg' : 'bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-600'}`}
+          >
+            Todos
+          </button>
+          <button 
+            onClick={() => setFiltroCartao('Pix')}
+            className={`px-4 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all whitespace-nowrap border-2 ${filtroCartao === 'Pix' ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg' : 'bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-600'}`}
+          >
+            Pix
+          </button>
+          {cartoes.map(c => (
+            <button 
+              key={c.id}
+              onClick={() => setFiltroCartao(c.banco)}
+              className={`px-4 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all whitespace-nowrap border-2 ${filtroCartao === c.banco ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg' : 'bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-600'}`}
+            >
+              {c.banco}
+            </button>
+          ))}
+        </div>
+
         <div className="flex flex-wrap gap-2 w-full">
           <button onClick={() => setIsSaldoModalOpen(true)} className="flex-1 bg-emerald-900/20 text-emerald-400 p-3 rounded-2xl border border-emerald-800/50 font-black text-[10px] uppercase flex items-center justify-center gap-2 shadow-inner"><Coins size={14} /> Saldo</button>
           <button onClick={() => { setEditingCardId(null); setBanco(''); setNomeCartao(''); setVencimento(''); setIsCardModalOpen(true); }} className="flex-1 bg-slate-800/50 text-slate-300 p-3 rounded-2xl border border-slate-700 font-black text-[10px] uppercase flex items-center justify-center gap-2 shadow-inner"><CreditCard size={14} /> Cartão</button>
@@ -193,16 +226,16 @@ function Dashboard({ user, onLogout }: any) {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6">
         <Card title="Saldo Caixa" value={`R$ ${formatarMoeda(saldoAtual)}`} icon={<Banknote />} color="bg-slate-900 border-b-4 md:border-b-8 border-blue-600" />
-        <Card title="Gasto Total" value={`R$ ${formatarMoeda(transacoes.reduce((acc, t) => acc + Number(t.valor), 0))}`} icon={<CreditCard />} color="bg-slate-900 border-b-4 md:border-b-8 border-rose-600" />
+        <Card title={`Gasto ${filtroCartao}`} value={`R$ ${formatarMoeda(gastoTotalFiltrado)}`} icon={<CreditCard />} color="bg-slate-900 border-b-4 md:border-b-8 border-rose-600" />
         <Card title="Saldo Inicial" value={`R$ ${formatarMoeda(saldoInicial)}`} icon={<Coins />} color="bg-slate-900 border-b-4 md:border-b-8 border-emerald-600" />
-        <Card title="Status" value="Ativo" icon={<ShieldCheck />} color="bg-slate-900 border-b-4 md:border-b-8 border-amber-500" />
+        <Card title="Status" value={filtroCartao} icon={<Filter />} color="bg-slate-900 border-b-4 md:border-b-8 border-amber-500" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         <div className="lg:col-span-2 space-y-4 md:space-y-6">
           <div className="bg-slate-900 p-4 md:p-8 rounded-[2rem] border border-slate-800 h-64 md:h-80 shadow-2xl">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={[...transacoes].reverse().map(t => ({ name: t.data_ordenacao, valor: t.valor }))}>
+              <AreaChart data={[...transacoesFiltradas].reverse().map(t => ({ name: t.data_ordenacao, valor: t.valor }))}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
                 <XAxis dataKey="name" hide />
                 <Tooltip formatter={(v: any) => [`R$ ${formatarMoeda(v)}`, 'Gasto']} contentStyle={{backgroundColor: '#0f172a', border: 'none', borderRadius: '15px'}} />
@@ -215,7 +248,7 @@ function Dashboard({ user, onLogout }: any) {
             <h2 className="text-white font-black mb-4 uppercase text-[10px] tracking-widest">Meus Cartões</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               {cartoes.map(c => (
-                <div key={c.id} className="p-4 md:p-5 border-2 border-slate-800 rounded-2xl flex justify-between items-center bg-slate-950/50 hover:border-blue-500 transition-all group">
+                <div key={c.id} className={`p-4 md:p-5 border-2 rounded-2xl flex justify-between items-center transition-all group ${filtroCartao === c.banco ? 'border-blue-600 bg-blue-900/10' : 'border-slate-800 bg-slate-950/50 hover:border-blue-500'}`}>
                   <div className="flex items-center gap-3 md:gap-4">
                     <div className="w-10 h-10 md:w-12 md:h-12 bg-slate-800 rounded-xl flex items-center justify-center overflow-hidden border border-slate-700 p-1.5">
                       <img src={c.logo_url} alt={c.banco} className="w-full h-full object-contain" onError={(e: any) => e.target.src = "https://cdn-icons-png.flaticon.com/512/60/60378.png"} />
@@ -237,9 +270,9 @@ function Dashboard({ user, onLogout }: any) {
         </div>
 
         <div className="bg-slate-900 p-5 md:p-8 rounded-[2rem] border border-slate-800 h-[450px] md:h-[600px] overflow-hidden flex flex-col shadow-2xl">
-          <h2 className="text-white font-black mb-4 uppercase text-[10px] tracking-widest">Lançamentos</h2>
+          <h2 className="text-white font-black mb-4 uppercase text-[10px] tracking-widest">Lançamentos ({filtroCartao})</h2>
           <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar">
-            {transacoes.map((t) => (
+            {transacoesFiltradas.length > 0 ? transacoesFiltradas.map((t) => (
               <div key={t.id} className="flex justify-between items-center p-3.5 bg-slate-800/40 rounded-2xl border border-slate-800 hover:bg-slate-800/60 transition-all">
                 <div className="flex-1 min-w-0 mr-3">
                   <p className="font-black text-slate-200 text-[10px] md:text-[11px] uppercase tracking-tight truncate">{t.descricao}</p>
@@ -251,12 +284,14 @@ function Dashboard({ user, onLogout }: any) {
                   <button onClick={async () => { if(confirm("Apagar?")) await supabase.from('transacoes').delete().eq('id', t.id); fetchDados(); }} className="text-slate-700 hover:text-rose-500"><Trash2 size={14} /></button>
                 </div>
               </div>
-            ))}
+            )) : (
+              <p className="text-center text-slate-600 font-black text-[10px] uppercase mt-10">Nenhum gasto neste cartão</p>
+            )}
           </div>
         </div>
       </div>
 
-      {/* MODAIS (GASTO, PERFIL, CARTÃO, SALDO) */}
+      {/* MODAL GASTO */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-4 z-50 animate-in fade-in duration-300">
           <form onSubmit={handleSalvarGasto} className="bg-slate-900 w-full max-w-md rounded-t-[2.5rem] md:rounded-[3rem] p-6 md:p-10 border-t-4 md:border-4 border-slate-800 shadow-2xl overflow-y-auto max-h-[95vh]">
@@ -292,6 +327,7 @@ function Dashboard({ user, onLogout }: any) {
         </div>
       )}
 
+      {/* MODAL PERFIL */}
       {isProfileModalOpen && (
         <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 z-50">
           <form onSubmit={handleUpdateProfile} className="bg-slate-900 w-full max-w-md rounded-[2.5rem] p-6 md:p-10 border-4 border-slate-800 shadow-2xl">
@@ -307,6 +343,7 @@ function Dashboard({ user, onLogout }: any) {
         </div>
       )}
 
+      {/* MODAL CARTÃO */}
       {isCardModalOpen && (
         <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 z-50">
           <form onSubmit={handleSalvarCartao} className="bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-6 md:p-10 border-4 border-slate-800 shadow-2xl">
@@ -322,6 +359,7 @@ function Dashboard({ user, onLogout }: any) {
         </div>
       )}
 
+      {/* MODAL SALDO */}
       {isSaldoModalOpen && (
         <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 z-50">
           <div className="bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-6 md:p-10 border-4 border-slate-800 shadow-2xl">
