@@ -62,7 +62,7 @@ export default function App() {
     }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-955 text-white"><Loader2 className="h-12 w-12 animate-spin text-blue-600" /></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-955"><Loader2 className="h-12 w-12 animate-spin text-blue-600" /></div>;
 
   return (
     <>
@@ -70,7 +70,7 @@ export default function App() {
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[1000] animate-in fade-in slide-in-from-top-4 duration-300 px-4 w-full max-w-sm">
           <div className={`flex items-center gap-3 p-4 rounded-2xl border-2 shadow-2xl backdrop-blur-xl ${alertConfig.type === 'error' ? 'bg-rose-950/80 border-rose-500 text-rose-200' : 'bg-emerald-950/80 border-emerald-500 text-emerald-200'}`}>
             {alertConfig.type === 'error' ? <AlertCircle size={20}/> : <CheckCircle size={20}/>}
-            <p className="text-xs font-black uppercase tracking-widest leading-tight italic">{alertConfig.msg}</p>
+            <p className="text-xs font-black uppercase tracking-widest leading-tight">{alertConfig.msg}</p>
             <button onClick={() => setAlertConfig(prev => ({...prev, show: false}))} className="ml-auto opacity-50"><X size={16}/></button>
           </div>
         </div>
@@ -79,8 +79,8 @@ export default function App() {
       {view === 'auth' ? (
         <div className="min-h-screen flex items-center justify-center p-4 bg-slate-955 text-white text-sm">
           <form onSubmit={handleAuth} className="bg-slate-900 w-full max-w-md rounded-[2.5rem] p-6 md:p-10 border-4 border-slate-800 shadow-2xl">
-            <div className="flex flex-col items-center mb-8 text-center">
-              <div className="bg-blue-600 p-4 rounded-3xl text-white mb-4 shadow-lg shadow-blue-500/20"><TrendingUp size={32} /></div>
+            <div className="flex flex-col items-center mb-8">
+              <div className="bg-blue-600 p-4 rounded-3xl text-white mb-4 shadow-lg"><TrendingUp size={32} /></div>
               <h1 className="text-xl md:text-2xl font-black uppercase tracking-tighter italic">J FINANÇAS</h1>
             </div>
             <div className="space-y-4">
@@ -90,7 +90,7 @@ export default function App() {
               <input type="email" placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-white focus:border-blue-600" required />
               <div className="relative">
                 <input type={showPassword ? "text" : "password"} placeholder="Senha" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-white pr-12 focus:border-blue-600" required />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500">
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
@@ -178,13 +178,6 @@ function Dashboard({ user, onLogout, showAlert }: any) {
     if (apenasLetras.length <= 12) setNomeCartao(apenasLetras);
   };
 
-  const enviarNotificacaoManual = async (e: React.FormEvent) => {
-    e.preventDefault();
-    showAlert(`Alerta enviado!`, 'success');
-    setIsAdminMenuOpen(false);
-    setNotifTitulo(''); setNotifMensagem('');
-  };
-
   const toggleNotifications = async () => {
     const permission = await Notification.requestPermission();
     setNotifPermission(permission);
@@ -202,20 +195,11 @@ function Dashboard({ user, onLogout, showAlert }: any) {
     return v;
   };
 
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await supabase.auth.updateUser({ data: { full_name: novoNome } });
-    if (novaSenha && novaSenha === confirmarNovaSenha) await supabase.auth.updateUser({ password: novaSenha });
-    showAlert("Dados salvos!", 'success');
-    setIsProfileEditModalOpen(false);
-    setTimeout(() => window.location.reload(), 800);
-  };
-
   const handleSalvarGasto = async (e: React.FormEvent) => {
     e.preventDefault();
     const vTotal = Number(valorDisplay.replace(/\./g, '').replace(',', '.'));
     const { error } = await supabase.from('transacoes').insert([{ descricao: descricao.toUpperCase(), valor: vTotal, forma_pagamento: formaPagamento, data_ordenacao: data, user_id: user.id }]);
-    if (!error) { fetchDados(); setIsModalOpen(false); setDescricao(''); setValorDisplay(''); showAlert("Lançamento OK!", 'success'); }
+    if (!error) { fetchDados(); setIsModalOpen(false); setDescricao(''); setValorDisplay(''); showAlert("Salvo!", 'success'); }
   };
 
   const handleSalvarCartao = async (e: React.FormEvent) => {
@@ -243,6 +227,7 @@ function Dashboard({ user, onLogout, showAlert }: any) {
               <p className="text-[9px] md:text-[10px] font-black text-blue-400 mt-1 uppercase leading-tight italic">Olá, {user?.user_metadata?.full_name?.split(' ')[0]}</p>
             </div>
           </div>
+          
           <div className="flex gap-2 leading-none">
             {isAdmin && (
               <button onClick={() => setIsAdminMenuOpen(true)} className="bg-amber-500 text-slate-950 p-2.5 rounded-full shadow-lg border-2 border-amber-400/50 hover:scale-110 active:scale-95 transition-all">
@@ -257,9 +242,9 @@ function Dashboard({ user, onLogout, showAlert }: any) {
               {isProfileMenuOpen && (
                 <div className="absolute right-0 mt-2 w-64 bg-slate-900 border-2 border-slate-800 rounded-[2rem] shadow-2xl z-[110] overflow-hidden animate-in fade-in slide-in-from-top-2">
                   <div className="p-3 space-y-1">
-                    <div className="p-4 bg-slate-800/50 rounded-2xl border border-slate-700 mb-1 leading-tight italic">
-                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic leading-tight">Conta</p>
-                       <p className="text-xs font-bold text-white truncate mt-1 italic leading-tight">{user?.email}</p>
+                    <div className="p-4 bg-slate-800/50 rounded-2xl border border-slate-700 mb-1 leading-tight">
+                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">Conta</p>
+                       <p className="text-xs font-bold text-white truncate mt-1 italic">{user?.email}</p>
                     </div>
                     <button onClick={toggleNotifications} className="w-full flex items-center justify-between p-4 hover:bg-slate-800 rounded-2xl transition-all leading-tight">
                       <div className="flex items-center gap-3 italic">
@@ -270,7 +255,7 @@ function Dashboard({ user, onLogout, showAlert }: any) {
                     </button>
                     <button onClick={() => { setIsProfileMenuOpen(false); setIsProfileEditModalOpen(true); }} className="w-full flex items-center gap-3 p-4 hover:bg-slate-800 rounded-2xl transition-all leading-tight italic">
                       <Settings className="text-slate-500" size={18} />
-                      <span className="text-[10px] font-black uppercase text-slate-300">Configurações</span>
+                      <span className="text-[10px] font-black uppercase text-slate-300">Meu Perfil</span>
                     </button>
                     <button onClick={onLogout} className="w-full flex items-center gap-3 p-4 hover:bg-rose-900/20 text-rose-500 rounded-2xl transition-all border-t border-slate-800/50 mt-1 leading-tight font-black uppercase text-[10px] italic">
                       <LogOut size={18} /> Sair
@@ -294,7 +279,7 @@ function Dashboard({ user, onLogout, showAlert }: any) {
         <Card title="Saldo Inicial" value={`R$ ${formatarMoeda(saldoInicial)}`} icon={<Coins size={20}/>} color="bg-slate-900 border-b-8 border-emerald-600" />
         
         <div className="relative">
-          <button onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} className="w-full bg-slate-900 p-4 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl border-b-8 border-amber-500 flex flex-col justify-between h-32 md:h-36 text-left active:scale-95 transition-all">
+          <button onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} className="w-full bg-slate-900 p-4 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl border-b-8 border-amber-500 flex flex-col justify-between h-32 md:h-36 text-left active:scale-95 transition-all leading-tight">
             <div className="flex justify-between items-start w-full">
               <span className="text-white/40 font-black text-[7px] md:text-[10px] uppercase tracking-widest leading-tight italic">Filtrar por:</span>
               <div className="p-1.5 bg-white/5 rounded-xl border border-white/5 opacity-50"><Filter size={20}/></div>
@@ -342,9 +327,9 @@ function Dashboard({ user, onLogout, showAlert }: any) {
                       <CreditCard size={18} className="text-slate-500 hidden" />
                     </div>
                     <div className="leading-tight">
-                      <p className="text-[8px] font-black text-slate-500 uppercase mb-1 leading-tight">{c.banco}</p>
-                      <p className="font-black text-xs uppercase italic mb-1 leading-tight">{c.nome_cartao}</p>
-                      <p className="text-[9px] font-bold text-blue-400 leading-tight">DIA {c.vencimento}</p>
+                      <p className="text-[8px] font-black text-slate-500 uppercase mb-1">{c.banco}</p>
+                      <p className="font-black text-xs uppercase italic mb-1">{c.nome_cartao}</p>
+                      <p className="text-[9px] font-bold text-blue-400">DIA {c.vencimento}</p>
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -363,14 +348,14 @@ function Dashboard({ user, onLogout, showAlert }: any) {
               <div key={t.id} className="flex justify-between items-center p-4 bg-slate-800/40 rounded-2xl border border-slate-800 hover:bg-slate-800/60 transition-all italic leading-tight">
                 <div className="flex-1 min-w-0 mr-3">
                   <p className="font-black text-slate-200 text-[10px] uppercase tracking-tight truncate leading-tight mb-1 italic">{t.descricao}</p>
-                  <p className="text-[8px] text-slate-500 font-bold uppercase leading-tight">{t.data_ordenacao}</p>
+                  <p className="text-[8px] text-slate-500 font-bold uppercase">{t.data_ordenacao}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0 leading-tight">
                   <span className="font-black text-xs text-rose-500 whitespace-nowrap italic leading-tight">R$ {formatarMoeda(t.valor)}</span>
                   <button onClick={async () => { if(confirm("Apagar?")) { await supabase.from('transacoes').delete().eq('id', t.id); fetchDados(); showAlert("Removido", 'success'); } }} className="text-slate-700 hover:text-rose-500 transition-all"><Trash2 size={14} /></button>
                 </div>
               </div>
-            )) : <p className="text-center text-slate-600 font-black text-[9px] uppercase mt-10 italic">Vazio</p>}
+            )) : <p className="text-center text-slate-600 font-black text-[9px] uppercase mt-10">Vazio</p>}
           </div>
         </div>
       </div>
@@ -379,7 +364,7 @@ function Dashboard({ user, onLogout, showAlert }: any) {
         <div className="fixed inset-0 bg-black/98 backdrop-blur-xl flex items-center justify-center p-4 z-[500] animate-in fade-in duration-300 italic">
           <div className="bg-slate-900 w-full max-w-lg rounded-[3rem] border-4 border-amber-500/30 shadow-2xl overflow-hidden leading-tight">
             <div className="bg-amber-500 p-6 flex justify-between items-center text-slate-950 italic leading-none">
-              <div><h2 className="font-black uppercase tracking-tighter text-xl italic leading-tight">Admin Panel</h2><p className="text-[10px] font-bold uppercase mt-1 italic leading-tight">Gerenciamento Superior</p></div>
+              <div><h2 className="font-black uppercase tracking-tighter text-xl italic leading-tight">Admin Panel</h2><p className="text-[10px] font-bold uppercase mt-1">Gerenciamento Superior</p></div>
               <button onClick={() => setIsAdminMenuOpen(false)} className="bg-slate-950/20 p-2 rounded-full leading-tight"><X size={24} /></button>
             </div>
             <div className="flex border-b border-slate-800 uppercase font-black text-[9px] italic leading-tight">
@@ -396,7 +381,7 @@ function Dashboard({ user, onLogout, showAlert }: any) {
               ) : (
                 <div className="space-y-4 flex flex-col items-center justify-center p-8 bg-slate-800/50 rounded-[2.5rem] border-2 border-amber-500/10 italic leading-tight">
                    <Users size={48} className="text-amber-500 mb-2 opacity-50 leading-tight" />
-                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic leading-tight">Total de Usuários</span>
+                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-tight">Total de Usuários</span>
                    <div className="text-7xl font-black text-white tracking-tighter py-2 leading-tight">
                      {buscandoUsers ? <Loader2 className="animate-spin h-8 w-8 text-amber-500" /> : totalUsuarios}
                    </div>
@@ -420,7 +405,7 @@ function Dashboard({ user, onLogout, showAlert }: any) {
                 {cartoes.map(c => (<option key={c.id} value={`${c.banco} - ${c.nome_cartao}`}>{c.banco} ({c.nome_cartao})</option>))}
               </select>
               <input type="date" value={data} onChange={(e) => setData(e.target.value)} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 font-bold text-white outline-none focus:border-blue-600 transition-all leading-tight" required />
-              <button type="submit" className="w-full bg-blue-600 text-white font-black py-5 rounded-[2rem] shadow-xl uppercase text-sm mt-2 active:scale-95 transition-all italic leading-tight">Lançar Agora</button>
+              <button type="submit" className="w-full bg-blue-600 text-white font-black py-5 rounded-[2rem] shadow-xl hover:bg-blue-700 transition-all uppercase text-sm mt-2 active:scale-95 transition-all italic leading-tight">Lançar Agora</button>
               <button type="button" onClick={() => setIsModalOpen(false)} className="w-full text-slate-500 font-bold uppercase text-[9px] mt-2 text-center leading-tight">Fechar</button>
             </div>
           </form>
@@ -440,17 +425,17 @@ function Dashboard({ user, onLogout, showAlert }: any) {
 
       {isCardModalOpen && (
         <div className="fixed inset-0 bg-black/95 backdrop-blur-md flex items-center justify-center p-4 z-[200] italic">
-          <form onSubmit={handleSalvarCartao} className="bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-6 md:p-10 border-4 border-slate-800 shadow-2xl text-white leading-tight italic">
+          <form onSubmit={handleSalvarCartao} className="bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-6 md:p-10 border-4 border-slate-800 shadow-2xl text-white leading-tight">
             <h2 className="text-xl font-black mb-6 text-white text-center uppercase tracking-widest italic leading-tight">{editingCardId ? 'Editar' : 'Novo'} Cartão</h2>
             <div className="space-y-4 italic font-black">
-              <input value={banco} onChange={(e) => setBanco(e.target.value)} placeholder="BANCO (EX: NUBANK)" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs uppercase outline-none focus:border-blue-600 transition-all leading-tight italic" required />
+              <input value={banco} onChange={(e) => setBanco(e.target.value)} placeholder="BANCO (EX: NUBANK)" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs uppercase outline-none focus:border-blue-600 transition-all leading-tight" required />
               <div className="space-y-1 leading-tight">
-                <input value={nomeCartao} onChange={(e) => handleNomeCartaoChange(e.target.value)} placeholder="APELIDO DO CARTÃO" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs uppercase outline-none focus:border-blue-600 transition-all leading-tight italic" required />
-                <p className="text-[7px] text-slate-500 ml-2 uppercase font-bold italic leading-tight italic">Máximo 12 letras.</p>
+                <input value={nomeCartao} onChange={(e) => handleNomeCartaoChange(e.target.value)} placeholder="APELIDO DO CARTÃO" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs uppercase outline-none focus:border-blue-600 transition-all leading-tight" required />
+                <p className="text-[7px] text-slate-500 ml-2 uppercase font-bold italic leading-tight">Máximo 12 letras.</p>
               </div>
-              <input type="number" min="1" max="31" value={vencimento} onChange={(e) => setVencimento(e.target.value)} placeholder="DIA VENCIMENTO" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs outline-none focus:border-blue-600 transition-all leading-tight italic" required />
-              <button type="submit" className="w-full bg-blue-600 text-white font-black py-5 rounded-3xl uppercase text-xs mt-2 active:scale-95 transition-all leading-tight italic">Confirmar</button>
-              <button type="button" onClick={() => setIsCardModalOpen(false)} className="w-full text-slate-500 font-bold uppercase text-[9px] mt-2 text-center leading-tight italic">Cancelar</button>
+              <input type="number" min="1" max="31" value={vencimento} onChange={(e) => setVencimento(e.target.value)} placeholder="DIA VENCIMENTO" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white font-bold text-xs outline-none focus:border-blue-600 transition-all leading-tight" required />
+              <button type="submit" className="w-full bg-blue-600 text-white font-black py-5 rounded-3xl uppercase text-xs mt-2 active:scale-95 transition-all leading-tight">Confirmar</button>
+              <button type="button" onClick={() => setIsCardModalOpen(false)} className="w-full text-slate-500 font-bold uppercase text-[9px] mt-2 text-center leading-tight">Cancelar</button>
             </div>
           </form>
         </div>
