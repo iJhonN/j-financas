@@ -51,7 +51,7 @@ export default function App() {
       if (error) return showAlert(error.message, 'error');
       setUser(data.user);
       setView('dashboard');
-      showAlert("Acesso liberado!", 'success');
+      showAlert("Bem-vindo!", 'success');
     } else {
       const { error } = await supabase.auth.signUp({ 
         email, password, options: { data: { full_name: nome } } 
@@ -67,17 +67,17 @@ export default function App() {
   return (
     <>
       {alertConfig.show && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[1000] animate-in fade-in slide-in-from-top-4 duration-300 px-4 w-full max-w-sm font-sans">
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[1000] animate-in fade-in slide-in-from-top-4 duration-300 px-4 w-full max-w-sm">
           <div className={`flex items-center gap-3 p-4 rounded-2xl border-2 shadow-2xl backdrop-blur-xl ${alertConfig.type === 'error' ? 'bg-rose-950/80 border-rose-500 text-rose-200' : 'bg-emerald-950/80 border-emerald-500 text-emerald-200'}`}>
             {alertConfig.type === 'error' ? <AlertCircle size={20}/> : <CheckCircle size={20}/>}
-            <p className="text-xs font-black uppercase tracking-widest leading-normal">{alertConfig.msg}</p>
-            <button onClick={() => setAlertConfig(prev => ({ ...prev, show: false }))} className="ml-auto opacity-50"><X size={16}/></button>
+            <p className="text-xs font-black uppercase tracking-widest leading-normal px-1">{alertConfig.msg}</p>
+            <button onClick={() => setAlertConfig(prev => ({...prev, show: false}))} className="ml-auto opacity-50"><X size={16}/></button>
           </div>
         </div>
       )}
 
       {view === 'auth' ? (
-        <div className="min-h-screen flex items-center justify-center p-4 bg-slate-955 text-white font-sans">
+        <div className="min-h-screen flex items-center justify-center p-4 bg-slate-955 text-white">
           <form onSubmit={handleAuth} className="bg-slate-900 w-full max-w-md rounded-[2.5rem] p-6 md:p-10 border-4 border-slate-800 shadow-2xl">
             <div className="flex flex-col items-center mb-8">
               <div className="bg-blue-600 p-4 rounded-3xl text-white mb-4 shadow-lg shadow-blue-500/20"><TrendingUp size={32} /></div>
@@ -85,7 +85,7 @@ export default function App() {
             </div>
             <div className="space-y-4">
               {authMode === 'signup' && (
-                <input type="text" placeholder="NOME COMPLETO" value={nome} onChange={(e) => setNome(e.target.value)} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-white focus:border-blue-600 uppercase text-[10px] font-black" required />
+                <input type="text" placeholder="NOME" value={nome} onChange={(e) => setNome(e.target.value)} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-white focus:border-blue-600 uppercase text-[10px] font-black" required />
               )}
               <input type="email" placeholder="E-MAIL" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-white focus:border-blue-600 uppercase text-[10px] font-black" required />
               <div className="relative">
@@ -94,10 +94,10 @@ export default function App() {
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
-              <button type="submit" className="w-full bg-blue-600 text-white font-black py-5 rounded-[2rem] shadow-xl hover:bg-blue-700 transition-all uppercase text-xs mt-4 tracking-widest leading-normal italic">
+              <button type="submit" className="w-full bg-blue-600 text-white font-black py-5 rounded-[2rem] shadow-xl hover:bg-blue-700 transition-all uppercase text-sm mt-4 tracking-widest leading-normal italic">
                 {authMode === 'login' ? 'Entrar' : 'Cadastrar'}
               </button>
-              <button type="button" onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="w-full text-center text-[10px] font-black text-slate-500 uppercase mt-4 tracking-widest leading-normal">
+              <button type="button" onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="w-full text-center text-[10px] font-black text-slate-500 uppercase mt-4 tracking-widest">
                 {authMode === 'login' ? 'Criar nova conta' : 'Já tenho conta'}
               </button>
             </div>
@@ -117,7 +117,6 @@ function Dashboard({ user, onLogout, showAlert }: any) {
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
-  const [adminTab, setAdminTab] = useState<'alerts' | 'users'>('alerts');
   
   const [transacoes, setTransacoes] = useState<any[]>([]);
   const [cartoes, setCartoes] = useState<any[]>([]);
@@ -153,17 +152,6 @@ function Dashboard({ user, onLogout, showAlert }: any) {
     if (sSalvo) setSaldoInicial(Number(sSalvo));
   };
 
-  const fetchContagemUsuarios = async () => {
-    setBuscandoUsers(true);
-    const { count, error } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
-    if (!error && count !== null) setTotalUsuarios(count);
-    setBuscandoUsers(false);
-  };
-
-  useEffect(() => {
-    if (isAdmin && adminTab === 'users' && isAdminMenuOpen) fetchContagemUsuarios();
-  }, [adminTab, isAdminMenuOpen]);
-
   const handleNomeCartaoChange = (valor: string) => {
     const apenasLetras = valor.replace(/[0-9]/g, '');
     if (apenasLetras.length <= 12) setNomeCartao(apenasLetras);
@@ -180,7 +168,7 @@ function Dashboard({ user, onLogout, showAlert }: any) {
     e.preventDefault();
     const vTotal = Number(valorDisplay.replace(/\./g, '').replace(',', '.'));
     const { error } = await supabase.from('transacoes').insert([{ descricao: descricao.toUpperCase(), valor: vTotal, forma_pagamento: formaPagamento, data_ordenacao: data, user_id: user.id }]);
-    if (!error) { fetchDados(); setIsModalOpen(false); setDescricao(''); setValorDisplay(''); showAlert("Lançamento OK!", 'success'); }
+    if (!error) { fetchDados(); setIsModalOpen(false); setDescricao(''); setValorDisplay(''); showAlert("Salvo!", 'success'); }
   };
 
   const handleSalvarCartao = async (e: React.FormEvent) => {
@@ -189,7 +177,7 @@ function Dashboard({ user, onLogout, showAlert }: any) {
     let res;
     if (editingCardId) res = await supabase.from('cartoes').update({ banco, nome_cartao: nomeCartao, vencimento: Number(vencimento), logo_url: logoUrl }).eq('id', editingCardId);
     else res = await supabase.from('cartoes').insert([{ banco, nome_cartao: nomeCartao, vencimento: Number(vencimento), logo_url: logoUrl, user_id: user.id }]);
-    if (!res.error) { fetchDados(); setIsCardModalOpen(false); showAlert("Cartão salvo!", 'success'); }
+    if (!res.error) { fetchDados(); setIsCardModalOpen(false); showAlert("Cartão OK!", 'success'); }
   };
 
   const formatarMoeda = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
@@ -204,13 +192,13 @@ function Dashboard({ user, onLogout, showAlert }: any) {
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 p-2.5 rounded-2xl text-white shadow-lg shadow-blue-500/20"><TrendingUp size={22} /></div>
             <div>
-              <h1 className="text-lg md:text-xl font-black uppercase tracking-tighter leading-normal italic">J FINANÇAS</h1>
+              <h1 className="text-lg md:text-xl font-black uppercase tracking-tighter leading-normal italic px-1">J FINANÇAS</h1>
               <p className="text-[9px] md:text-[10px] font-black text-blue-400 mt-1 uppercase leading-normal">Olá, {user?.user_metadata?.full_name?.split(' ')[0]}</p>
             </div>
           </div>
           <div className="flex gap-2">
             {isAdmin && (
-              <button onClick={() => setIsAdminMenuOpen(true)} className="bg-amber-500 text-slate-950 p-2.5 rounded-full shadow-lg border-2 border-amber-400/50 active:scale-95 transition-all">
+              <button onClick={() => { setIsAdminMenuOpen(true); }} className="bg-amber-500 text-slate-950 p-2.5 rounded-full shadow-lg border-2 border-amber-400/50 active:scale-95 transition-all">
                 <ShieldCheck size={20} />
               </button>
             )}
@@ -221,7 +209,7 @@ function Dashboard({ user, onLogout, showAlert }: any) {
               {isProfileMenuOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-slate-900 border-2 border-slate-800 rounded-3xl shadow-2xl z-[110] overflow-hidden">
                   <button onClick={onLogout} className="w-full flex items-center gap-3 p-4 hover:bg-rose-900/20 text-rose-500 transition-all font-black uppercase text-[10px] italic">
-                    <LogOut size={18} /> Sair do App
+                    <LogOut size={18} /> Sair
                   </button>
                 </div>
               )}
@@ -245,8 +233,8 @@ function Dashboard({ user, onLogout, showAlert }: any) {
               <span className="text-white/40 font-black text-[7px] md:text-[10px] uppercase tracking-widest leading-normal">Filtrar por:</span>
               <div className="p-1.5 bg-white/5 rounded-xl border border-white/5 opacity-50"><Filter size={20}/></div>
             </div>
-            <div className="flex items-center justify-between w-full leading-normal">
-              <div className="text-sm md:text-2xl font-black leading-normal tracking-tighter truncate uppercase italic">{filtroCartao}</div>
+            <div className="flex items-center justify-between w-full">
+              <div className="text-sm md:text-2xl font-black leading-normal tracking-tighter truncate uppercase italic px-1">{filtroCartao}</div>
               <ChevronDown size={16} className={`text-amber-500 transition-transform ${isFilterMenuOpen ? 'rotate-180' : ''}`} />
             </div>
           </button>
@@ -257,7 +245,7 @@ function Dashboard({ user, onLogout, showAlert }: any) {
                 <button onClick={() => { setFiltroCartao('Pix'); setIsFilterMenuOpen(false); }} className="w-full text-left p-4 hover:bg-slate-800 rounded-2xl border-t border-slate-800/50 text-emerald-400">Pix / Dinheiro</button>
                 {cartoes.map(c => (
                   <button key={c.id} onClick={() => { setFiltroCartao(c.banco); setIsFilterMenuOpen(false); }} className="w-full text-left p-4 hover:bg-slate-800 rounded-2xl border-t border-slate-800/50 text-blue-400">
-                    {c.banco} <br/><span className="text-[7px] text-slate-500 lowercase">{c.nome_cartao}</span>
+                    {c.banco} <br/><span className="text-[7px] text-slate-500 lowercase font-bold">{c.nome_cartao}</span>
                   </button>
                 ))}
               </div>
@@ -279,10 +267,10 @@ function Dashboard({ user, onLogout, showAlert }: any) {
           </div>
           <div className="bg-slate-900 p-5 md:p-8 rounded-[2rem] border border-slate-800 shadow-2xl">
             <h2 className="text-white font-black mb-4 uppercase text-[10px] tracking-widest leading-normal italic">Meus Cartões</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 font-black italic">
               {cartoes.map(c => (
-                <div key={c.id} className="p-4 md:p-5 border-2 border-slate-800 rounded-2xl flex justify-between items-center bg-slate-950/50 hover:border-blue-500 transition-all font-black">
-                  <div className="flex items-center gap-3 italic">
+                <div key={c.id} className="p-4 md:p-5 border-2 border-slate-800 rounded-2xl flex justify-between items-center bg-slate-950/50 hover:border-blue-500 transition-all">
+                  <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center border border-slate-700 p-1.5 overflow-hidden">
                       <img src={c.logo_url} alt={c.banco} className="w-full h-full object-contain" onError={(e: any) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }} />
                       <CreditCard size={18} className="text-slate-500 hidden" />
@@ -290,7 +278,7 @@ function Dashboard({ user, onLogout, showAlert }: any) {
                     <div className="leading-tight">
                       <p className="text-[8px] font-black text-slate-500 uppercase mb-1">{c.banco}</p>
                       <p className="font-black text-xs uppercase mb-1">{c.nome_cartao}</p>
-                      <p className="text-[9px] font-bold text-blue-400">DIA {c.vencimento}</p>
+                      <p className="text-[9px] font-bold text-blue-400 uppercase">DIA {c.vencimento}</p>
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -304,7 +292,7 @@ function Dashboard({ user, onLogout, showAlert }: any) {
         </div>
         <div className="bg-slate-900 p-5 md:p-8 rounded-[2rem] border border-slate-800 h-[450px] md:h-[600px] overflow-hidden flex flex-col shadow-2xl">
           <h2 className="text-white font-black mb-4 uppercase text-[10px] tracking-widest leading-normal italic">Lançamentos</h2>
-          <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar italic font-black">
+          <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar font-black italic">
             {transacoesFiltradas.length > 0 ? transacoesFiltradas.map((t) => (
               <div key={t.id} className="flex justify-between items-center p-4 bg-slate-800/40 rounded-2xl border border-slate-800 hover:bg-slate-800/60 transition-all leading-normal">
                 <div className="flex-1 min-w-0 mr-3">
@@ -312,7 +300,7 @@ function Dashboard({ user, onLogout, showAlert }: any) {
                   <p className="text-[8px] text-slate-500 font-bold uppercase">{t.data_ordenacao}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className="font-black text-xs text-rose-500 whitespace-nowrap italic leading-normal px-1">R$ {formatarMoeda(t.valor)}</span>
+                  <span className="font-black text-xs text-rose-500 whitespace-nowrap px-1">R$ {formatarMoeda(t.valor)}</span>
                   <button onClick={async () => { if(confirm("Apagar?")) { await supabase.from('transacoes').delete().eq('id', t.id); fetchDados(); showAlert("Removido", 'success'); } }} className="text-slate-700 hover:text-rose-500 transition-all"><Trash2 size={14} /></button>
                 </div>
               </div>
@@ -321,82 +309,81 @@ function Dashboard({ user, onLogout, showAlert }: any) {
         </div>
       </div>
 
+      {/* MODAL ADMIN CENTRALIZADO */}
       {isAdminMenuOpen && (
         <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[500] animate-in fade-in duration-300">
-          <div className="bg-slate-900 w-full max-w-lg rounded-[3rem] border-4 border-amber-500/30 shadow-2xl overflow-hidden">
-            <div className="bg-amber-500 p-6 flex justify-between items-center text-slate-950 font-black italic">
-              <div><h2 className="uppercase tracking-tighter text-xl leading-tight px-1">Admin Panel</h2><p className="text-[10px] uppercase mt-1 leading-normal">Gestão Global</p></div>
+          <div className="bg-slate-900 w-full max-w-sm rounded-[3rem] border-4 border-amber-500/30 shadow-2xl overflow-hidden font-black italic">
+            <div className="bg-amber-500 p-6 flex justify-between items-center text-slate-950">
+              <div><h2 className="uppercase tracking-tighter text-xl px-1">Admin Panel</h2><p className="text-[10px] uppercase mt-1">Status Global</p></div>
               <button onClick={() => setIsAdminMenuOpen(false)} className="bg-slate-950/20 p-2 rounded-full"><X size={24} /></button>
             </div>
-            <div className="p-8 italic font-black">
-               <div className="flex flex-col items-center justify-center p-8 bg-slate-800/50 rounded-[2.5rem] border-2 border-amber-500/10">
+            <div className="p-8 flex flex-col items-center justify-center bg-slate-800/50 m-4 rounded-[2.5rem] border-2 border-amber-500/10">
                  <Users size={48} className="text-amber-500 mb-2 opacity-50" />
                  <span className="text-[10px] text-slate-500 uppercase tracking-widest leading-normal">Total Usuários</span>
-                 <div className="text-7xl text-white tracking-tighter py-2 leading-normal px-1">
-                   {buscandoUsers ? <Loader2 className="animate-spin h-8 w-8 text-amber-500" /> : totalUsuarios}
+                 <div className="text-7xl text-white tracking-tighter py-2 px-1">
+                   {totalUsuarios}
                  </div>
-               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL GASTO (PROPORÇÃO AJUSTADA PARA MOBILE) */}
+      {/* MODAL GASTO CENTRALIZADO E COMPACTO */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-4 z-[200] animate-in fade-in slide-in-from-bottom-10 md:slide-in-from-bottom-0 duration-300">
-          <form onSubmit={handleSalvarGasto} className="bg-slate-900 w-full max-w-md rounded-t-[2.5rem] md:rounded-[3rem] p-6 md:p-8 border-t-4 md:border-4 border-slate-800 shadow-2xl overflow-y-auto max-h-[85vh] text-white italic font-black">
-            <div className="flex justify-between items-center mb-6 px-1">
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[200] animate-in fade-in zoom-in-95 duration-300">
+          <form onSubmit={handleSalvarGasto} className="bg-slate-900 w-full max-w-sm rounded-[3rem] p-6 md:p-10 border-4 border-slate-800 shadow-2xl text-white italic font-black">
+            <div className="flex justify-between items-center mb-8 px-1">
                <h2 className="text-xl uppercase tracking-widest leading-normal">Novo Gasto</h2>
-               <button type="button" onClick={() => setIsModalOpen(false)} className="bg-slate-800 p-2 rounded-full text-slate-500 hover:text-white transition-all"><X size={20} /></button>
+               <button type="button" onClick={() => setIsModalOpen(false)} className="bg-slate-800 p-2 rounded-full text-slate-500 active:scale-95"><X size={20} /></button>
             </div>
             <div className="space-y-4">
-              <input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="DESCRIÇÃO" className="w-full p-3 md:p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-white uppercase text-[10px] focus:border-blue-600 transition-all" required />
+              <input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="DESCRIÇÃO" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-white uppercase text-[10px] focus:border-blue-600 transition-all" required />
               <div className="relative leading-normal">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500 text-sm italic px-1">R$</span>
-                <input type="text" value={valorDisplay} onChange={(e) => setValorDisplay(aplicarMascara(e.target.value))} placeholder="0,00" className="w-full pl-10 p-3 md:p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 font-black text-blue-400 text-lg outline-none focus:border-blue-600 transition-all" required />
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500 text-sm px-1">R$</span>
+                <input type="text" value={valorDisplay} onChange={(e) => setValorDisplay(aplicarMascara(e.target.value))} placeholder="0,00" className="w-full pl-10 p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-blue-400 text-lg outline-none focus:border-blue-600 font-black" required />
               </div>
-              <select value={formaPagamento} onChange={(e) => setFormaPagamento(e.target.value)} className="w-full p-3 md:p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white uppercase text-[10px] outline-none focus:border-blue-600 transition-all appearance-none cursor-pointer">
+              <select value={formaPagamento} onChange={(e) => setFormaPagamento(e.target.value)} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white uppercase text-[10px] outline-none focus:border-blue-600 cursor-pointer">
                 <option value="Pix">Pix / Dinheiro</option>
                 {cartoes.map(c => (<option key={c.id} value={`${c.banco} - ${c.nome_cartao}`}>{c.banco} ({c.nome_cartao})</option>))}
               </select>
-              <input type="date" value={data} onChange={(e) => setData(e.target.value)} className="w-full p-3 md:p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white outline-none focus:border-blue-600 transition-all text-xs" required />
-              <button type="submit" className="w-full bg-blue-600 text-white py-4 md:py-5 rounded-[2rem] shadow-xl hover:bg-blue-700 active:scale-95 transition-all uppercase text-xs mt-2 tracking-widest leading-normal italic">Lançar Agora</button>
+              <div className="flex justify-center">
+                 <input type="date" value={data} onChange={(e) => setData(e.target.value)} className="w-auto p-3 bg-slate-800 rounded-xl border-2 border-slate-700 text-white text-[10px] outline-none focus:border-blue-600 text-center" required />
+              </div>
+              <button type="submit" className="w-full bg-blue-600 text-white py-5 rounded-[2rem] shadow-xl hover:bg-blue-700 active:scale-95 transition-all uppercase text-xs mt-2 tracking-widest italic font-black">Lançar Agora</button>
             </div>
           </form>
         </div>
       )}
 
-      {/* MODAL SALDO CLARO */}
+      {/* MODAL SALDO CENTRALIZADO */}
       {isSaldoModalOpen && (
-        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[200] animate-in fade-in duration-300">
-          <div className="bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-6 md:p-8 border-4 border-slate-800 shadow-2xl text-white italic font-black">
-            <h2 className="text-xl mb-6 text-emerald-500 text-center uppercase tracking-widest leading-normal px-1">Saldo Caixa</h2>
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[200] animate-in fade-in zoom-in-95 duration-300">
+          <div className="bg-slate-900 w-full max-w-sm rounded-[3rem] p-6 md:p-10 border-4 border-slate-800 shadow-2xl text-white italic font-black">
+            <h2 className="text-xl mb-8 text-emerald-500 text-center uppercase tracking-widest px-1">Saldo Caixa</h2>
             <div className="relative mb-6 leading-normal">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-600 text-lg italic px-1">R$</span>
-                <input type="text" value={saldoDisplay} onChange={(e) => setSaldoDisplay(aplicarMascara(e.target.value))} placeholder="0,00" className="w-full pl-12 p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-emerald-500 text-xl outline-none focus:border-emerald-600 transition-all" />
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-600 text-lg px-1 font-black">R$</span>
+                <input type="text" value={saldoDisplay} onChange={(e) => setSaldoDisplay(aplicarMascara(e.target.value))} placeholder="0,00" className="w-full pl-12 p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-emerald-500 text-xl outline-none focus:border-emerald-600 font-black" />
             </div>
-            <div className="flex flex-col gap-3 leading-normal">
-              <button onClick={() => { const v = Number(saldoDisplay.replace(/\./g, '').replace(',', '.')); setSaldoInicial(v); localStorage.setItem(`@jfinancas:saldo:${user.id}`, v.toString()); setIsSaldoModalOpen(false); setSaldoDisplay(''); showAlert("Saldo OK!", 'success'); }} className="w-full bg-emerald-600 py-4 rounded-3xl uppercase text-xs shadow-lg active:scale-95 transition-all">Confirmar</button>
-              <button onClick={() => setIsSaldoModalOpen(false)} className="w-full text-slate-500 py-2 uppercase text-[9px] tracking-widest">Fechar</button>
-            </div>
+            <button onClick={() => { const v = Number(saldoDisplay.replace(/\./g, '').replace(',', '.')); setSaldoInicial(v); localStorage.setItem(`@jfinancas:saldo:${user.id}`, v.toString()); setIsSaldoModalOpen(false); setSaldoDisplay(''); showAlert("Saldo OK!", 'success'); }} className="w-full bg-emerald-600 py-5 rounded-3xl uppercase text-xs shadow-lg active:scale-95 transition-all font-black">Confirmar</button>
+            <button onClick={() => setIsSaldoModalOpen(false)} className="w-full text-slate-500 py-4 mt-2 uppercase text-[9px] font-black tracking-widest">Fechar</button>
           </div>
         </div>
       )}
 
-      {/* MODAL CARTÃO CLARO */}
+      {/* MODAL CARTÃO CENTRALIZADO */}
       {isCardModalOpen && (
-        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[200] animate-in fade-in duration-300">
-          <form onSubmit={handleSalvarCartao} className="bg-slate-900 w-full max-w-sm rounded-[2.5rem] p-6 md:p-8 border-4 border-slate-800 shadow-2xl text-white italic font-black">
-            <h2 className="text-xl mb-6 text-center uppercase tracking-widest leading-normal px-1">{editingCardId ? 'Editar' : 'Novo'} Cartão</h2>
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[200] animate-in fade-in zoom-in-95 duration-300">
+          <form onSubmit={handleSalvarCartao} className="bg-slate-900 w-full max-w-sm rounded-[3rem] p-6 md:p-10 border-4 border-slate-800 shadow-2xl text-white italic font-black">
+            <h2 className="text-xl mb-8 text-center uppercase tracking-widest px-1">{editingCardId ? 'Editar' : 'Novo'} Cartão</h2>
             <div className="space-y-4">
-              <input value={banco} onChange={(e) => setBanco(e.target.value)} placeholder="BANCO (EX: NUBANK)" className="w-full p-3 md:p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-white uppercase text-[10px] focus:border-blue-600 transition-all" required />
+              <input value={banco} onChange={(e) => setBanco(e.target.value)} placeholder="BANCO (EX: INTER)" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-white uppercase text-[10px] focus:border-blue-600 transition-all" required />
               <div className="space-y-1">
-                <input value={nomeCartao} onChange={(e) => handleNomeCartaoChange(e.target.value)} placeholder="APELIDO DO CARTÃO" className="w-full p-3 md:p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-white uppercase text-[10px] focus:border-blue-600 transition-all" required />
-                <p className="text-[7px] text-slate-500 ml-2 uppercase leading-normal px-1">Máximo 12 letras.</p>
+                <input value={nomeCartao} onChange={(e) => handleNomeCartaoChange(e.target.value)} placeholder="APELIDO DO CARTÃO" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-white uppercase text-[10px] focus:border-blue-600 transition-all" required />
+                <p className="text-[7px] text-slate-500 ml-2 uppercase leading-normal px-1">Apenas letras. Máximo 12 caracteres.</p>
               </div>
-              <input type="number" min="1" max="31" value={vencimento} onChange={(e) => setVencimento(e.target.value)} placeholder="DIA VENCIMENTO" className="w-full p-3 md:p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white outline-none focus:border-blue-600 transition-all text-xs" required />
-              <button type="submit" className="w-full bg-blue-600 py-4 md:py-5 rounded-3xl uppercase text-xs mt-2 active:scale-95 transition-all tracking-widest leading-normal italic">Confirmar</button>
-              <button type="button" onClick={() => setIsCardModalOpen(false)} className="w-full text-slate-500 py-2 uppercase text-[9px] tracking-widest">Cancelar</button>
+              <input type="number" min="1" max="31" value={vencimento} onChange={(e) => setVencimento(e.target.value)} placeholder="DIA VENCIMENTO" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white outline-none focus:border-blue-600 text-xs text-center" required />
+              <button type="submit" className="w-full bg-blue-600 py-5 rounded-[2rem] uppercase text-xs mt-2 active:scale-95 transition-all tracking-widest font-black italic">Salvar Cartão</button>
+              <button type="button" onClick={() => setIsCardModalOpen(false)} className="w-full text-slate-500 py-4 mt-2 uppercase text-[9px] font-black tracking-widest">Cancelar</button>
             </div>
           </form>
         </div>
@@ -408,8 +395,8 @@ function Dashboard({ user, onLogout, showAlert }: any) {
 function Card({ title, value, icon, color }: any) {
   return (
     <div className={`${color} p-4 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl transition-transform active:scale-[0.98] border-black/20 flex flex-col justify-between h-32 md:h-36 text-white text-left`}>
-      <div className="flex justify-between items-start w-full leading-normal italic">
-        <span className="text-white/40 font-black text-[7px] md:text-[10px] uppercase tracking-widest leading-normal">{title}</span>
+      <div className="flex justify-between items-start w-full leading-normal">
+        <span className="text-white/40 font-black text-[7px] md:text-[10px] uppercase tracking-widest italic">{title}</span>
         <div className="p-1.5 md:p-3 bg-white/5 rounded-xl backdrop-blur-md border border-white/5 opacity-50">{icon}</div>
       </div>
       <div className="text-sm md:text-2xl font-black leading-normal tracking-tighter truncate uppercase italic px-1">{value}</div>
