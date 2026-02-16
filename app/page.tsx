@@ -10,6 +10,7 @@ import {
 import { AreaChart, Area, XAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { supabase } from '@/lib/supabase';
 
+// Sistema de Temas Sincronizados
 const THEMES = {
   blue: { primary: 'bg-blue-600', text: 'text-blue-400', border: 'border-blue-600', hover: 'hover:bg-blue-700', shadow: 'shadow-blue-500/20', chart: '#3b82f6' },
   emerald: { primary: 'bg-emerald-600', text: 'text-emerald-400', border: 'border-emerald-600', hover: 'hover:bg-emerald-700', shadow: 'shadow-emerald-500/20', chart: '#10b981' },
@@ -87,6 +88,7 @@ export default function HomePage() {
       setSaldoInicial(Number(profile.saldo_inicial) || 0);
       if (profile.theme && THEMES[profile.theme as keyof typeof THEMES]) setCurrentTheme(profile.theme as any);
     }
+    setNovoNome(user?.user_metadata?.full_name || "");
   };
 
   const showAlert = (msg: string, type: any = 'success') => {
@@ -329,7 +331,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* MODAL CARTÃO (RESTAURADO) */}
+      {/* MODAL CARTÃO */}
       {isCardModalOpen && (
         <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000] animate-in fade-in zoom-in-95 font-black">
           <form onSubmit={handleSalvarCartao} className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-8 md:p-10 border-4 border-slate-800 shadow-2xl text-white italic">
@@ -348,7 +350,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* MODAL AJUSTES / TEMA (RESTAURADO) */}
+      {/* MODAL AJUSTES / TEMA */}
       {isConfigModalOpen && (
         <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000] animate-in fade-in zoom-in-95 leading-none">
           <form onSubmit={async (e) => {
@@ -359,7 +361,7 @@ export default function HomePage() {
             <div className="flex justify-between items-center mb-8 px-1"><h2 className="text-xl uppercase tracking-widest leading-none">Ajustes</h2><button type="button" onClick={() => setIsConfigModalOpen(false)} className="bg-slate-800 p-2 rounded-full text-slate-500 leading-none"><X size={20} /></button></div>
             <div className="mb-8 font-black">
               <p className="text-[8px] text-slate-500 uppercase mb-4 tracking-widest flex items-center gap-2 leading-none"><Palette size={12}/> Estilo do App</p>
-              <div className="flex justify-between px-2">{Object.keys(THEMES).map((tName) => <button key={tName} type="button" onClick={() => changeTheme(tName as any)} className={`w-10 h-10 rounded-full border-4 ${currentThemeName === tName ? 'border-white scale-110' : 'border-transparent opacity-40'} ${THEMES[tName as keyof typeof THEMES].primary} transition-all`} />)}</div>
+              <div className="flex justify-between px-2">{Object.keys(THEMES).map((tName) => <button key={tName} type="button" onClick={() => changeTheme(tName as any)} className={`w-10 h-10 rounded-full border-4 ${currentTheme === tName ? 'border-white scale-110' : 'border-transparent opacity-40'} ${THEMES[tName as keyof typeof THEMES].primary} transition-all`} />)}</div>
             </div>
             <div className="space-y-4 font-black">
               <input value={novoNome} onChange={(e) => setNovoNome(e.target.value)} placeholder="Nome" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-white text-sm font-black" />
@@ -370,7 +372,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* MODAL SALDO (RESTAURADO) */}
+      {/* MODAL SALDO */}
       {isSaldoModalOpen && (
         <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000] animate-in fade-in zoom-in-95 font-black">
           <div className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl text-white italic">
@@ -389,7 +391,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* MODAL ADMIN (RESTAURADO) */}
+      {/* MODAL ADMIN */}
       {isAdminMenuOpen && (
         <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[6000] animate-in fade-in duration-300 font-black italic">
           <div className="bg-[#111827] w-full max-w-sm rounded-[3rem] border-4 border-amber-500/30 shadow-2xl overflow-hidden font-black">
