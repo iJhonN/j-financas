@@ -184,10 +184,28 @@ export default function HomePage() {
     });
   };
 
+  // LOGICA DE FILTRO MENSAL
+  const hoje = new Date();
+  const mesAtual = hoje.getMonth();
+  const anoAtual = hoje.getFullYear();
+
   const transacoesFiltradas = filtroCartao === 'Todos' ? transacoes : transacoes.filter(t => t.forma_pagamento.includes(filtroCartao));
-  const entradas = transacoes.filter(t => Number(t.valor) > 0).reduce((acc, t) => acc + Number(t.valor), 0);
-  const saidas = transacoes.filter(t => Number(t.valor) < 0).reduce((acc, t) => acc + Number(t.valor), 0);
-  const saldoCalculado = saldoInicial + entradas + saidas;
+
+  const entradas = transacoes.filter(t => {
+    const d = new Date(t.data_ordenacao);
+    return Number(t.valor) > 0 && d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
+  }).reduce((acc, t) => acc + Number(t.valor), 0);
+
+  const saidas = transacoes.filter(t => {
+    const d = new Date(t.data_ordenacao);
+    return Number(t.valor) < 0 && d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
+  }).reduce((acc, t) => acc + Number(t.valor), 0);
+
+  const entradasTotais = transacoes.filter(t => Number(t.valor) > 0).reduce((acc, t) => acc + Number(t.valor), 0);
+  const saidasTotais = transacoes.filter(t => Number(t.valor) < 0).reduce((acc, t) => acc + Number(t.valor), 0);
+  
+  // Variável corrigida aqui
+  const saldoCalculado = saldoInicial + entradasTotais + saidasTotais;
 
   if (loading || !user) return <div className="min-h-screen flex items-center justify-center bg-[#0a0f1d]"><Loader2 className="h-12 w-12 animate-spin text-blue-600" /></div>;
 
@@ -249,13 +267,15 @@ export default function HomePage() {
       </header>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 font-black leading-none">
+        {/* SALDO ATUAL COM VARIÁVEL CORRIGIDA */}
         <Card title="Saldo Atual" value={`R$ ${formatarMoeda(saldoCalculado)}`} icon={<Banknote size={20}/>} color={`bg-[#111827] border-b-8 ${theme.border}`} />
         <Card title="Gasto Mensal" value={`R$ ${formatarMoeda(saidas)}`} icon={<CreditCard size={20}/>} color="bg-[#111827] border-b-8 border-rose-600" />
         <Card title="Entradas" value={`R$ ${formatarMoeda(entradas)}`} icon={<TrendingUp size={20}/>} color="bg-[#111827] border-b-8 border-emerald-600" />
+        
         <div className="relative font-black leading-none">
           <button onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} className="w-full bg-[#111827] p-4 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl border-b-8 border-amber-500 flex flex-col justify-between h-32 md:h-36 text-left leading-none font-black">
-            <span className="text-white/40 text-[7px] md:text-[10px] uppercase tracking-widest leading-none font-black">Filtrar por:</span>
-            <div className="flex items-center justify-between w-full leading-tight font-black"><div className="text-sm md:text-xl truncate uppercase italic px-1 leading-none font-black">{filtroCartao}</div><ChevronDown size={16} /></div>
+            <span className="text-white/40 text-[7px] md:text-[10px] uppercase tracking-widest leading-none">Filtrar por:</span>
+            <div className="flex items-center justify-between w-full leading-tight font-black"><div className="text-sm md:text-xl truncate uppercase px-1 leading-none font-black">{filtroCartao}</div><ChevronDown size={16} /></div>
           </button>
           {isFilterMenuOpen && (
             <div className="absolute top-full left-0 right-0 mt-2 bg-[#111827] border-2 border-slate-800 rounded-3xl shadow-2xl z-[400] overflow-hidden font-black">
@@ -268,6 +288,7 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* RESTANTE DO CÓDIGO (GRÁFICO E MODAIS) MANTIDO IGUAL À VERSÃO ANTERIOR */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 leading-none">
         <div className="lg:col-span-2 space-y-6 leading-none">
           <div className="bg-[#111827] p-6 rounded-[2.5rem] border border-slate-800 shadow-2xl h-80 overflow-hidden font-black">
@@ -314,6 +335,7 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* MODAL NOVO LANÇAMENTO */}
       {isModalOpen && !isExpired && (
         <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[4000] animate-in fade-in zoom-in-95 leading-none font-black">
           <form onSubmit={handleSalvarGasto} className="bg-[#111827] w-full max-w-md rounded-[3rem] p-6 md:p-8 border-4 border-slate-800 shadow-2xl text-white font-black">
@@ -329,7 +351,7 @@ export default function HomePage() {
               <input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="DESCRIÇÃO" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-sm uppercase font-black" required />
               <div className="relative leading-none">
                 <span className={`absolute left-4 top-1/2 -translate-y-1/2 ${tipoMovimento === 'receita' ? 'text-emerald-500' : 'text-rose-500'} text-sm font-black`}>R$</span>
-                <input type="text" value={valorDisplay} onChange={(e) => setValorDisplay(aplicarMascara(e.target.value))} placeholder="0,00" className={`w-full pl-10 p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 ${tipoMovimento === 'receita' ? 'text-emerald-400' : 'text-rose-400'} text-lg outline-none font-black`} required />
+                <input type="text" value={valorDisplay} onChange={(e) => setValorDisplay(aplicarMascara(e.target.value))} placeholder="0,00" className={`w-full pl-10 p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 ${tipoMovimento === 'receita' ? 'text-emerald-400 font-black' : 'text-rose-400 font-black'} text-lg outline-none font-black`} required />
               </div>
               
               <div className="space-y-3 font-black">
@@ -423,7 +445,7 @@ export default function HomePage() {
             const { error } = await supabase.auth.updateUser({ data: { full_name: sanitize(novoNome) }, ...(novaSenha && { password: novaSenha }) });
             if (!error) { showAlert("Perfil atualizado!"); setIsConfigModalOpen(false); }
           }} className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl text-white font-black italic leading-none">
-            <div className="flex justify-between items-center mb-8 px-1"><h2 className="text-xl uppercase tracking-widest font-black">Ajustes</h2><button type="button" onClick={() => setIsConfigModalOpen(false)} className="bg-slate-800 p-2 rounded-full text-slate-500 leading-none font-black"><X size={20} /></button></div>
+            <div className="flex justify-between items-center mb-8 px-1 font-black"><h2 className="text-xl uppercase tracking-widest font-black">Ajustes</h2><button type="button" onClick={() => setIsConfigModalOpen(false)} className="bg-slate-800 p-2 rounded-full text-slate-500 leading-none font-black"><X size={20} /></button></div>
             <div className="mb-8 font-black">
               <p className="text-[8px] text-slate-500 uppercase mb-4 tracking-widest flex items-center gap-2 font-black leading-none"><Palette size={12}/> Estilo do App</p>
               <div className="flex justify-between px-2 font-black">{Object.keys(THEMES).map((tName) => <button key={tName} type="button" onClick={() => changeTheme(tName as any)} className={`w-10 h-10 rounded-full border-4 font-black ${currentTheme === tName ? 'border-white scale-110' : 'border-transparent opacity-40'} ${THEMES[tName as keyof typeof THEMES].primary} transition-all`} />)}</div>
