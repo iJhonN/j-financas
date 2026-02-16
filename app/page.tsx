@@ -129,8 +129,8 @@ export default function HomePage() {
     try {
       const valorBase = tipoMovimento === 'despesa' ? -Math.abs(vTotal) : Math.abs(vTotal);
       const valorParcela = parseFloat((valorBase / parcelas).toFixed(2));
+      
       const novosLancamentos = [];
-
       for (let i = 0; i < parcelas; i++) {
         const d = new Date(data);
         d.setMonth(d.getMonth() + i);
@@ -184,14 +184,12 @@ export default function HomePage() {
     });
   };
 
-  // LOGICA DE FILTRO MENSAL
   const hoje = new Date();
   const mesAtual = hoje.getMonth();
   const anoAtual = hoje.getFullYear();
 
   const transacoesFiltradas = filtroCartao === 'Todos' ? transacoes : transacoes.filter(t => t.forma_pagamento.includes(filtroCartao));
 
-  // Cálculo de entradas e saídas APENAS do mês atual
   const entradasMensais = transacoes.filter(t => {
     const d = new Date(t.data_ordenacao);
     return Number(t.valor) > 0 && d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
@@ -202,9 +200,7 @@ export default function HomePage() {
     return Number(t.valor) < 0 && d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
   }).reduce((acc, t) => acc + Number(t.valor), 0);
 
-  // O Saldo Total acumulado
-  const somaTotalTransacoes = transacoes.reduce((acc, t) => acc + Number(t.valor), 0);
-  const saldoCalculado = saldoInicial + somaTotalTransacoes;
+  const saldoCalculado = saldoInicial + transacoes.reduce((acc, t) => acc + Number(t.valor), 0);
 
   if (loading || !user) return <div className="min-h-screen flex items-center justify-center bg-[#0a0f1d]"><Loader2 className="h-12 w-12 animate-spin text-blue-600" /></div>;
 
@@ -235,7 +231,7 @@ export default function HomePage() {
             <img src="/logo.png" alt="Wolf Logo" className="w-10 h-10 object-contain" />
             <div className="leading-none">
               <h1 className="text-lg md:text-xl font-black uppercase tracking-tighter px-1">WOLF FINANCE</h1>
-              <div className="flex items-center gap-2 mt-1 leading-none font-black italic">
+              <div className="flex items-center gap-2 mt-1 leading-none font-black">
                 <p className={`text-[9px] md:text-[10px] font-black ${theme.text} uppercase`}>Olá, {user?.user_metadata?.full_name?.split(' ')[0]}</p>
                 <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full border ${isExpired ? 'border-rose-500 text-rose-500 bg-rose-500/10' : 'border-amber-500/50 text-amber-500 bg-amber-500/10'} text-[7px] font-black uppercase tracking-widest`}>
                   <Clock size={8} /> {diasRestantes} DIAS
@@ -269,11 +265,10 @@ export default function HomePage() {
         <Card title="Saldo Atual" value={`R$ ${formatarMoeda(saldoCalculado)}`} icon={<Banknote size={20}/>} color={`bg-[#111827] border-b-8 ${theme.border}`} />
         <Card title="Gasto Mensal" value={`R$ ${formatarMoeda(saidasMensais)}`} icon={<CreditCard size={20}/>} color="bg-[#111827] border-b-8 border-rose-600" />
         <Card title="Entradas" value={`R$ ${formatarMoeda(entradasMensais)}`} icon={<TrendingUp size={20}/>} color="bg-[#111827] border-b-8 border-emerald-600" />
-        
         <div className="relative font-black leading-none">
           <button onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} className="w-full bg-[#111827] p-4 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl border-b-8 border-amber-500 flex flex-col justify-between h-32 md:h-36 text-left leading-none font-black">
-            <span className="text-white/40 text-[7px] md:text-[10px] uppercase tracking-widest leading-none">Filtrar por:</span>
-            <div className="flex items-center justify-between w-full leading-tight font-black"><div className="text-sm md:text-xl truncate uppercase px-1 leading-none font-black">{filtroCartao}</div><ChevronDown size={16} /></div>
+            <span className="text-white/40 text-[7px] md:text-[10px] uppercase tracking-widest leading-none font-black">Filtrar por:</span>
+            <div className="flex items-center justify-between w-full leading-tight font-black"><div className="text-sm md:text-xl truncate uppercase italic px-1 leading-none font-black">{filtroCartao}</div><ChevronDown size={16} /></div>
           </button>
           {isFilterMenuOpen && (
             <div className="absolute top-full left-0 right-0 mt-2 bg-[#111827] border-2 border-slate-800 rounded-3xl shadow-2xl z-[400] overflow-hidden font-black">
@@ -350,7 +345,7 @@ export default function HomePage() {
                 <input type="text" value={valorDisplay} onChange={(e) => setValorDisplay(aplicarMascara(e.target.value))} placeholder="0,00" className={`w-full pl-10 p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 ${tipoMovimento === 'receita' ? 'text-emerald-400' : 'text-rose-400'} text-lg outline-none font-black`} required />
               </div>
               
-              <div className="space-y-3 font-black">
+              <div className="space-y-4 font-black">
                 <div className="space-y-1 font-black"><label className="text-[8px] text-slate-500 uppercase ml-2">Método / Cartão</label>
                   <select value={metodoPagamento} onChange={(e) => { setMetodoPagamento(e.target.value); if (e.target.value === 'Pix' || e.target.value === 'Dinheiro') setTipoPagamento('Dinheiro'); else setTipoPagamento('Crédito'); }} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-[10px] outline-none uppercase font-black">
                     <option value="Pix">Pix / Dinheiro</option>
@@ -427,7 +422,7 @@ export default function HomePage() {
               const v = Number(saldoDisplay.replace(/\./g, '').replace(',', '.'));
               const { error } = await supabase.from('profiles').update({ saldo_inicial: v }).eq('id', user.id);
               if (!error) { setSaldoInicial(v); setIsSaldoModalOpen(false); setSaldoDisplay(''); showAlert("Saldo OK!"); }
-            }} className="w-full bg-emerald-600 py-5 rounded-[2rem] uppercase text-[10px] shadow-lg active:scale-95 italic font-black">Confirmar</button>
+            }} className="w-full bg-emerald-600 py-5 rounded-[2rem] uppercase text-[10px] shadow-lg active:scale-95 font-black">Confirmar</button>
             <button onClick={() => setIsSaldoModalOpen(false)} className="w-full text-slate-500 py-4 mt-2 uppercase text-[9px] font-black">Fechar</button>
           </div>
         </div>
