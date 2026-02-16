@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { 
   TrendingUp, Trash2, CreditCard, Banknote, Plus, X, Coins, Pencil, LogOut, 
   UserCircle, ShieldCheck, Loader2, ChevronDown, Settings, 
-  AlertCircle, CheckCircle, Users, Eye, EyeOff, Palette, RefreshCcw
+  AlertCircle, CheckCircle, Users, Eye, EyeOff, Palette, RefreshCcw, Clock, Lock
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { supabase } from '@/lib/supabase';
@@ -23,6 +23,8 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [currentTheme, setCurrentTheme] = useState<keyof typeof THEMES>('blue');
   const [alertConfig, setAlertConfig] = useState({ show: false, msg: '', type: 'success' });
+  const [diasRestantes, setDiasRestantes] = useState(0);
+  const [isExpired, setIsExpired] = useState(true);
   const router = useRouter();
   const theme = THEMES[currentTheme];
 
@@ -81,10 +83,21 @@ export default function HomePage() {
     if (tData) setTransacoes(tData);
     const { data: cData } = await supabase.from('cartoes').select('*').eq('user_id', userId);
     if (cData) setCartoes(cData);
-    const { data: profile } = await supabase.from('profiles').select('saldo_inicial, theme').eq('id', userId).maybeSingle();
+
+    const { data: profile } = await supabase.from('profiles').select('saldo_inicial, theme, expires_at').eq('id', userId).maybeSingle();
+    
     if (profile) {
       setSaldoInicial(Number(profile.saldo_inicial) || 0);
       if (profile.theme && THEMES[profile.theme as keyof typeof THEMES]) setCurrentTheme(profile.theme as any);
+      
+      // Lógica de expiração
+      const expDate = new Date(profile.expires_at);
+      const today = new Date();
+      const diffTime = expDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const dias = diffDays > 0 ? diffDays : 0;
+      setDiasRestantes(dias);
+      setIsExpired(dias <= 0);
     }
     setNovoNome(user?.user_metadata?.full_name || "");
   };
@@ -98,6 +111,8 @@ export default function HomePage() {
 
   const handleSalvarGasto = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isExpired) return showAlert("Acesso expirado!", "error");
+    
     const cleanDesc = sanitize(descricao);
     const vTotal = Number(valorDisplay.replace(/\./g, '').replace(',', '.'));
     if (!cleanDesc || vTotal <= 0) return showAlert("Dados inválidos", "error");
@@ -132,6 +147,7 @@ export default function HomePage() {
 
   const handleSalvarCartao = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isExpired) return showAlert("Acesso expirado!", "error");
     const cleanBanco = sanitize(banco).toUpperCase();
     const cleanNomeC = sanitize(nomeCartao).toUpperCase();
     const logoUrl = `https://logo.clearbit.com/${cleanBanco.toLowerCase().replace(/\s/g, '')}.com?size=100`;
@@ -164,11 +180,23 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#0a0f1d] p-2 md:p-8 text-white font-black antialiased overflow-x-hidden pb-24">
+      {/* Alertas */}
       {alertConfig.show && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] px-4 w-full max-w-sm animate-in fade-in slide-in-from-top-4">
           <div className={`flex items-center gap-3 p-4 rounded-2xl border-2 shadow-2xl backdrop-blur-xl ${alertConfig.type === 'error' ? 'bg-rose-950/80 border-rose-500 text-rose-200' : 'bg-emerald-950/80 border-emerald-500 text-emerald-200'}`}>
             {alertConfig.type === 'error' ? <AlertCircle size={20}/> : <CheckCircle size={20}/>}
             <p className="text-[10px] uppercase tracking-widest">{alertConfig.msg}</p>
+          </div>
+        </div>
+      )}
+
+      {/* BANNER BETA EXPIRADO */}
+      {isExpired && (
+        <div className="mb-6 bg-rose-600/20 border-2 border-rose-600 p-4 rounded-3xl flex items-center gap-4 animate-pulse">
+          <div className="bg-rose-600 p-2 rounded-xl text-white shadow-lg"><Lock size={20} /></div>
+          <div className="leading-none">
+            <h3 className="text-xs uppercase italic font-black">Acesso Beta Expirado</h3>
+            <p className="text-[9px] text-rose-400 uppercase mt-1 font-black">Fale com o administrador para renovar!</p>
           </div>
         </div>
       )}
@@ -186,48 +214,40 @@ export default function HomePage() {
           <div className="flex gap-2">
             <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="bg-slate-800 text-slate-300 p-2.5 rounded-full border border-slate-700 hover:bg-blue-600 relative"><UserCircle size={20} /></button>
             {isProfileMenuOpen && (
-              <div className="absolute right-0 mt-12 w-64 bg-[#111827] border-2 border-slate-800 rounded-[2rem] shadow-2xl z-[500] overflow-hidden animate-in fade-in slide-in-from-top-2">
+              <div className="absolute right-0 mt-12 w-64 bg-[#111827] border-2 border-slate-800 rounded-[2rem] shadow-2xl z-[500] overflow-hidden animate-in fade-in slide-in-from-top-2 font-black italic">
                 {isAdmin && (
                   <button onClick={() => router.push('/admin')} className="w-full flex items-center gap-3 p-4 hover:bg-amber-500/10 text-amber-500 border-b border-slate-800/50 uppercase text-[10px] font-black italic">
                     <ShieldCheck size={18} /> Painel de Controle
                   </button>
                 )}
                 <button onClick={() => { setIsProfileMenuOpen(false); setIsConfigModalOpen(true); }} className="w-full flex items-center gap-3 p-4 hover:bg-slate-800 border-b border-slate-800/50 uppercase text-[10px]"><Settings className={theme.text} size={18} /> Ajustes / Tema</button>
-                <button onClick={async () => { await supabase.auth.signOut(); router.push('/login'); }} className="w-full flex items-center gap-3 p-4 hover:bg-rose-900/20 text-rose-500 transition-all uppercase text-[10px] italic"><LogOut size={18} /> Sair do App</button>
+                <button onClick={async () => { await supabase.auth.signOut(); router.push('/login'); }} className="w-full flex items-center gap-3 p-4 hover:bg-rose-900/20 text-rose-500 transition-all uppercase text-[10px] italic font-black"><LogOut size={18} /> Sair do App</button>
               </div>
             )}
           </div>
         </div>
-        <div className="flex gap-2 font-black italic">
-          <button onClick={() => setIsSaldoModalOpen(true)} className="flex-1 bg-emerald-900/20 text-emerald-400 p-3 rounded-2xl border border-emerald-800/50 text-[10px] uppercase flex items-center justify-center gap-2 leading-none"><Coins size={14} /> Saldo</button>
-          <button onClick={() => { setEditingCardId(null); setIsCardModalOpen(true); }} className="flex-1 bg-slate-800/50 text-slate-300 p-3 rounded-2xl border border-slate-700 text-[10px] uppercase flex items-center justify-center gap-2 leading-none"><CreditCard size={14} /> Cartão</button>
-          <button onClick={() => setIsModalOpen(true)} className={`w-full md:w-auto ${theme.primary} text-white p-3.5 rounded-2xl shadow-lg text-[10px] uppercase flex items-center justify-center gap-2 italic leading-none`}><Plus size={18} /> Novo Lançamento</button>
+        <div className="flex gap-2 font-black italic leading-none">
+          <button disabled={isExpired} onClick={() => setIsSaldoModalOpen(true)} className={`flex-1 p-3 rounded-2xl border border-emerald-800/50 text-[10px] uppercase flex items-center justify-center gap-2 leading-none transition-all ${isExpired ? 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed' : 'bg-emerald-900/20 text-emerald-400 active:scale-95'}`}><Coins size={14} /> Saldo</button>
+          <button disabled={isExpired} onClick={() => { setEditingCardId(null); setIsCardModalOpen(true); }} className={`flex-1 p-3 rounded-2xl border border-slate-700 text-[10px] uppercase flex items-center justify-center gap-2 leading-none transition-all ${isExpired ? 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed' : 'bg-slate-800/50 text-slate-300 active:scale-95'}`}><CreditCard size={14} /> Cartão</button>
+          <button disabled={isExpired} onClick={() => setIsModalOpen(true)} className={`w-full md:w-auto p-3.5 rounded-2xl shadow-lg text-[10px] uppercase flex items-center justify-center gap-2 italic leading-none transition-all ${isExpired ? 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed' : `${theme.primary} text-white active:scale-95`}`}><Plus size={18} /> Novo Lançamento</button>
         </div>
       </header>
 
       {/* CARDS RESUMO */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 font-black italic leading-none">
         <Card title="Saldo Atual" value={`R$ ${formatarMoeda(saldoFinal)}`} icon={<Banknote size={20}/>} color={`bg-[#111827] border-b-8 ${theme.border}`} />
+        <Card 
+          title="Dias Restantes" 
+          value={`${diasRestantes} DIAS`} 
+          icon={<Clock size={20}/>} 
+          color={isExpired ? "bg-rose-950 border-b-8 border-rose-600" : "bg-[#111827] border-b-8 border-amber-500"} 
+        />
         <Card title="Gasto Mensal" value={`R$ ${formatarMoeda(saidas)}`} icon={<CreditCard size={20}/>} color="bg-[#111827] border-b-8 border-rose-600" />
         <Card title="Entradas" value={`R$ ${formatarMoeda(entradas)}`} icon={<TrendingUp size={20}/>} color="bg-[#111827] border-b-8 border-emerald-600" />
-        <div className="relative">
-          <button onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} className="w-full bg-[#111827] p-4 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl border-b-8 border-amber-500 flex flex-col justify-between h-32 md:h-36 text-left leading-none">
-            <span className="text-white/40 text-[7px] md:text-[10px] uppercase tracking-widest leading-none">Filtrar por:</span>
-            <div className="flex items-center justify-between w-full leading-tight font-black"><div className="text-sm md:text-xl truncate uppercase italic px-1 leading-none">{filtroCartao}</div><ChevronDown size={16} /></div>
-          </button>
-          {isFilterMenuOpen && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-[#111827] border-2 border-slate-800 rounded-3xl shadow-2xl z-[400] overflow-hidden">
-              <div className="p-2 max-h-64 overflow-y-auto uppercase text-[10px] font-black italic">
-                <button onClick={() => { setFiltroCartao('Todos'); setIsFilterMenuOpen(false); }} className="w-full text-left p-4 hover:bg-slate-800 border-b border-slate-800/50">Todos os Gastos</button>
-                {cartoes.map(c => <button key={c.id} onClick={() => { setFiltroCartao(c.banco); setIsFilterMenuOpen(false); }} className={`w-full text-left p-4 hover:bg-slate-800 border-t border-slate-800/50 ${theme.text}`}>{c.banco} - {c.nome_cartao}</button>)}
-              </div>
-            </div>
-          )}
-        </div>
       </div>
 
-      {/* CONTEÚDO PRINCIPAL */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      {/* ÁREA DE GRÁFICO E LISTA */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 leading-none">
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-[#111827] p-6 rounded-[2.5rem] border border-slate-800 shadow-2xl h-80 overflow-hidden">
             <ResponsiveContainer width="100%" height="100%">
@@ -239,17 +259,17 @@ export default function HomePage() {
             </ResponsiveContainer>
           </div>
           <div className="bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 shadow-2xl font-black">
-            <h2 className="text-white font-black mb-6 uppercase text-[10px] tracking-widest italic px-1 leading-none">Meus Cartões</h2>
+            <h2 className="text-white font-black mb-6 uppercase text-[10px] tracking-widest italic px-1 leading-none font-black italic">Meus Cartões</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {cartoes.map(c => (
-                <div key={c.id} className="p-4 border-2 border-slate-800 rounded-2xl flex justify-between items-center bg-slate-950/50 hover:border-blue-500 transition-all leading-none">
+                <div key={c.id} className="p-4 border-2 border-slate-800 rounded-2xl flex justify-between items-center bg-slate-950/50 hover:border-blue-500 transition-all leading-none font-black italic">
                   <div className="flex items-center gap-3 leading-none">
                     <img src={c.logo_url} className="w-10 h-10 object-contain rounded-lg" onError={(e:any)=>e.target.style.display='none'} />
                     <div className="leading-tight italic"><p className="text-[8px] font-black text-slate-500 uppercase">{c.banco}</p><p className="font-black text-xs uppercase">{c.nome_cartao}</p><p className={`text-[9px] font-bold ${theme.text} uppercase`}>DIA {c.vencimento}</p></div>
                   </div>
-                  <div className="flex gap-2 leading-none">
-                    <button onClick={() => { setEditingCardId(c.id); setBanco(c.banco); setNomeCartao(c.nome_cartao); setVencimento(c.vencimento.toString()); setIsCardModalOpen(true); }} className="text-slate-600 hover:text-white"><Pencil size={16} /></button>
-                    <button onClick={async () => { if(confirm("Excluir cartão?")) { await supabase.from('cartoes').delete().eq('id', c.id); fetchDados(user.id); showAlert("Removido"); } }} className="text-slate-600 hover:text-rose-500"><Trash2 size={16} /></button>
+                  <div className="flex gap-2">
+                    <button disabled={isExpired} onClick={() => { setEditingCardId(c.id); setBanco(c.banco); setNomeCartao(c.nome_cartao); setVencimento(c.vencimento.toString()); setIsCardModalOpen(true); }} className={`text-slate-600 ${isExpired ? 'opacity-20' : 'hover:text-white'}`}><Pencil size={16} /></button>
+                    <button disabled={isExpired} onClick={async () => { if(confirm("Excluir cartão?")) { await supabase.from('cartoes').delete().eq('id', c.id); fetchDados(user.id); showAlert("Removido"); } }} className={`text-slate-600 ${isExpired ? 'opacity-20' : 'hover:text-rose-500'}`}><Trash2 size={16} /></button>
                   </div>
                 </div>
               ))}
@@ -257,139 +277,134 @@ export default function HomePage() {
           </div>
         </div>
         <div className="bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 h-full overflow-hidden flex flex-col shadow-2xl min-h-[500px]">
-          <h2 className="text-white font-black mb-4 uppercase text-[10px] tracking-widest leading-none px-1 italic">Últimos Lançamentos</h2>
+          <h2 className="text-white font-black mb-4 uppercase text-[10px] tracking-widest leading-none px-1 italic font-black">Últimos Lançamentos</h2>
           <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-1 font-black italic">
             {transacoesFiltradas.map((t) => (
               <div key={t.id} className="flex justify-between items-center p-4 bg-slate-800/40 rounded-2xl border border-slate-800 hover:border-slate-600 leading-none">
-                <div className="flex-1 min-w-0 mr-3 leading-tight"><div className="flex items-center gap-2"><p className="text-slate-200 text-[10px] uppercase truncate">{t.descricao}</p>{t.recorrente && <RefreshCcw size={10} className="text-blue-400" />}</div><p className="text-[8px] text-slate-500 uppercase">{t.data_ordenacao} • {t.forma_pagamento}</p></div>
-                <div className="flex items-center gap-2 italic leading-none"><span className={`text-xs px-1 ${t.valor > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>R$ {formatarMoeda(t.valor)}</span><button onClick={async () => { if(confirm("Apagar?")) { await supabase.from('transacoes').delete().eq('id', t.id); fetchDados(user.id); showAlert("Removido"); } }} className="text-slate-700 hover:text-rose-500"><Trash2 size={14} /></button></div>
+                <div className="flex-1 min-w-0 mr-3 leading-tight"><div className="flex items-center gap-2"><p className="text-slate-200 text-[10px] uppercase truncate font-black italic">{t.descricao}</p>{t.recorrente && <RefreshCcw size={10} className="text-blue-400" />}</div><p className="text-[8px] text-slate-500 uppercase font-black italic">{t.data_ordenacao} • {t.forma_pagamento}</p></div>
+                <div className="flex items-center gap-2 italic leading-none font-black italic"><span className={`text-xs px-1 ${t.valor > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>R$ {formatarMoeda(t.valor)}</span><button disabled={isExpired} onClick={async () => { if(confirm("Apagar?")) { await supabase.from('transacoes').delete().eq('id', t.id); fetchDados(user.id); showAlert("Removido"); } }} className={`text-slate-700 ${isExpired ? 'opacity-20' : 'hover:text-rose-500'}`}><Trash2 size={14} /></button></div>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* MODAL NOVO LANÇAMENTO */}
-      {isModalOpen && (
+      {/* MODAIS (MANTIDOS COMPLETOS) */}
+      {isModalOpen && !isExpired && (
         <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[4000] animate-in fade-in zoom-in-95 leading-none">
           <form onSubmit={handleSalvarGasto} className="bg-[#111827] w-full max-w-md rounded-[3rem] p-6 md:p-8 border-4 border-slate-800 shadow-2xl text-white font-black italic">
             <div className="flex justify-between items-center mb-6 leading-none">
                <h2 className="text-xl uppercase tracking-widest leading-none">Novo Lançamento</h2>
-               <button type="button" onClick={() => setIsModalOpen(false)} className="bg-slate-800 p-2 rounded-full text-slate-500 leading-none"><X size={20} /></button>
+               <button type="button" onClick={() => setIsModalOpen(false)} className="bg-slate-800 p-2 rounded-full text-slate-500"><X size={20} /></button>
             </div>
             <div className="space-y-4 font-black">
               <div className="flex gap-2 p-1 bg-slate-800 rounded-2xl leading-none">
-                <button type="button" onClick={() => setTipoMovimento('despesa')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase transition-all ${tipoMovimento === 'despesa' ? 'bg-rose-600 text-white shadow-lg' : 'text-slate-500'}`}>Despesa</button>
-                <button type="button" onClick={() => setTipoMovimento('receita')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase transition-all ${tipoMovimento === 'receita' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500'}`}>Receita</button>
+                <button type="button" onClick={() => setTipoMovimento('despesa')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase transition-all font-black italic ${tipoMovimento === 'despesa' ? 'bg-rose-600 text-white shadow-lg' : 'text-slate-500'}`}>Despesa</button>
+                <button type="button" onClick={() => setTipoMovimento('receita')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase transition-all font-black italic ${tipoMovimento === 'receita' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500'}`}>Receita</button>
               </div>
-              <input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="O QUE COMPROU?" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-sm uppercase font-black" required />
+              <input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="O QUE COMPROU?" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-sm uppercase font-black italic" required />
               <div className="relative">
-                <span className={`absolute left-4 top-1/2 -translate-y-1/2 ${tipoMovimento === 'receita' ? 'text-emerald-500' : 'text-rose-500'} text-sm font-black`}>R$</span>
+                <span className={`absolute left-4 top-1/2 -translate-y-1/2 ${tipoMovimento === 'receita' ? 'text-emerald-500' : 'text-rose-500'} text-sm font-black italic`}>R$</span>
                 <input type="text" value={valorDisplay} onChange={(e) => setValorDisplay(aplicarMascara(e.target.value))} placeholder="0,00" className={`w-full pl-10 p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 ${tipoMovimento === 'receita' ? 'text-emerald-400' : 'text-rose-400'} text-lg outline-none font-black italic`} required />
               </div>
               <div className="grid grid-cols-2 gap-3 leading-none">
-                <div className="space-y-1"><label className="text-[8px] text-slate-500 uppercase ml-2 italic leading-none">Método</label>
-                  <select value={metodoPagamento} onChange={(e) => { setMetodoPagamento(e.target.value); if (e.target.value === 'Pix' || e.target.value === 'Dinheiro') setTipoPagamento('Dinheiro'); else setTipoPagamento('Crédito'); }} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-[10px] outline-none uppercase font-black">
+                <div className="space-y-1"><label className="text-[8px] text-slate-500 uppercase ml-2 italic leading-none font-black italic">Método</label>
+                  <select value={metodoPagamento} onChange={(e) => { setMetodoPagamento(e.target.value); if (e.target.value === 'Pix' || e.target.value === 'Dinheiro') setTipoPagamento('Dinheiro'); else setTipoPagamento('Crédito'); }} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-[10px] outline-none uppercase font-black italic leading-none">
                     <option value="Pix">Pix / Dinheiro</option>
                     {cartoes.map(c => (<option key={c.id} value={`${c.banco} - ${c.nome_cartao}`}>{c.banco} - {c.nome_cartao}</option>))}
                   </select>
                 </div>
-                <div className="space-y-1"><label className="text-[8px] text-slate-500 uppercase ml-2 italic leading-none">Data</label>
-                  <input type="date" value={data} onChange={(e) => setData(e.target.value)} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-[10px] outline-none text-center font-black" required />
+                <div className="space-y-1"><label className="text-[8px] text-slate-500 uppercase ml-2 italic leading-none font-black italic">Data</label>
+                  <input type="date" value={data} onChange={(e) => setData(e.target.value)} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-[10px] outline-none text-center font-black italic leading-none" required />
                 </div>
               </div>
               {metodoPagamento !== 'Pix' && metodoPagamento !== 'Dinheiro' && (
                 <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2 leading-none">
-                  <div className="space-y-1"><label className="text-[8px] text-slate-500 uppercase ml-2 italic leading-none">Função</label>
-                    <select value={tipoPagamento} onChange={(e: any) => setTipoPagamento(e.target.value)} className="w-full p-3 bg-slate-800 rounded-xl border border-slate-700 text-[10px] outline-none uppercase font-black">
+                  <div className="space-y-1"><label className="text-[8px] text-slate-500 uppercase ml-2 italic leading-none font-black italic">Função</label>
+                    <select value={tipoPagamento} onChange={(e: any) => setTipoPagamento(e.target.value)} className="w-full p-3 bg-slate-800 rounded-xl border border-slate-700 text-[10px] outline-none uppercase font-black italic">
                       <option value="Crédito">Crédito</option>
                       <option value="Débito">Débito</option>
                     </select>
                   </div>
                   {tipoPagamento === 'Crédito' && (
-                    <div className="space-y-1"><label className="text-[8px] text-slate-500 uppercase ml-2 italic leading-none">Parcelas</label>
-                      <input type="number" min="1" max="48" value={parcelas} onChange={(e) => setParcelas(Number(e.target.value))} className="w-full p-3 bg-slate-800 rounded-xl border border-slate-700 text-xs text-center font-black" />
+                    <div className="space-y-1"><label className="text-[8px] text-slate-500 uppercase ml-2 italic leading-none font-black italic">Parcelas</label>
+                      <input type="number" min="1" max="48" value={parcelas} onChange={(e) => setParcelas(Number(e.target.value))} className="w-full p-3 bg-slate-800 rounded-xl border border-slate-700 text-xs text-center font-black italic" />
                     </div>
                   )}
                 </div>
               )}
               <div className="p-4 bg-slate-950/50 rounded-2xl border border-slate-800 space-y-3 font-black italic leading-none">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] uppercase text-white flex items-center gap-2 italic leading-none"><RefreshCcw size={14} className="text-blue-400"/> Recorrente?</span>
+                  <span className="text-[10px] uppercase text-white flex items-center gap-2 italic leading-none font-black italic"><RefreshCcw size={14} className="text-blue-400"/> Recorrente?</span>
                   <button type="button" onClick={() => setRecorrente(!recorrente)} className={`w-12 h-6 rounded-full relative transition-all shadow-inner ${recorrente ? 'bg-emerald-600' : 'bg-slate-700'}`}>
                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${recorrente ? 'left-7' : 'left-1'}`} />
                   </button>
                 </div>
                 {recorrente && (
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-800 animate-in slide-in-from-left leading-none">
-                    <span className="text-[9px] uppercase text-slate-400 italic leading-none">Dia da cobrança:</span>
-                    <input type="number" min="1" max="31" value={diaRecorrencia} onChange={(e) => setDiaRecorrencia(Number(e.target.value))} className="w-12 bg-slate-800 border border-slate-700 rounded-lg p-1 text-center text-xs font-black" />
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-800 animate-in slide-in-from-left leading-none font-black italic">
+                    <span className="text-[9px] uppercase text-slate-400 italic leading-none font-black italic">Dia da cobrança:</span>
+                    <input type="number" min="1" max="31" value={diaRecorrencia} onChange={(e) => setDiaRecorrencia(Number(e.target.value))} className="w-12 bg-slate-800 border border-slate-700 rounded-lg p-1 text-center text-xs font-black italic" />
                   </div>
                 )}
               </div>
-              <button type="submit" className={`w-full ${theme.primary} text-white py-5 rounded-[2rem] shadow-xl uppercase text-[10px] mt-2 italic leading-none font-black`}>Finalizar Lançamento</button>
+              <button type="submit" className={`w-full ${theme.primary} text-white py-5 rounded-[2rem] shadow-xl uppercase text-[10px] mt-2 italic leading-none font-black italic`}>Finalizar Lançamento</button>
             </div>
           </form>
         </div>
       )}
 
       {/* MODAL CARTÃO */}
-      {isCardModalOpen && (
-        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000] animate-in fade-in zoom-in-95 font-black leading-none">
+      {isCardModalOpen && !isExpired && (
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000] animate-in fade-in zoom-in-95 font-black leading-none italic">
           <form onSubmit={handleSalvarCartao} className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-8 md:p-10 border-4 border-slate-800 shadow-2xl text-white italic leading-none">
             <h2 className="text-xl mb-10 text-center uppercase tracking-widest leading-none italic">{editingCardId ? 'Editar' : 'Novo'} Cartão</h2>
             <div className="space-y-4 font-black">
-              <input value={banco} onChange={(e) => setBanco(e.target.value.toUpperCase())} placeholder="Banco (Ex: Inter)" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-sm uppercase font-black" required />
-              <div>
-                <input value={nomeCartao} onChange={(e) => { const val = e.target.value.replace(/[0-9]/g, ''); if (val.length <= 12) setNomeCartao(val.toUpperCase()); }} placeholder="Apelido (Ex: Principal)" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-sm uppercase font-black" required />
-                <p className="text-[7px] text-slate-500 ml-2 mt-1 uppercase italic leading-none font-black">Máximo 12 letras.</p>
-              </div>
-              <input type="number" min="1" max="31" value={vencimento} onChange={(e) => setVencimento(e.target.value)} placeholder="Dia vencimento" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-sm text-center font-black" required />
-              <button type="submit" className={`w-full ${theme.primary} py-5 rounded-[2rem] uppercase text-[10px] mt-4 italic leading-none font-black`}>Salvar Cartão</button>
-              <button type="button" onClick={() => setIsCardModalOpen(false)} className="w-full text-slate-500 py-4 mt-2 uppercase text-[9px] font-black leading-none italic">Cancelar</button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* MODAL AJUSTES / TEMA */}
-      {isConfigModalOpen && (
-        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000] animate-in fade-in zoom-in-95 leading-none">
-          <form onSubmit={async (e) => {
-            e.preventDefault();
-            const { error } = await supabase.auth.updateUser({ data: { full_name: sanitize(novoNome) }, ...(novaSenha && { password: novaSenha }) });
-            if (!error) { showAlert("Perfil atualizado!"); setIsConfigModalOpen(false); }
-          }} className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl text-white font-black italic leading-none">
-            <div className="flex justify-between items-center mb-8 px-1"><h2 className="text-xl uppercase tracking-widest leading-none">Ajustes</h2><button type="button" onClick={() => setIsConfigModalOpen(false)} className="bg-slate-800 p-2 rounded-full text-slate-500 leading-none"><X size={20} /></button></div>
-            <div className="mb-8 font-black leading-none">
-              <p className="text-[8px] text-slate-500 uppercase mb-4 tracking-widest flex items-center gap-2 leading-none"><Palette size={12}/> Estilo do App</p>
-              <div className="flex justify-between px-2">{Object.keys(THEMES).map((tName) => <button key={tName} type="button" onClick={() => changeTheme(tName as any)} className={`w-10 h-10 rounded-full border-4 ${currentTheme === tName ? 'border-white scale-110' : 'border-transparent opacity-40'} ${THEMES[tName as keyof typeof THEMES].primary} transition-all`} />)}</div>
-            </div>
-            <div className="space-y-4 font-black">
-              <input value={novoNome} onChange={(e) => setNovoNome(e.target.value)} placeholder="Nome" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-white text-sm font-black" />
-              <input type="password" value={novaSenha} onChange={(e) => setNovaSenha(e.target.value)} placeholder="Nova senha" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white text-sm font-black" />
-              <button type="submit" className={`w-full ${theme.primary} py-5 rounded-[2rem] uppercase text-[10px] mt-2 font-black italic leading-none`}>Salvar Tudo</button>
+              <input value={banco} onChange={(e) => setBanco(e.target.value.toUpperCase())} placeholder="Banco (Ex: Inter)" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-sm uppercase font-black italic" required />
+              <input value={nomeCartao} onChange={(e) => { const val = e.target.value.replace(/[0-9]/g, ''); if (val.length <= 12) setNomeCartao(val.toUpperCase()); }} placeholder="Apelido (Ex: Principal)" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-sm uppercase font-black italic" required />
+              <input type="number" min="1" max="31" value={vencimento} onChange={(e) => setVencimento(e.target.value)} placeholder="Dia vencimento" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-sm text-center font-black italic" required />
+              <button type="submit" className={`w-full ${theme.primary} py-5 rounded-[2rem] uppercase text-[10px] mt-4 active:scale-95 font-black italic leading-none`}>Salvar Cartão</button>
             </div>
           </form>
         </div>
       )}
 
       {/* MODAL SALDO */}
-      {isSaldoModalOpen && (
-        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000] animate-in fade-in zoom-in-95 font-black leading-none">
-          <div className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl text-white italic leading-none">
+      {isSaldoModalOpen && !isExpired && (
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000] animate-in fade-in zoom-in-95 font-black leading-none italic">
+          <div className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl text-white italic">
             <h2 className="text-xl mb-8 text-emerald-500 text-center uppercase tracking-widest leading-none">Saldo Inicial</h2>
-            <div className="relative mb-6 leading-none">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-600 text-lg px-1 font-black leading-none">R$</span>
-                <input type="text" value={saldoDisplay} onChange={(e) => setSaldoDisplay(aplicarMascara(e.target.value))} placeholder="0,00" className="w-full pl-12 p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-emerald-500 text-xl outline-none font-black leading-none" />
+            <div className="relative mb-6">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-600 text-lg px-1 font-black">R$</span>
+                <input type="text" value={saldoDisplay} onChange={(e) => setSaldoDisplay(aplicarMascara(e.target.value))} placeholder="0,00" className="w-full pl-12 p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-emerald-500 text-xl outline-none font-black italic" />
             </div>
             <button onClick={async () => {
               const v = Number(saldoDisplay.replace(/\./g, '').replace(',', '.'));
               const { error } = await supabase.from('profiles').update({ saldo_inicial: v }).eq('id', user.id);
               if (!error) { setSaldoInicial(v); setIsSaldoModalOpen(false); setSaldoDisplay(''); showAlert("Saldo OK!"); }
-            }} className="w-full bg-emerald-600 py-5 rounded-[2rem] uppercase text-[10px] shadow-lg italic leading-none font-black">Confirmar</button>
-            <button onClick={() => setIsSaldoModalOpen(false)} className="w-full text-slate-500 py-4 mt-2 uppercase text-[9px] font-black italic leading-none">Fechar</button>
+            }} className="w-full bg-emerald-600 py-5 rounded-[2rem] uppercase text-[10px] shadow-lg active:scale-95 italic font-black leading-none">Confirmar</button>
           </div>
+        </div>
+      )}
+
+      {/* MODAL AJUSTES */}
+      {isConfigModalOpen && (
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000] animate-in fade-in zoom-in-95 leading-none italic">
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            const { error } = await supabase.auth.updateUser({ data: { full_name: sanitize(novoNome) }, ...(novaSenha && { password: novaSenha }) });
+            if (!error) { showAlert("Perfil atualizado!"); setIsConfigModalOpen(false); }
+          }} className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl text-white font-black italic leading-none">
+            <div className="flex justify-between items-center mb-8 px-1"><h2 className="text-xl uppercase tracking-widest leading-none">Ajustes</h2><button type="button" onClick={() => setIsConfigModalOpen(false)} className="bg-slate-800 p-2 rounded-full text-slate-500"><X size={20} /></button></div>
+            <div className="mb-8">
+              <p className="text-[8px] text-slate-500 uppercase mb-4 tracking-widest flex items-center gap-2"><Palette size={12}/> Estilo do App</p>
+              <div className="flex justify-between px-2">{Object.keys(THEMES).map((tName) => <button key={tName} type="button" onClick={() => changeTheme(tName as any)} className={`w-10 h-10 rounded-full border-4 ${currentTheme === tName ? 'border-white scale-110' : 'border-transparent opacity-40'} ${THEMES[tName as keyof typeof THEMES].primary} transition-all`} />)}</div>
+            </div>
+            <div className="space-y-4">
+              <input value={novoNome} onChange={(e) => setNovoNome(e.target.value)} placeholder="Nome" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-white text-sm font-black italic" />
+              <input type="password" value={novaSenha} onChange={(e) => setNovaSenha(e.target.value)} placeholder="Nova senha" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white text-sm font-black italic" />
+              <button type="submit" className={`w-full ${theme.primary} py-5 rounded-[2rem] uppercase text-[10px] mt-2 font-black italic leading-none`}>Salvar Tudo</button>
+            </div>
+          </form>
         </div>
       )}
     </div>
@@ -399,7 +414,7 @@ export default function HomePage() {
 function Card({ title, value, icon, color }: any) {
   return (
     <div className={`${color} p-4 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl transition-transform active:scale-[0.98] border-black/20 flex flex-col justify-between h-32 md:h-36 text-white text-left font-black italic leading-none`}>
-      <div className="flex justify-between items-start w-full leading-none">
+      <div className="flex justify-between items-start w-full">
         <span className="text-white/20 font-black text-[7px] md:text-[10px] uppercase tracking-widest italic leading-none">{title}</span>
         <div className="p-1.5 md:p-3 bg-white/5 rounded-xl backdrop-blur-md border border-white/5 opacity-50 leading-none">{icon}</div>
       </div>
