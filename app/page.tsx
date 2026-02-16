@@ -33,13 +33,11 @@ export default function HomePage() {
   const [isSaldoModalOpen, setIsSaldoModalOpen] = useState(false);
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
-  const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
   
   // Estados de Dados
   const [transacoes, setTransacoes] = useState<any[]>([]);
   const [cartoes, setCartoes] = useState<any[]>([]);
   const [filtroCartao, setFiltroCartao] = useState('Todos');
-  const [totalUsuarios, setTotalUsuarios] = useState(0);
 
   // Estados do Formulário de Lançamento
   const [descricao, setDescricao] = useState('');
@@ -177,19 +175,23 @@ export default function HomePage() {
 
       {/* HEADER */}
       <header className="flex flex-col gap-4 mb-6 bg-[#111827] p-4 md:p-6 rounded-[2rem] border border-slate-800 shadow-2xl leading-none">
-        <div className="flex justify-between items-center w-full">
-          <div className="flex items-center gap-3">
+        <div className="flex justify-between items-center w-full leading-none">
+          <div className="flex items-center gap-3 leading-none">
             <img src="/logo.png" alt="Wolf Logo" className="w-10 h-10 object-contain" style={{ filter: `drop-shadow(0 0 5px ${theme.chart}30)` }} />
-            <div>
+            <div className="leading-none">
               <h1 className="text-lg md:text-xl font-black uppercase tracking-tighter italic px-1 leading-none">WOLF FINANCE</h1>
-              <p className={`text-[9px] md:text-[10px] font-black ${theme.text} mt-1 uppercase`}>Olá, {user?.user_metadata?.full_name?.split(' ')[0]}</p>
+              <p className={`text-[9px] md:text-[10px] font-black ${theme.text} mt-1 uppercase leading-none`}>Olá, {user?.user_metadata?.full_name?.split(' ')[0]}</p>
             </div>
           </div>
           <div className="flex gap-2">
-            {isAdmin && <button onClick={async () => { const { count } = await supabase.from('profiles').select('*', { count: 'exact', head: true }); setTotalUsuarios(count || 0); setIsAdminMenuOpen(true); }} className="bg-amber-500 text-slate-950 p-2.5 rounded-full shadow-lg"><ShieldCheck size={20} /></button>}
             <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="bg-slate-800 text-slate-300 p-2.5 rounded-full border border-slate-700 hover:bg-blue-600 relative"><UserCircle size={20} /></button>
             {isProfileMenuOpen && (
-              <div className="absolute right-0 mt-12 w-64 bg-[#111827] border-2 border-slate-800 rounded-[2rem] shadow-2xl z-[500] overflow-hidden">
+              <div className="absolute right-0 mt-12 w-64 bg-[#111827] border-2 border-slate-800 rounded-[2rem] shadow-2xl z-[500] overflow-hidden animate-in fade-in slide-in-from-top-2">
+                {isAdmin && (
+                  <button onClick={() => router.push('/admin')} className="w-full flex items-center gap-3 p-4 hover:bg-amber-500/10 text-amber-500 border-b border-slate-800/50 uppercase text-[10px] font-black italic">
+                    <ShieldCheck size={18} /> Painel de Controle
+                  </button>
+                )}
                 <button onClick={() => { setIsProfileMenuOpen(false); setIsConfigModalOpen(true); }} className="w-full flex items-center gap-3 p-4 hover:bg-slate-800 border-b border-slate-800/50 uppercase text-[10px]"><Settings className={theme.text} size={18} /> Ajustes / Tema</button>
                 <button onClick={async () => { await supabase.auth.signOut(); router.push('/login'); }} className="w-full flex items-center gap-3 p-4 hover:bg-rose-900/20 text-rose-500 transition-all uppercase text-[10px] italic"><LogOut size={18} /> Sair do App</button>
               </div>
@@ -204,14 +206,14 @@ export default function HomePage() {
       </header>
 
       {/* CARDS RESUMO */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 font-black italic">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 font-black italic leading-none">
         <Card title="Saldo Atual" value={`R$ ${formatarMoeda(saldoFinal)}`} icon={<Banknote size={20}/>} color={`bg-[#111827] border-b-8 ${theme.border}`} />
         <Card title="Gasto Mensal" value={`R$ ${formatarMoeda(saidas)}`} icon={<CreditCard size={20}/>} color="bg-[#111827] border-b-8 border-rose-600" />
         <Card title="Entradas" value={`R$ ${formatarMoeda(entradas)}`} icon={<TrendingUp size={20}/>} color="bg-[#111827] border-b-8 border-emerald-600" />
         <div className="relative">
-          <button onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} className="w-full bg-[#111827] p-4 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl border-b-8 border-amber-500 flex flex-col justify-between h-32 md:h-36 text-left">
-            <span className="text-white/40 text-[7px] md:text-[10px] uppercase tracking-widest">Filtrar por:</span>
-            <div className="flex items-center justify-between w-full leading-tight font-black"><div className="text-sm md:text-xl truncate uppercase italic px-1">{filtroCartao}</div><ChevronDown size={16} /></div>
+          <button onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} className="w-full bg-[#111827] p-4 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl border-b-8 border-amber-500 flex flex-col justify-between h-32 md:h-36 text-left leading-none">
+            <span className="text-white/40 text-[7px] md:text-[10px] uppercase tracking-widest leading-none">Filtrar por:</span>
+            <div className="flex items-center justify-between w-full leading-tight font-black"><div className="text-sm md:text-xl truncate uppercase italic px-1 leading-none">{filtroCartao}</div><ChevronDown size={16} /></div>
           </button>
           {isFilterMenuOpen && (
             <div className="absolute top-full left-0 right-0 mt-2 bg-[#111827] border-2 border-slate-800 rounded-3xl shadow-2xl z-[400] overflow-hidden">
@@ -245,7 +247,7 @@ export default function HomePage() {
                     <img src={c.logo_url} className="w-10 h-10 object-contain rounded-lg" onError={(e:any)=>e.target.style.display='none'} />
                     <div className="leading-tight italic"><p className="text-[8px] font-black text-slate-500 uppercase">{c.banco}</p><p className="font-black text-xs uppercase">{c.nome_cartao}</p><p className={`text-[9px] font-bold ${theme.text} uppercase`}>DIA {c.vencimento}</p></div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 leading-none">
                     <button onClick={() => { setEditingCardId(c.id); setBanco(c.banco); setNomeCartao(c.nome_cartao); setVencimento(c.vencimento.toString()); setIsCardModalOpen(true); }} className="text-slate-600 hover:text-white"><Pencil size={16} /></button>
                     <button onClick={async () => { if(confirm("Excluir cartão?")) { await supabase.from('cartoes').delete().eq('id', c.id); fetchDados(user.id); showAlert("Removido"); } }} className="text-slate-600 hover:text-rose-500"><Trash2 size={16} /></button>
                   </div>
@@ -258,9 +260,9 @@ export default function HomePage() {
           <h2 className="text-white font-black mb-4 uppercase text-[10px] tracking-widest leading-none px-1 italic">Últimos Lançamentos</h2>
           <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-1 font-black italic">
             {transacoesFiltradas.map((t) => (
-              <div key={t.id} className="flex justify-between items-center p-4 bg-slate-800/40 rounded-2xl border border-slate-800 hover:border-slate-600">
+              <div key={t.id} className="flex justify-between items-center p-4 bg-slate-800/40 rounded-2xl border border-slate-800 hover:border-slate-600 leading-none">
                 <div className="flex-1 min-w-0 mr-3 leading-tight"><div className="flex items-center gap-2"><p className="text-slate-200 text-[10px] uppercase truncate">{t.descricao}</p>{t.recorrente && <RefreshCcw size={10} className="text-blue-400" />}</div><p className="text-[8px] text-slate-500 uppercase">{t.data_ordenacao} • {t.forma_pagamento}</p></div>
-                <div className="flex items-center gap-2 italic"><span className={`text-xs px-1 ${t.valor > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>R$ {formatarMoeda(t.valor)}</span><button onClick={async () => { if(confirm("Apagar?")) { await supabase.from('transacoes').delete().eq('id', t.id); fetchDados(user.id); showAlert("Removido"); } }} className="text-slate-700 hover:text-rose-500"><Trash2 size={14} /></button></div>
+                <div className="flex items-center gap-2 italic leading-none"><span className={`text-xs px-1 ${t.valor > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>R$ {formatarMoeda(t.valor)}</span><button onClick={async () => { if(confirm("Apagar?")) { await supabase.from('transacoes').delete().eq('id', t.id); fetchDados(user.id); showAlert("Removido"); } }} className="text-slate-700 hover:text-rose-500"><Trash2 size={14} /></button></div>
               </div>
             ))}
           </div>
@@ -276,7 +278,7 @@ export default function HomePage() {
                <button type="button" onClick={() => setIsModalOpen(false)} className="bg-slate-800 p-2 rounded-full text-slate-500 leading-none"><X size={20} /></button>
             </div>
             <div className="space-y-4 font-black">
-              <div className="flex gap-2 p-1 bg-slate-800 rounded-2xl">
+              <div className="flex gap-2 p-1 bg-slate-800 rounded-2xl leading-none">
                 <button type="button" onClick={() => setTipoMovimento('despesa')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase transition-all ${tipoMovimento === 'despesa' ? 'bg-rose-600 text-white shadow-lg' : 'text-slate-500'}`}>Despesa</button>
                 <button type="button" onClick={() => setTipoMovimento('receita')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase transition-all ${tipoMovimento === 'receita' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500'}`}>Receita</button>
               </div>
@@ -297,7 +299,7 @@ export default function HomePage() {
                 </div>
               </div>
               {metodoPagamento !== 'Pix' && metodoPagamento !== 'Dinheiro' && (
-                <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2">
+                <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2 leading-none">
                   <div className="space-y-1"><label className="text-[8px] text-slate-500 uppercase ml-2 italic leading-none">Função</label>
                     <select value={tipoPagamento} onChange={(e: any) => setTipoPagamento(e.target.value)} className="w-full p-3 bg-slate-800 rounded-xl border border-slate-700 text-[10px] outline-none uppercase font-black">
                       <option value="Crédito">Crédito</option>
@@ -319,8 +321,8 @@ export default function HomePage() {
                   </button>
                 </div>
                 {recorrente && (
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-800 animate-in slide-in-from-left">
-                    <span className="text-[9px] uppercase text-slate-400 italic">Dia da cobrança:</span>
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-800 animate-in slide-in-from-left leading-none">
+                    <span className="text-[9px] uppercase text-slate-400 italic leading-none">Dia da cobrança:</span>
                     <input type="number" min="1" max="31" value={diaRecorrencia} onChange={(e) => setDiaRecorrencia(Number(e.target.value))} className="w-12 bg-slate-800 border border-slate-700 rounded-lg p-1 text-center text-xs font-black" />
                   </div>
                 )}
@@ -333,8 +335,8 @@ export default function HomePage() {
 
       {/* MODAL CARTÃO */}
       {isCardModalOpen && (
-        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000] animate-in fade-in zoom-in-95 font-black">
-          <form onSubmit={handleSalvarCartao} className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-8 md:p-10 border-4 border-slate-800 shadow-2xl text-white italic">
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000] animate-in fade-in zoom-in-95 font-black leading-none">
+          <form onSubmit={handleSalvarCartao} className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-8 md:p-10 border-4 border-slate-800 shadow-2xl text-white italic leading-none">
             <h2 className="text-xl mb-10 text-center uppercase tracking-widest leading-none italic">{editingCardId ? 'Editar' : 'Novo'} Cartão</h2>
             <div className="space-y-4 font-black">
               <input value={banco} onChange={(e) => setBanco(e.target.value.toUpperCase())} placeholder="Banco (Ex: Inter)" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-sm uppercase font-black" required />
@@ -357,9 +359,9 @@ export default function HomePage() {
             e.preventDefault();
             const { error } = await supabase.auth.updateUser({ data: { full_name: sanitize(novoNome) }, ...(novaSenha && { password: novaSenha }) });
             if (!error) { showAlert("Perfil atualizado!"); setIsConfigModalOpen(false); }
-          }} className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl text-white font-black italic">
+          }} className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl text-white font-black italic leading-none">
             <div className="flex justify-between items-center mb-8 px-1"><h2 className="text-xl uppercase tracking-widest leading-none">Ajustes</h2><button type="button" onClick={() => setIsConfigModalOpen(false)} className="bg-slate-800 p-2 rounded-full text-slate-500 leading-none"><X size={20} /></button></div>
-            <div className="mb-8 font-black">
+            <div className="mb-8 font-black leading-none">
               <p className="text-[8px] text-slate-500 uppercase mb-4 tracking-widest flex items-center gap-2 leading-none"><Palette size={12}/> Estilo do App</p>
               <div className="flex justify-between px-2">{Object.keys(THEMES).map((tName) => <button key={tName} type="button" onClick={() => changeTheme(tName as any)} className={`w-10 h-10 rounded-full border-4 ${currentTheme === tName ? 'border-white scale-110' : 'border-transparent opacity-40'} ${THEMES[tName as keyof typeof THEMES].primary} transition-all`} />)}</div>
             </div>
@@ -374,12 +376,12 @@ export default function HomePage() {
 
       {/* MODAL SALDO */}
       {isSaldoModalOpen && (
-        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000] animate-in fade-in zoom-in-95 font-black">
-          <div className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl text-white italic">
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000] animate-in fade-in zoom-in-95 font-black leading-none">
+          <div className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl text-white italic leading-none">
             <h2 className="text-xl mb-8 text-emerald-500 text-center uppercase tracking-widest leading-none">Saldo Inicial</h2>
             <div className="relative mb-6 leading-none">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-600 text-lg px-1 font-black">R$</span>
-                <input type="text" value={saldoDisplay} onChange={(e) => setSaldoDisplay(aplicarMascara(e.target.value))} placeholder="0,00" className="w-full pl-12 p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-emerald-500 text-xl outline-none font-black" />
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-600 text-lg px-1 font-black leading-none">R$</span>
+                <input type="text" value={saldoDisplay} onChange={(e) => setSaldoDisplay(aplicarMascara(e.target.value))} placeholder="0,00" className="w-full pl-12 p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-emerald-500 text-xl outline-none font-black leading-none" />
             </div>
             <button onClick={async () => {
               const v = Number(saldoDisplay.replace(/\./g, '').replace(',', '.'));
@@ -390,24 +392,6 @@ export default function HomePage() {
           </div>
         </div>
       )}
-
-      {/* MODAL ADMIN */}
-      {isAdminMenuOpen && (
-        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[6000] animate-in fade-in duration-300 font-black italic">
-          <div className="bg-[#111827] w-full max-w-sm rounded-[3rem] border-4 border-amber-500/30 shadow-2xl overflow-hidden font-black">
-            <div className="bg-amber-500 p-6 flex justify-between items-center text-slate-950 font-black">
-              <div><h2 className="uppercase tracking-tighter text-xl px-1 leading-none">Admin Panel</h2><p className="text-[10px] uppercase mt-1 leading-none font-black">Global Status</p></div>
-              <button onClick={() => setIsAdminMenuOpen(false)} className="bg-slate-950/20 p-2 rounded-full leading-none"><X size={24} /></button>
-            </div>
-            <div className="p-8 flex flex-col items-center justify-center bg-slate-800/50 m-4 rounded-[2.5rem] border-2 border-amber-500/10 font-black">
-                 <Users size={48} className="text-amber-500 mb-2 opacity-50" />
-                 <span className="text-[10px] text-slate-500 uppercase tracking-widest leading-none font-black">Total Usuários</span>
-                 <div className="text-7xl text-white tracking-tighter py-4 px-1 font-black italic leading-none">{totalUsuarios}</div>
-                 <p className="text-[7px] text-amber-500/40 uppercase mt-2 tracking-widest leading-none font-black">Base Supabase</p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -415,7 +399,7 @@ export default function HomePage() {
 function Card({ title, value, icon, color }: any) {
   return (
     <div className={`${color} p-4 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl transition-transform active:scale-[0.98] border-black/20 flex flex-col justify-between h-32 md:h-36 text-white text-left font-black italic leading-none`}>
-      <div className="flex justify-between items-start w-full">
+      <div className="flex justify-between items-start w-full leading-none">
         <span className="text-white/20 font-black text-[7px] md:text-[10px] uppercase tracking-widest italic leading-none">{title}</span>
         <div className="p-1.5 md:p-3 bg-white/5 rounded-xl backdrop-blur-md border border-white/5 opacity-50 leading-none">{icon}</div>
       </div>
