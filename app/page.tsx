@@ -127,8 +127,8 @@ export default function HomePage() {
     if (!cleanDesc || vTotal <= 0) return showAlert("Dados inválidos", "error");
 
     try {
-      const valorFinal = tipoMovimento === 'despesa' ? -Math.abs(vTotal) : Math.abs(vTotal);
-      const valorParcela = parseFloat((valorFinal / parcelas).toFixed(2));
+      const valorBase = tipoMovimento === 'despesa' ? -Math.abs(vTotal) : Math.abs(vTotal);
+      const valorParcela = parseFloat((valorBase / parcelas).toFixed(2));
       const novosLancamentos = [];
 
       for (let i = 0; i < parcelas; i++) {
@@ -191,21 +191,20 @@ export default function HomePage() {
 
   const transacoesFiltradas = filtroCartao === 'Todos' ? transacoes : transacoes.filter(t => t.forma_pagamento.includes(filtroCartao));
 
-  const entradas = transacoes.filter(t => {
+  // Cálculo de entradas e saídas APENAS do mês atual
+  const entradasMensais = transacoes.filter(t => {
     const d = new Date(t.data_ordenacao);
     return Number(t.valor) > 0 && d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
   }).reduce((acc, t) => acc + Number(t.valor), 0);
 
-  const saidas = transacoes.filter(t => {
+  const saidasMensais = transacoes.filter(t => {
     const d = new Date(t.data_ordenacao);
     return Number(t.valor) < 0 && d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
   }).reduce((acc, t) => acc + Number(t.valor), 0);
 
-  const entradasTotais = transacoes.filter(t => Number(t.valor) > 0).reduce((acc, t) => acc + Number(t.valor), 0);
-  const saidasTotais = transacoes.filter(t => Number(t.valor) < 0).reduce((acc, t) => acc + Number(t.valor), 0);
-  
-  // Variável corrigida aqui
-  const saldoCalculado = saldoInicial + entradasTotais + saidasTotais;
+  // O Saldo Total acumulado
+  const somaTotalTransacoes = transacoes.reduce((acc, t) => acc + Number(t.valor), 0);
+  const saldoCalculado = saldoInicial + somaTotalTransacoes;
 
   if (loading || !user) return <div className="min-h-screen flex items-center justify-center bg-[#0a0f1d]"><Loader2 className="h-12 w-12 animate-spin text-blue-600" /></div>;
 
@@ -236,7 +235,7 @@ export default function HomePage() {
             <img src="/logo.png" alt="Wolf Logo" className="w-10 h-10 object-contain" />
             <div className="leading-none">
               <h1 className="text-lg md:text-xl font-black uppercase tracking-tighter px-1">WOLF FINANCE</h1>
-              <div className="flex items-center gap-2 mt-1 leading-none font-black">
+              <div className="flex items-center gap-2 mt-1 leading-none font-black italic">
                 <p className={`text-[9px] md:text-[10px] font-black ${theme.text} uppercase`}>Olá, {user?.user_metadata?.full_name?.split(' ')[0]}</p>
                 <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full border ${isExpired ? 'border-rose-500 text-rose-500 bg-rose-500/10' : 'border-amber-500/50 text-amber-500 bg-amber-500/10'} text-[7px] font-black uppercase tracking-widest`}>
                   <Clock size={8} /> {diasRestantes} DIAS
@@ -260,17 +259,16 @@ export default function HomePage() {
           </div>
         </div>
         <div className="flex gap-2 font-black leading-none">
-          <button disabled={isExpired} onClick={() => setIsSaldoModalOpen(true)} className={`flex-1 p-3 rounded-2xl border border-emerald-800/50 text-[10px] uppercase flex items-center justify-center gap-2 transition-all ${isExpired ? 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed' : 'bg-emerald-900/20 text-emerald-400 active:scale-95'}`}><Coins size={14} /> Saldo</button>
-          <button disabled={isExpired} onClick={() => { setEditingCardId(null); setIsCardModalOpen(true); }} className={`flex-1 p-3 rounded-2xl border border-slate-700 text-[10px] uppercase flex items-center justify-center gap-2 transition-all ${isExpired ? 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed' : 'bg-slate-800/50 text-slate-300 active:scale-95'}`}><CreditCard size={14} /> Cartão</button>
+          <button disabled={isExpired} onClick={() => setIsSaldoModalOpen(true)} className={`flex-1 p-3 rounded-2xl border border-emerald-800/50 text-[10px] uppercase flex items-center justify-center gap-2 leading-none transition-all ${isExpired ? 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed' : 'bg-emerald-900/20 text-emerald-400 active:scale-95'}`}><Coins size={14} /> Saldo</button>
+          <button disabled={isExpired} onClick={() => { setEditingCardId(null); setIsCardModalOpen(true); }} className={`flex-1 p-3 rounded-2xl border border-slate-700 text-[10px] uppercase flex items-center justify-center gap-2 leading-none transition-all ${isExpired ? 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed' : 'bg-slate-800/50 text-slate-300 active:scale-95'}`}><CreditCard size={14} /> Cartão</button>
           <button disabled={isExpired} onClick={() => setIsModalOpen(true)} className={`w-full md:w-auto p-3.5 rounded-2xl shadow-lg text-[10px] uppercase flex items-center justify-center gap-2 transition-all ${isExpired ? 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed' : `${theme.primary} text-white active:scale-95`}`}><Plus size={18} /> Novo Lançamento</button>
         </div>
       </header>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 font-black leading-none">
-        {/* SALDO ATUAL COM VARIÁVEL CORRIGIDA */}
         <Card title="Saldo Atual" value={`R$ ${formatarMoeda(saldoCalculado)}`} icon={<Banknote size={20}/>} color={`bg-[#111827] border-b-8 ${theme.border}`} />
-        <Card title="Gasto Mensal" value={`R$ ${formatarMoeda(saidas)}`} icon={<CreditCard size={20}/>} color="bg-[#111827] border-b-8 border-rose-600" />
-        <Card title="Entradas" value={`R$ ${formatarMoeda(entradas)}`} icon={<TrendingUp size={20}/>} color="bg-[#111827] border-b-8 border-emerald-600" />
+        <Card title="Gasto Mensal" value={`R$ ${formatarMoeda(saidasMensais)}`} icon={<CreditCard size={20}/>} color="bg-[#111827] border-b-8 border-rose-600" />
+        <Card title="Entradas" value={`R$ ${formatarMoeda(entradasMensais)}`} icon={<TrendingUp size={20}/>} color="bg-[#111827] border-b-8 border-emerald-600" />
         
         <div className="relative font-black leading-none">
           <button onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} className="w-full bg-[#111827] p-4 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl border-b-8 border-amber-500 flex flex-col justify-between h-32 md:h-36 text-left leading-none font-black">
@@ -288,7 +286,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* RESTANTE DO CÓDIGO (GRÁFICO E MODAIS) MANTIDO IGUAL À VERSÃO ANTERIOR */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 leading-none">
         <div className="lg:col-span-2 space-y-6 leading-none">
           <div className="bg-[#111827] p-6 rounded-[2.5rem] border border-slate-800 shadow-2xl h-80 overflow-hidden font-black">
@@ -335,7 +332,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* MODAL NOVO LANÇAMENTO */}
       {isModalOpen && !isExpired && (
         <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[4000] animate-in fade-in zoom-in-95 leading-none font-black">
           <form onSubmit={handleSalvarGasto} className="bg-[#111827] w-full max-w-md rounded-[3rem] p-6 md:p-8 border-4 border-slate-800 shadow-2xl text-white font-black">
@@ -351,7 +347,7 @@ export default function HomePage() {
               <input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="DESCRIÇÃO" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-sm uppercase font-black" required />
               <div className="relative leading-none">
                 <span className={`absolute left-4 top-1/2 -translate-y-1/2 ${tipoMovimento === 'receita' ? 'text-emerald-500' : 'text-rose-500'} text-sm font-black`}>R$</span>
-                <input type="text" value={valorDisplay} onChange={(e) => setValorDisplay(aplicarMascara(e.target.value))} placeholder="0,00" className={`w-full pl-10 p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 ${tipoMovimento === 'receita' ? 'text-emerald-400 font-black' : 'text-rose-400 font-black'} text-lg outline-none font-black`} required />
+                <input type="text" value={valorDisplay} onChange={(e) => setValorDisplay(aplicarMascara(e.target.value))} placeholder="0,00" className={`w-full pl-10 p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 ${tipoMovimento === 'receita' ? 'text-emerald-400' : 'text-rose-400'} text-lg outline-none font-black`} required />
               </div>
               
               <div className="space-y-3 font-black">
