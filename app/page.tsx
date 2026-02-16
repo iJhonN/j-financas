@@ -94,6 +94,7 @@ export default function HomePage() {
       const today = new Date();
       const diffTime = expDate.getTime() - today.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
       const dias = diffDays > 0 ? diffDays : 0;
       setDiasRestantes(dias);
       setIsExpired(dias <= 0);
@@ -118,7 +119,6 @@ export default function HomePage() {
 
     try {
       const valorFinal = tipoMovimento === 'despesa' ? -Math.abs(vTotal) : Math.abs(vTotal);
-      // ARREDONDAMENTO FINANCEIRO CORRIGIDO
       const valorParcela = parseFloat((valorFinal / parcelas).toFixed(2));
       const novosLancamentos = [];
 
@@ -172,7 +172,6 @@ export default function HomePage() {
 
   const formatarMoeda = (v: number) => Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   
-  // FORMATAÇÃO DE DADOS PARA O GRÁFICO (EIXO X: DIA/MÊS)
   const formatarDadosGrafico = () => {
     return [...transacoesFiltradas]
       .reverse()
@@ -193,74 +192,74 @@ export default function HomePage() {
   if (loading || !user) return <div className="min-h-screen flex items-center justify-center bg-[#0a0f1d]"><Loader2 className="h-12 w-12 animate-spin text-blue-600" /></div>;
 
   return (
-    <div className="min-h-screen bg-[#0a0f1d] p-2 md:p-8 text-white font-black antialiased overflow-x-hidden pb-24 font-black italic">
+    <div className="min-h-screen bg-[#0a0f1d] p-2 md:p-8 text-white font-black antialiased overflow-x-hidden pb-24 italic">
       {alertConfig.show && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] px-4 w-full max-w-sm animate-in fade-in slide-in-from-top-4 duration-300">
           <div className={`flex items-center gap-3 p-4 rounded-2xl border-2 shadow-2xl backdrop-blur-xl ${alertConfig.type === 'error' ? 'bg-rose-950/80 border-rose-500 text-rose-200' : 'bg-emerald-950/80 border-emerald-500 text-emerald-200'}`}>
             {alertConfig.type === 'error' ? <AlertCircle size={20}/> : <CheckCircle size={20}/>}
-            <p className="text-[10px] uppercase tracking-widest">{alertConfig.msg}</p>
+            <p className="text-[10px] uppercase tracking-widest font-black">{alertConfig.msg}</p>
           </div>
         </div>
       )}
 
       {isExpired && (
-        <div className="mb-6 bg-rose-600/20 border-2 border-rose-600 p-4 rounded-3xl flex items-center gap-4 animate-pulse">
+        <div className="mb-6 bg-rose-600/20 border-2 border-rose-600 p-4 rounded-3xl flex items-center gap-4 animate-pulse leading-none">
           <div className="bg-rose-600 p-2 rounded-xl text-white shadow-lg"><Lock size={20} /></div>
           <div className="leading-none">
-            <h3 className="text-xs uppercase font-black italic">Acesso Beta Expirado</h3>
-            <p className="text-[9px] text-rose-400 uppercase mt-1 font-black italic">Fale com o administrador para renovar!</p>
+            <h3 className="text-xs uppercase font-black">Acesso Beta Expirado</h3>
+            <p className="text-[9px] text-rose-400 uppercase mt-1 font-black">Fale com o administrador para renovar!</p>
           </div>
         </div>
       )}
 
-      <header className="flex flex-col gap-4 mb-6 bg-[#111827] p-4 md:p-6 rounded-[2rem] border border-slate-800 shadow-2xl leading-none font-black italic">
-        <div className="flex justify-between items-center w-full leading-none font-black italic">
-          <div className="flex items-center gap-3 leading-none font-black italic">
+      <header className="flex flex-col gap-4 mb-6 bg-[#111827] p-4 md:p-6 rounded-[2rem] border border-slate-800 shadow-2xl leading-none">
+        <div className="flex justify-between items-center w-full leading-none">
+          <div className="flex items-center gap-3 leading-none">
             <img src="/logo.png" alt="Wolf Logo" className="w-10 h-10 object-contain" style={{ filter: `drop-shadow(0 0 5px ${theme.chart}30)` }} />
-            <div className="leading-none font-black italic">
-              <h1 className="text-lg md:text-xl font-black uppercase tracking-tighter italic px-1 leading-none font-black italic">WOLF FINANCE</h1>
+            <div className="leading-none">
+              <h1 className="text-lg md:text-xl font-black uppercase tracking-tighter px-1 italic">WOLF FINANCE</h1>
               <div className="flex items-center gap-2 mt-1 leading-none font-black italic">
-                <p className={`text-[9px] md:text-[10px] font-black ${theme.text} uppercase leading-none font-black italic`}>Olá, {user?.user_metadata?.full_name?.split(' ')[0]}</p>
-                <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full border ${isExpired ? 'border-rose-500 text-rose-500 bg-rose-500/10' : 'border-amber-500/50 text-amber-500 bg-amber-500/10'} text-[7px] font-black italic uppercase tracking-widest`}>
+                <p className={`text-[9px] md:text-[10px] font-black ${theme.text} uppercase`}>Olá, {user?.user_metadata?.full_name?.split(' ')[0]}</p>
+                <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full border ${isExpired ? 'border-rose-500 text-rose-500 bg-rose-500/10' : 'border-amber-500/50 text-amber-500 bg-amber-500/10'} text-[7px] font-black uppercase tracking-widest`}>
                   <Clock size={8} /> {diasRestantes} DIAS
                 </div>
               </div>
             </div>
           </div>
-          <div className="flex gap-2">
-            <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="bg-slate-800 text-slate-300 p-2.5 rounded-full border border-slate-700 hover:bg-blue-600 relative transition-all"><UserCircle size={20} /></button>
+          <div className="flex gap-2 font-black">
+            <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="bg-slate-800 text-slate-300 p-2.5 rounded-full border border-slate-700 hover:bg-blue-600 relative transition-all leading-none"><UserCircle size={20} /></button>
             {isProfileMenuOpen && (
-              <div className="absolute right-0 mt-12 w-64 bg-[#111827] border-2 border-slate-800 rounded-[2rem] shadow-2xl z-[500] overflow-hidden animate-in fade-in slide-in-from-top-2 font-black italic font-black italic">
+              <div className="absolute right-0 mt-12 w-64 bg-[#111827] border-2 border-slate-800 rounded-[2rem] shadow-2xl z-[500] overflow-hidden animate-in fade-in slide-in-from-top-2">
                 {isAdmin && (
-                  <button onClick={() => router.push('/admin')} className="w-full flex items-center gap-3 p-4 hover:bg-amber-500/10 text-amber-500 border-b border-slate-800/50 uppercase text-[10px] font-black italic font-black italic">
+                  <button onClick={() => router.push('/admin')} className="w-full flex items-center gap-3 p-4 hover:bg-amber-500/10 text-amber-500 border-b border-slate-800/50 uppercase text-[10px] font-black italic">
                     <ShieldCheck size={18} /> Painel de Controle
                   </button>
                 )}
-                <button onClick={() => { setIsProfileMenuOpen(false); setIsConfigModalOpen(true); }} className="w-full flex items-center gap-3 p-4 hover:bg-slate-800 border-b border-slate-800/50 uppercase text-[10px] font-black italic font-black italic"><Settings className={theme.text} size={18} /> Ajustes / Tema</button>
-                <button onClick={async () => { await supabase.auth.signOut(); router.push('/login'); }} className="w-full flex items-center gap-3 p-4 hover:bg-rose-900/20 text-rose-500 transition-all uppercase text-[10px] italic font-black font-black italic"><LogOut size={18} /> Sair do App</button>
+                <button onClick={() => { setIsProfileMenuOpen(false); setIsConfigModalOpen(true); }} className="w-full flex items-center gap-3 p-4 hover:bg-slate-800 border-b border-slate-800/50 uppercase text-[10px] font-black italic"><Settings className={theme.text} size={18} /> Ajustes / Tema</button>
+                <button onClick={async () => { await supabase.auth.signOut(); router.push('/login'); }} className="w-full flex items-center gap-3 p-4 hover:bg-rose-900/20 text-rose-500 transition-all uppercase text-[10px] font-black italic"><LogOut size={18} /> Sair do App</button>
               </div>
             )}
           </div>
         </div>
-        <div className="flex gap-2 font-black italic leading-none font-black italic">
-          <button disabled={isExpired} onClick={() => setIsSaldoModalOpen(true)} className={`flex-1 p-3 rounded-2xl border border-emerald-800/50 text-[10px] uppercase flex items-center justify-center gap-2 leading-none transition-all font-black italic ${isExpired ? 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed' : 'bg-emerald-900/20 text-emerald-400 active:scale-95'}`}><Coins size={14} /> Saldo</button>
-          <button disabled={isExpired} onClick={() => { setEditingCardId(null); setIsCardModalOpen(true); }} className={`flex-1 p-3 rounded-2xl border border-slate-700 text-[10px] uppercase flex items-center justify-center gap-2 leading-none transition-all font-black italic ${isExpired ? 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed' : 'bg-slate-800/50 text-slate-300 active:scale-95'}`}><CreditCard size={14} /> Cartão</button>
-          <button disabled={isExpired} onClick={() => setIsModalOpen(true)} className={`w-full md:w-auto p-3.5 rounded-2xl shadow-lg text-[10px] uppercase flex items-center justify-center gap-2 italic leading-none transition-all font-black italic ${isExpired ? 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed' : `${theme.primary} text-white active:scale-95`}`}><Plus size={18} /> Novo Lançamento</button>
+        <div className="flex gap-2 font-black leading-none">
+          <button disabled={isExpired} onClick={() => setIsSaldoModalOpen(true)} className={`flex-1 p-3 rounded-2xl border border-emerald-800/50 text-[10px] uppercase flex items-center justify-center gap-2 leading-none transition-all ${isExpired ? 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed' : 'bg-emerald-900/20 text-emerald-400 active:scale-95'}`}><Coins size={14} /> Saldo</button>
+          <button disabled={isExpired} onClick={() => { setEditingCardId(null); setIsCardModalOpen(true); }} className={`flex-1 p-3 rounded-2xl border border-slate-700 text-[10px] uppercase flex items-center justify-center gap-2 leading-none transition-all ${isExpired ? 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed' : 'bg-slate-800/50 text-slate-300 active:scale-95'}`}><CreditCard size={14} /> Cartão</button>
+          <button disabled={isExpired} onClick={() => setIsModalOpen(true)} className={`w-full md:w-auto p-3.5 rounded-2xl shadow-lg text-[10px] uppercase flex items-center justify-center gap-2 transition-all ${isExpired ? 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed' : `${theme.primary} text-white active:scale-95`}`}><Plus size={18} /> Novo Lançamento</button>
         </div>
       </header>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 font-black italic leading-none font-black italic">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 font-black leading-none">
         <Card title="Saldo Atual" value={`R$ ${formatarMoeda(saldoFinal)}`} icon={<Banknote size={20}/>} color={`bg-[#111827] border-b-8 ${theme.border}`} />
         <Card title="Gasto Mensal" value={`R$ ${formatarMoeda(saidas)}`} icon={<CreditCard size={20}/>} color="bg-[#111827] border-b-8 border-rose-600" />
         <Card title="Entradas" value={`R$ ${formatarMoeda(entradas)}`} icon={<TrendingUp size={20}/>} color="bg-[#111827] border-b-8 border-emerald-600" />
         <div className="relative font-black italic leading-none">
           <button onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} className="w-full bg-[#111827] p-4 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl border-b-8 border-amber-500 flex flex-col justify-between h-32 md:h-36 text-left leading-none font-black italic">
-            <span className="text-white/40 text-[7px] md:text-[10px] uppercase tracking-widest leading-none font-black italic">Filtrar por:</span>
-            <div className="flex items-center justify-between w-full leading-tight font-black italic font-black italic"><div className="text-sm md:text-xl truncate uppercase italic px-1 leading-none font-black">{filtroCartao}</div><ChevronDown size={16} /></div>
+            <span className="text-white/40 text-[7px] md:text-[10px] uppercase tracking-widest leading-none font-black">Filtrar por:</span>
+            <div className="flex items-center justify-between w-full leading-tight font-black"><div className="text-sm md:text-xl truncate uppercase italic px-1 leading-none font-black">{filtroCartao}</div><ChevronDown size={16} /></div>
           </button>
           {isFilterMenuOpen && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-[#111827] border-2 border-slate-800 rounded-3xl shadow-2xl z-[400] overflow-hidden">
-              <div className="p-2 max-h-64 overflow-y-auto uppercase text-[10px] font-black italic font-black italic">
+            <div className="absolute top-full left-0 right-0 mt-2 bg-[#111827] border-2 border-slate-800 rounded-3xl shadow-2xl z-[400] overflow-hidden font-black italic">
+              <div className="p-2 max-h-64 overflow-y-auto uppercase text-[10px] font-black italic">
                 <button onClick={() => { setFiltroCartao('Todos'); setIsFilterMenuOpen(false); }} className="w-full text-left p-4 hover:bg-slate-800 border-b border-slate-800/50 font-black italic">Todos os Gastos</button>
                 {cartoes.map(c => <button key={c.id} onClick={() => { setFiltroCartao(c.banco); setIsFilterMenuOpen(false); }} className={`w-full text-left p-4 hover:bg-slate-800 border-t border-slate-800/50 ${theme.text} font-black italic`}>{c.banco} - {c.nome_cartao}</button>)}
               </div>
@@ -269,20 +268,13 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 leading-none">
-        <div className="lg:col-span-2 space-y-6 leading-none">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 leading-none font-black italic">
+        <div className="lg:col-span-2 space-y-6 leading-none font-black italic">
           <div className="bg-[#111827] p-6 rounded-[2.5rem] border border-slate-800 shadow-2xl h-80 overflow-hidden font-black italic">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={formatarDadosGrafico()}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
-                <XAxis 
-                  dataKey="data" 
-                  stroke="#475569" 
-                  fontSize={10} 
-                  tickLine={false} 
-                  axisLine={false} 
-                  tickMargin={10}
-                />
+                <XAxis dataKey="data" stroke="#475569" fontSize={10} tickLine={false} axisLine={false} tickMargin={10} />
                 <Tooltip 
                   contentStyle={{backgroundColor: '#0f172a', border: 'none', borderRadius: '15px', fontWeight: '900', color: '#fff'}} 
                   formatter={(value: any) => [`R$ ${Number(value).toFixed(2)}`, 'Valor']}
@@ -297,94 +289,93 @@ export default function HomePage() {
               {cartoes.map(c => (
                 <div key={c.id} className="p-4 border-2 border-slate-800 rounded-2xl flex justify-between items-center bg-slate-950/50 hover:border-blue-500 transition-all leading-none font-black italic">
                   <div className="flex items-center gap-3 leading-none font-black italic">
-                    <img src={c.logo_url} className="w-10 h-10 object-contain rounded-lg font-black italic" onError={(e:any)=>e.target.style.display='none'} />
-                    <div className="leading-tight italic font-black italic"><p className="text-[8px] font-black text-slate-500 uppercase font-black italic">{c.banco}</p><p className="font-black text-xs uppercase font-black italic">{c.nome_cartao}</p><p className={`text-[9px] font-bold ${theme.text} uppercase font-black italic`}>DIA {c.vencimento}</p></div>
+                    <img src={c.logo_url} className="w-10 h-10 object-contain rounded-lg font-black italic" onError={(e:any)=>e.target.style.display='none'} alt="" />
+                    <div className="leading-tight italic font-black"><p className="text-[8px] font-black text-slate-500 uppercase">{c.banco}</p><p className="font-black text-xs uppercase">{c.nome_cartao}</p><p className={`text-[9px] font-bold ${theme.text} uppercase`}>DIA {c.vencimento}</p></div>
                   </div>
                   <div className="flex gap-2">
-                    <button disabled={isExpired} onClick={() => { setEditingCardId(c.id); setBanco(c.banco); setNomeCartao(c.nome_cartao); setVencimento(c.vencimento.toString()); setIsCardModalOpen(true); }} className={`text-slate-600 ${isExpired ? 'opacity-20' : 'hover:text-white'}`}><Pencil size={16} /></button>
-                    <button disabled={isExpired} onClick={async () => { if(confirm("Excluir cartão?")) { await supabase.from('cartoes').delete().eq('id', c.id); fetchDados(user.id); showAlert("Removido"); } }} className={`text-slate-600 ${isExpired ? 'opacity-20' : 'hover:text-rose-500'}`}><Trash2 size={16} /></button>
+                    <button disabled={isExpired} onClick={() => { setEditingCardId(c.id); setBanco(c.banco); setNomeCartao(c.nome_cartao); setVencimento(c.vencition.toString()); setIsCardModalOpen(true); }} className={`text-slate-600 ${isExpired ? 'opacity-20 font-black italic' : 'hover:text-white font-black'}`}><Pencil size={16} /></button>
+                    <button disabled={isExpired} onClick={async () => { if(confirm("Excluir cartão?")) { await supabase.from('cartoes').delete().eq('id', c.id); fetchDados(user.id); showAlert("Removido"); } }} className={`text-slate-600 ${isExpired ? 'opacity-20 font-black italic' : 'hover:text-rose-500 font-black'}`}><Trash2 size={16} /></button>
                   </div>
                 </div>
               ))}
             </div>
           </div>
         </div>
-        <div className="bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 h-full overflow-hidden flex flex-col shadow-2xl min-h-[500px] leading-none">
-          <h2 className="text-white font-black mb-4 uppercase text-[10px] tracking-widest leading-none px-1 italic font-black">Últimos Lançamentos</h2>
-          <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-1 font-black italic leading-none font-black italic">
+        <div className="bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 h-full overflow-hidden flex flex-col shadow-2xl min-h-[500px] leading-none font-black italic">
+          <h2 className="text-white font-black mb-4 uppercase text-[10px] tracking-widest leading-none px-1 italic">Últimos Lançamentos</h2>
+          <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-1 font-black italic leading-none">
             {transacoesFiltradas.map((t) => (
               <div key={t.id} className="flex justify-between items-center p-4 bg-slate-800/40 rounded-2xl border border-slate-800 hover:border-slate-600 leading-none font-black italic">
-                <div className="flex-1 min-w-0 mr-3 leading-tight font-black italic font-black italic"><div className="flex items-center gap-2 font-black italic"><p className="text-slate-200 text-[10px] uppercase truncate font-black italic">{t.descricao}</p>{t.recorrente && <RefreshCcw size={10} className="text-blue-400 font-black italic" />}</div><p className="text-[8px] text-slate-500 uppercase font-black italic">{t.data_ordenacao} • {t.forma_pagamento}</p></div>
-                <div className="flex items-center gap-2 italic leading-none font-black italic"><span className={`text-xs px-1 ${t.valor > 0 ? 'text-emerald-500 font-black italic' : 'text-rose-500 font-black italic'}`}>R$ {formatarMoeda(t.valor)}</span><button disabled={isExpired} onClick={async () => { if(confirm("Apagar?")) { await supabase.from('transacoes').delete().eq('id', t.id); fetchDados(user.id); showAlert("Removido"); } }} className={`text-slate-700 ${isExpired ? 'opacity-20 font-black italic' : 'hover:text-rose-500 font-black italic'}`}><Trash2 size={14} /></button></div>
+                <div className="flex-1 min-w-0 mr-3 leading-tight font-black italic"><div className="flex items-center gap-2 font-black italic"><p className="text-slate-200 text-[10px] uppercase truncate font-black italic">{t.descricao}</p>{t.recorrente && <RefreshCcw size={10} className="text-blue-400 font-black italic" />}</div><p className="text-[8px] text-slate-500 uppercase font-black italic">{t.data_ordenacao} • {t.forma_pagamento}</p></div>
+                <div className="flex items-center gap-2 italic leading-none font-black"><span className={`text-xs px-1 ${t.valor > 0 ? 'text-emerald-500 font-black' : 'text-rose-500 font-black'}`}>R$ {formatarMoeda(t.valor)}</span><button disabled={isExpired} onClick={async () => { if(confirm("Apagar?")) { await supabase.from('transacoes').delete().eq('id', t.id); fetchDados(user.id); showAlert("Removido"); } }} className={`text-slate-700 ${isExpired ? 'opacity-20 font-black italic' : 'hover:text-rose-500 font-black'}`}><Trash2 size={14} /></button></div>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* MODAL NOVO LANÇAMENTO - COM COMPACTAÇÃO DE DATA */}
+      {/* MODAL NOVO LANÇAMENTO - GRID E BANCO + APELIDO CORRIGIDOS */}
       {isModalOpen && !isExpired && (
         <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[4000] animate-in fade-in zoom-in-95 leading-none font-black italic">
           <form onSubmit={handleSalvarGasto} className="bg-[#111827] w-full max-w-md rounded-[3rem] p-6 md:p-8 border-4 border-slate-800 shadow-2xl text-white font-black italic font-black italic">
             <div className="flex justify-between items-center mb-6 leading-none font-black italic">
-               <h2 className="text-xl uppercase tracking-widest leading-none font-black italic">Novo Lançamento</h2>
-               <button type="button" onClick={() => setIsModalOpen(false)} className="bg-slate-800 p-2 rounded-full text-slate-500 leading-none font-black italic"><X size={20} /></button>
+               <h2 className="text-xl uppercase tracking-widest leading-none font-black italic font-black italic">Novo Lançamento</h2>
+               <button type="button" onClick={() => setIsModalOpen(false)} className="bg-slate-800 p-2 rounded-full text-slate-500 leading-none font-black italic font-black italic"><X size={20} /></button>
             </div>
-            <div className="space-y-4 font-black italic leading-none">
+            <div className="space-y-4 font-black italic leading-none font-black italic">
               <div className="flex gap-2 p-1 bg-slate-800 rounded-2xl leading-none">
-                <button type="button" onClick={() => setTipoMovimento('despesa')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase transition-all font-black italic ${tipoMovimento === 'despesa' ? 'bg-rose-600 text-white shadow-lg' : 'text-slate-500'}`}>Despesa</button>
-                <button type="button" onClick={() => setTipoMovimento('receita')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase transition-all font-black italic ${tipoMovimento === 'receita' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-500'}`}>Receita</button>
+                <button type="button" onClick={() => setTipoMovimento('despesa')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase transition-all font-black italic ${tipoMovimento === 'despesa' ? 'bg-rose-600 text-white shadow-lg font-black italic' : 'text-slate-500 font-black italic'}`}>Despesa</button>
+                <button type="button" onClick={() => setTipoMovimento('receita')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase transition-all font-black italic ${tipoMovimento === 'receita' ? 'bg-emerald-600 text-white shadow-lg font-black italic' : 'text-slate-500 font-black italic'}`}>Receita</button>
               </div>
-              <input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="DESCRIÇÃO" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-sm uppercase font-black italic" required />
-              <div className="relative leading-none">
-                <span className={`absolute left-4 top-1/2 -translate-y-1/2 ${tipoMovimento === 'receita' ? 'text-emerald-500' : 'text-rose-500'} text-sm font-black italic`}>R$</span>
-                <input type="text" value={valorDisplay} onChange={(e) => setValorDisplay(aplicarMascara(e.target.value))} placeholder="0,00" className={`w-full pl-10 p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 ${tipoMovimento === 'receita' ? 'text-emerald-400 font-black italic' : 'text-rose-400 font-black italic'} text-lg outline-none font-black italic`} required />
+              <input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="DESCRIÇÃO" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-sm uppercase font-black italic font-black italic font-black italic" required />
+              <div className="relative leading-none font-black italic font-black italic">
+                <span className={`absolute left-4 top-1/2 -translate-y-1/2 ${tipoMovimento === 'receita' ? 'text-emerald-500 font-black italic' : 'text-rose-500 font-black italic'} text-sm font-black italic font-black italic font-black italic`}>R$</span>
+                <input type="text" value={valorDisplay} onChange={(e) => setValorDisplay(aplicarMascara(e.target.value))} placeholder="0,00" className={`w-full pl-10 p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 ${tipoMovimento === 'receita' ? 'text-emerald-400 font-black italic' : 'text-rose-400 font-black italic'} text-lg outline-none font-black italic font-black italic font-black italic font-black italic`} required />
               </div>
               
-              {/* GRID COMPACTO PARA MÉTODO E DATA */}
-              <div className="grid grid-cols-2 gap-3 leading-none">
-                <div className="space-y-1 leading-none font-black italic"><label className="text-[8px] text-slate-500 uppercase ml-2 leading-none font-black italic">Método</label>
+              <div className="grid grid-cols-[1.3fr_0.7fr] gap-3 leading-none font-black italic">
+                <div className="space-y-1 font-black italic"><label className="text-[8px] text-slate-500 uppercase ml-2 font-black italic">Método / Cartão</label>
                   <select value={metodoPagamento} onChange={(e) => { setMetodoPagamento(e.target.value); if (e.target.value === 'Pix' || e.target.value === 'Dinheiro') setTipoPagamento('Dinheiro'); else setTipoPagamento('Crédito'); }} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-[10px] outline-none uppercase font-black italic leading-none">
                     <option value="Pix">Pix / Dinheiro</option>
-                    {cartoes.map(c => (<option key={c.id} value={`${c.banco} - ${c.nome_cartao}`}>{c.banco}</option>))}
+                    {cartoes.map(c => (<option key={c.id} value={`${c.banco} - ${c.nome_cartao}`}>{c.banco} - {c.nome_cartao}</option>))}
                   </select>
                 </div>
-                <div className="space-y-1 leading-none font-black italic"><label className="text-[8px] text-slate-500 uppercase ml-2 leading-none font-black italic">Data</label>
+                <div className="space-y-1 font-black italic leading-none"><label className="text-[8px] text-slate-500 uppercase ml-2 font-black italic">Data</label>
                   <input type="date" value={data} onChange={(e) => setData(e.target.value)} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-[10px] outline-none text-center font-black italic leading-none" required />
                 </div>
               </div>
 
               {metodoPagamento !== 'Pix' && metodoPagamento !== 'Dinheiro' && (
                 <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2 leading-none font-black italic">
-                  <div className="space-y-1 leading-none font-black italic"><label className="text-[8px] text-slate-500 uppercase ml-2 leading-none font-black italic">Função</label>
-                    <select value={tipoPagamento} onChange={(e: any) => setTipoPagamento(e.target.value)} className="w-full p-3 bg-slate-800 rounded-xl border border-slate-700 text-[10px] outline-none uppercase font-black italic">
+                  <div className="space-y-1 font-black italic leading-none"><label className="text-[8px] text-slate-500 uppercase ml-2 font-black italic">Função</label>
+                    <select value={tipoPagamento} onChange={(e: any) => setTipoPagamento(e.target.value)} className="w-full p-3 bg-slate-800 rounded-xl border border-slate-700 text-[10px] outline-none uppercase font-black italic font-black italic">
                       <option value="Crédito">Crédito</option>
                       <option value="Débito">Débito</option>
                     </select>
                   </div>
                   {tipoPagamento === 'Crédito' && (
-                    <div className="space-y-1 leading-none font-black italic"><label className="text-[8px] text-slate-500 uppercase ml-2 leading-none font-black italic">Parcelas</label>
-                      <input type="number" min="1" max="48" value={parcelas} onChange={(e) => setParcelas(Number(e.target.value))} className="w-full p-3 bg-slate-800 rounded-xl border border-slate-700 text-xs text-center font-black italic" />
+                    <div className="space-y-1 font-black italic leading-none font-black italic"><label className="text-[8px] text-slate-500 uppercase ml-2 font-black italic">Parcelas</label>
+                      <input type="number" min="1" max="48" value={parcelas} onChange={(e) => setParcelas(Number(e.target.value))} className="w-full p-3 bg-slate-800 rounded-xl border border-slate-700 text-xs text-center font-black italic font-black italic" />
                     </div>
                   )}
                 </div>
               )}
               
-              <div className="p-4 bg-slate-950/50 rounded-2xl border border-slate-800 space-y-3 font-black italic leading-none">
-                <div className="flex items-center justify-between leading-none font-black italic">
-                  <span className="text-[10px] uppercase text-white flex items-center gap-2 italic font-black italic"><RefreshCcw size={14} className="text-blue-400"/> Recorrente?</span>
-                  <button type="button" onClick={() => setRecorrente(!recorrente)} className={`w-12 h-6 rounded-full relative transition-all shadow-inner ${recorrente ? 'bg-emerald-600' : 'bg-slate-700'}`}>
-                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${recorrente ? 'left-7' : 'left-1'}`} />
+              <div className="p-4 bg-slate-950/50 rounded-2xl border border-slate-800 space-y-3 font-black italic leading-none font-black italic">
+                <div className="flex items-center justify-between leading-none font-black italic font-black italic">
+                  <span className="text-[10px] uppercase text-white flex items-center gap-2 italic font-black italic"><RefreshCcw size={14} className="text-blue-400 font-black italic font-black italic"/> Recorrente?</span>
+                  <button type="button" onClick={() => setRecorrente(!recorrente)} className={`w-12 h-6 rounded-full relative transition-all shadow-inner font-black italic ${recorrente ? 'bg-emerald-600 font-black italic' : 'bg-slate-700 font-black italic'}`}>
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all font-black italic ${recorrente ? 'left-7 font-black italic' : 'left-1 font-black italic'}`} />
                   </button>
                 </div>
                 {recorrente && (
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-800 animate-in slide-in-from-left leading-none font-black italic">
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-800 animate-in slide-in-from-left leading-none font-black italic font-black italic">
                     <span className="text-[9px] uppercase text-slate-400 italic font-black italic font-black italic">Dia da cobrança:</span>
-                    <input type="number" min="1" max="31" value={diaRecorrencia} onChange={(e) => setDiaRecorrencia(Number(e.target.value))} className="w-12 bg-slate-800 border border-slate-700 rounded-lg p-1 text-center text-xs font-black italic" />
+                    <input type="number" min="1" max="31" value={diaRecorrencia} onChange={(e) => setDiaRecorrencia(Number(e.target.value))} className="w-12 bg-slate-800 border border-slate-700 rounded-lg p-1 text-center text-xs font-black italic font-black italic" />
                   </div>
                 )}
               </div>
-              <button type="submit" className={`w-full ${theme.primary} text-white py-5 rounded-[2rem] shadow-xl uppercase text-[10px] mt-2 italic leading-none font-black italic`}>Finalizar Lançamento</button>
+              <button type="submit" className={`w-full ${theme.primary} text-white py-5 rounded-[2rem] shadow-xl uppercase text-[10px] mt-2 italic leading-none font-black italic font-black italic`}>Finalizar Lançamento</button>
             </div>
           </form>
         </div>
@@ -393,14 +384,14 @@ export default function HomePage() {
       {/* MODAL CARTÃO - COMPLETO */}
       {isCardModalOpen && !isExpired && (
         <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000] animate-in fade-in zoom-in-95 font-black leading-none italic font-black italic">
-          <form onSubmit={handleSalvarCartao} className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-8 md:p-10 border-4 border-slate-800 shadow-2xl text-white italic leading-none font-black italic font-black italic">
+          <form onSubmit={handleSalvarCartao} className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-8 md:p-10 border-4 border-slate-800 shadow-2xl text-white italic leading-none font-black italic">
             <h2 className="text-xl mb-10 text-center uppercase tracking-widest leading-none font-black italic">{editingCardId ? 'Editar' : 'Novo'} Cartão</h2>
-            <div className="space-y-4 font-black italic">
-              <input value={banco} onChange={(e) => setBanco(e.target.value.toUpperCase())} placeholder="BANCO (EX: INTER)" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-sm uppercase font-black italic" required />
-              <input value={nomeCartao} onChange={(e) => { const val = e.target.value.replace(/[0-9]/g, ''); if (val.length <= 12) setNomeCartao(val.toUpperCase()); }} placeholder="APELIDO (MAX 12 LETRAS)" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-sm uppercase font-black italic" required />
-              <input type="number" min="1" max="31" value={vencimento} onChange={(e) => setVencimento(e.target.value)} placeholder="DIA VENCIMENTO" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-sm text-center font-black italic" required />
+            <div className="space-y-4 font-black italic font-black italic">
+              <input value={banco} onChange={(e) => setBanco(e.target.value.toUpperCase())} placeholder="BANCO (EX: INTER)" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-sm uppercase font-black italic font-black italic font-black italic" required />
+              <input value={nomeCartao} onChange={(e) => { const val = e.target.value.replace(/[0-9]/g, ''); if (val.length <= 12) setNomeCartao(val.toUpperCase()); }} placeholder="APELIDO (MAX 12 LETRAS)" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-sm uppercase font-black italic font-black italic font-black italic" required />
+              <input type="number" min="1" max="31" value={vencimento} onChange={(e) => setVencimento(e.target.value)} placeholder="DIA VENCIMENTO" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-sm text-center font-black italic font-black italic font-black italic" required />
               <button type="submit" className={`w-full ${theme.primary} py-5 rounded-[2rem] uppercase text-[10px] mt-4 active:scale-95 font-black italic leading-none font-black italic`}>Salvar Cartão</button>
-              <button type="button" onClick={() => setIsCardModalOpen(false)} className="w-full text-slate-500 py-4 mt-2 uppercase text-[9px] font-black italic">Cancelar</button>
+              <button type="button" onClick={() => setIsCardModalOpen(false)} className="w-full text-slate-500 py-4 mt-2 uppercase text-[9px] font-black italic font-black italic font-black italic font-black italic">Cancelar</button>
             </div>
           </form>
         </div>
@@ -411,37 +402,37 @@ export default function HomePage() {
         <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000] animate-in fade-in zoom-in-95 font-black leading-none italic font-black italic">
           <div className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl text-white italic font-black italic leading-none">
             <h2 className="text-xl mb-8 text-emerald-500 text-center uppercase tracking-widest leading-none font-black italic">Saldo Inicial</h2>
-            <div className="relative mb-6">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-600 text-lg px-1 font-black italic">R$</span>
-                <input type="text" value={saldoDisplay} onChange={(e) => setSaldoDisplay(aplicarMascara(e.target.value))} placeholder="0,00" className="w-full pl-12 p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-emerald-500 text-xl outline-none font-black italic font-black italic leading-none" />
+            <div className="relative mb-6 font-black italic font-black italic">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-600 text-lg px-1 font-black italic font-black italic font-black italic">R$</span>
+                <input type="text" value={saldoDisplay} onChange={(e) => setSaldoDisplay(aplicarMascara(e.target.value))} placeholder="0,00" className="w-full pl-12 p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-emerald-500 text-xl outline-none font-black italic font-black italic font-black italic font-black italic" />
             </div>
             <button onClick={async () => {
               const v = Number(saldoDisplay.replace(/\./g, '').replace(',', '.'));
               const { error } = await supabase.from('profiles').update({ saldo_inicial: v }).eq('id', user.id);
               if (!error) { setSaldoInicial(v); setIsSaldoModalOpen(false); setSaldoDisplay(''); showAlert("Saldo OK!"); }
             }} className="w-full bg-emerald-600 py-5 rounded-[2rem] uppercase text-[10px] shadow-lg active:scale-95 italic font-black leading-none font-black italic">Confirmar</button>
-            <button onClick={() => setIsSaldoModalOpen(false)} className="w-full text-slate-500 py-4 mt-2 uppercase text-[9px] font-black italic font-black italic">Fechar</button>
+            <button onClick={() => setIsSaldoModalOpen(false)} className="w-full text-slate-500 py-4 mt-2 uppercase text-[9px] font-black italic font-black italic font-black italic">Fechar</button>
           </div>
         </div>
       )}
 
       {/* MODAL AJUSTES - COMPLETO */}
       {isConfigModalOpen && (
-        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000] animate-in fade-in zoom-in-95 leading-none italic font-black font-black italic font-black italic">
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000] animate-in fade-in zoom-in-95 leading-none italic font-black font-black italic">
           <form onSubmit={async (e) => {
             e.preventDefault();
             const { error } = await supabase.auth.updateUser({ data: { full_name: sanitize(novoNome) }, ...(novaSenha && { password: novaSenha }) });
             if (!error) { showAlert("Perfil atualizado!"); setIsConfigModalOpen(false); }
           }} className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl text-white font-black italic font-black italic leading-none font-black italic">
-            <div className="flex justify-between items-center mb-8 px-1 font-black italic"><h2 className="text-xl uppercase tracking-widest leading-none font-black italic font-black italic">Ajustes</h2><button type="button" onClick={() => setIsConfigModalOpen(false)} className="bg-slate-800 p-2 rounded-full text-slate-500 leading-none font-black italic font-black italic"><X size={20} /></button></div>
-            <div className="mb-8 font-black italic">
-              <p className="text-[8px] text-slate-500 uppercase mb-4 tracking-widest flex items-center gap-2 font-black italic font-black italic font-black italic leading-none"><Palette size={12}/> Estilo do App</p>
-              <div className="flex justify-between px-2 font-black italic font-black italic">{Object.keys(THEMES).map((tName) => <button key={tName} type="button" onClick={() => changeTheme(tName as any)} className={`w-10 h-10 rounded-full border-4 ${currentTheme === tName ? 'border-white scale-110' : 'border-transparent opacity-40'} ${THEMES[tName as keyof typeof THEMES].primary} transition-all`} />)}</div>
+            <div className="flex justify-between items-center mb-8 px-1 font-black italic"><h2 className="text-xl uppercase tracking-widest leading-none font-black italic">Ajustes</h2><button type="button" onClick={() => setIsConfigModalOpen(false)} className="bg-slate-800 p-2 rounded-full text-slate-500 leading-none font-black italic font-black italic font-black italic font-black italic font-black italic font-black italic font-black italic font-black italic font-black italic font-black italic"><X size={20} /></button></div>
+            <div className="mb-8 font-black italic font-black italic">
+              <p className="text-[8px] text-slate-500 uppercase mb-4 tracking-widest flex items-center gap-2 font-black italic font-black italic leading-none font-black italic"><Palette size={12}/> Estilo do App</p>
+              <div className="flex justify-between px-2 font-black italic font-black italic font-black italic">{Object.keys(THEMES).map((tName) => <button key={tName} type="button" onClick={() => changeTheme(tName as any)} className={`w-10 h-10 rounded-full border-4 font-black italic font-black italic font-black italic font-black italic font-black italic font-black italic font-black italic font-black italic font-black italic font-black italic font-black italic ${currentTheme === tName ? 'border-white scale-110' : 'border-transparent opacity-40'} ${THEMES[tName as keyof typeof THEMES].primary} transition-all`} />)}</div>
             </div>
-            <div className="space-y-4 font-black italic">
-              <input value={novoNome} onChange={(e) => setNovoNome(e.target.value)} placeholder="NOME" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-white text-sm font-black italic" />
-              <input type="password" value={novaSenha} onChange={(e) => setNovaSenha(e.target.value)} placeholder="NOVA SENHA" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white text-sm font-black italic" />
-              <button type="submit" className={`w-full ${theme.primary} py-5 rounded-[2rem] uppercase text-[10px] mt-2 font-black italic font-black italic leading-none`}>Salvar Tudo</button>
+            <div className="space-y-4 font-black italic font-black italic">
+              <input value={novoNome} onChange={(e) => setNovoNome(e.target.value)} placeholder="NOME" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-white text-sm font-black italic font-black italic font-black italic font-black italic" />
+              <input type="password" value={novaSenha} onChange={(e) => setNovaSenha(e.target.value)} placeholder="NOVA SENHA" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-white text-sm font-black italic font-black italic font-black italic font-black italic" />
+              <button type="submit" className={`w-full ${theme.primary} py-5 rounded-[2rem] uppercase text-[10px] mt-2 font-black italic leading-none font-black italic font-black italic`}>Salvar Tudo</button>
             </div>
           </form>
         </div>
@@ -452,12 +443,12 @@ export default function HomePage() {
 
 function Card({ title, value, icon, color }: any) {
   return (
-    <div className={`${color} p-4 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl transition-transform active:scale-[0.98] border-black/20 flex flex-col justify-between h-32 md:h-36 text-white text-left font-black italic leading-none`}>
-      <div className="flex justify-between items-start w-full leading-none font-black italic">
-        <span className="text-white/20 font-black text-[7px] md:text-[10px] uppercase tracking-widest italic leading-none font-black italic font-black italic font-black italic">{title}</span>
-        <div className="p-1.5 md:p-3 bg-white/5 rounded-xl backdrop-blur-md border border-white/5 opacity-50 leading-none font-black italic font-black italic font-black italic">{icon}</div>
+    <div className={`${color} p-4 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl transition-transform active:scale-[0.98] border-black/20 flex flex-col justify-between h-32 md:h-36 text-white text-left font-black italic leading-none font-black italic`}>
+      <div className="flex justify-between items-start w-full leading-none font-black italic font-black italic">
+        <span className="text-white/20 font-black text-[7px] md:text-[10px] uppercase tracking-widest italic leading-none font-black italic font-black italic font-black italic font-black italic font-black italic">{title}</span>
+        <div className="p-1.5 md:p-3 bg-white/5 rounded-xl backdrop-blur-md border border-white/5 opacity-50 leading-none font-black italic font-black italic font-black italic font-black italic font-black italic font-black italic font-black italic font-black italic">{icon}</div>
       </div>
-      <div className="text-sm md:text-2xl font-black truncate uppercase px-1 leading-tight font-black italic font-black italic font-black italic">{value}</div>
+      <div className="text-sm md:text-2xl font-black truncate uppercase px-1 leading-tight font-black font-black italic">{value}</div>
     </div>
   );
 }
