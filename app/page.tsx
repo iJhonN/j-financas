@@ -140,7 +140,7 @@ function Dashboard({ user, theme, currentThemeName, setTheme, onLogout, showAler
   const [saldoDisplay, setSaldoDisplay] = useState('');
 
   // DEFINE O ADMIN AQUI (CORRIGE O ERRO DE BUILD)
-  const isAdmin = user?.email === "jhonatha2005@outlook.com";
+ const isAdmin = user?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
 
   useEffect(() => { fetchDados(); }, [user]);
 
