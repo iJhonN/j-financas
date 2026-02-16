@@ -93,8 +93,13 @@ function AuthScreen({ theme, setUser, setView, showAlert }: any) {
     <div className="min-h-screen flex items-center justify-center p-4 bg-[#0a0f1d] text-white">
       <form onSubmit={handleAuth} className="bg-[#111827] w-full max-w-md rounded-[2.5rem] p-8 md:p-10 border-4 border-slate-800 shadow-2xl">
         <div className="flex flex-col items-center mb-8">
-          <div className={`${theme.primary} p-4 rounded-3xl text-white mb-4 shadow-lg ${theme.shadow}`}><TrendingUp size={32} /></div>
-          <h1 className="text-xl md:text-2xl font-black uppercase italic">J FINANÇAS</h1>
+          <img 
+            src="/logo.png" 
+            alt="Wolf Finance Logo" 
+            className="w-24 h-24 object-contain mb-4 drop-shadow-2xl"
+            style={{ filter: `drop-shadow(0 0 10px ${theme.chart}40)` }}
+          />
+          <h1 className="text-xl md:text-2xl font-black uppercase italic tracking-tighter">WOLF FINANCE</h1>
         </div>
         <div className="space-y-4">
           {authMode === 'signup' && <input type="text" placeholder="Nome completo" value={nome} onChange={(e) => setNome(e.target.value)} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none focus:border-blue-600 text-white font-black" required />}
@@ -114,7 +119,6 @@ function AuthScreen({ theme, setUser, setView, showAlert }: any) {
 function Dashboard({ user, theme, currentThemeName, setTheme, onLogout, showAlert }: any) {
   const isAdmin = user?.email === "jhonatha2005@outlook.com";
   
-  // Estados de UI
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
@@ -123,13 +127,11 @@ function Dashboard({ user, theme, currentThemeName, setTheme, onLogout, showAler
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
   
-  // Estados de Dados
   const [transacoes, setTransacoes] = useState<any[]>([]);
   const [cartoes, setCartoes] = useState<any[]>([]);
   const [filtroCartao, setFiltroCartao] = useState('Todos');
   const [totalUsuarios, setTotalUsuarios] = useState(0);
 
-  // Estados do Formulário de Lançamento
   const [descricao, setDescricao] = useState('');
   const [valorDisplay, setValorDisplay] = useState('');
   const [metodoPagamento, setMetodoPagamento] = useState('Pix');
@@ -140,7 +142,6 @@ function Dashboard({ user, theme, currentThemeName, setTheme, onLogout, showAler
   const [diaRecorrencia, setDiaRecorrencia] = useState(new Date().getDate());
   const [data, setData] = useState(new Date().toISOString().split('T')[0]);
 
-  // Estados de Perfil e Saldo
   const [novoNome, setNovoNome] = useState(user?.user_metadata?.full_name || "");
   const [novaSenha, setNovaSenha] = useState('');
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
@@ -260,8 +261,16 @@ function Dashboard({ user, theme, currentThemeName, setTheme, onLogout, showAler
       <header className="flex flex-col gap-4 mb-6 bg-[#111827] p-4 md:p-6 rounded-[2rem] border border-slate-800 shadow-2xl">
         <div className="flex justify-between items-center w-full leading-none">
           <div className="flex items-center gap-3">
-            <div className={`${theme.primary} p-2.5 rounded-2xl text-white shadow-lg ${theme.shadow}`}><TrendingUp size={22} /></div>
-            <div><h1 className="text-lg md:text-xl font-black uppercase tracking-tighter italic px-1">J FINANÇAS</h1><p className={`text-[9px] md:text-[10px] font-black ${theme.text} mt-1 uppercase`}>Olá, {user?.user_metadata?.full_name?.split(' ')[0]}</p></div>
+            <img 
+              src="/logo.png" 
+              alt="Wolf Logo" 
+              className="w-10 h-10 object-contain"
+              style={{ filter: `drop-shadow(0 0 5px ${theme.chart}30)` }}
+            />
+            <div>
+              <h1 className="text-lg md:text-xl font-black uppercase tracking-tighter italic px-1">WOLF FINANCE</h1>
+              <p className={`text-[9px] md:text-[10px] font-black ${theme.text} mt-1 uppercase`}>Olá, {user?.user_metadata?.full_name?.split(' ')[0]}</p>
+            </div>
           </div>
           <div className="flex gap-2">
             {isAdmin && <button onClick={async () => { const { count } = await supabase.from('profiles').select('*', { count: 'exact', head: true }); setTotalUsuarios(count || 0); setIsAdminMenuOpen(true); }} className="bg-amber-500 text-slate-950 p-2.5 rounded-full active:scale-95 shadow-lg"><ShieldCheck size={20} /></button>}
@@ -345,7 +354,7 @@ function Dashboard({ user, theme, currentThemeName, setTheme, onLogout, showAler
         </div>
       </div>
 
-      {/* MODAL NOVO LANÇAMENTO (REVISADO E COMPLETO) */}
+      {/* MODAL NOVO LANÇAMENTO */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[4000] animate-in fade-in zoom-in-95 duration-300">
           <form onSubmit={handleSalvarGasto} className="bg-[#111827] w-full max-w-md rounded-[3rem] p-6 md:p-8 border-4 border-slate-800 shadow-2xl text-white font-black italic">
@@ -422,7 +431,7 @@ function Dashboard({ user, theme, currentThemeName, setTheme, onLogout, showAler
         </div>
       )}
 
-      {/* MODAL AJUSTES / TEMA (CLOUD SYNC) */}
+      {/* MODAL AJUSTES / TEMA */}
       {isConfigModalOpen && (
         <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000] animate-in fade-in zoom-in-95 duration-300">
           <form onSubmit={handleUpdateProfile} className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl text-white font-black italic">
@@ -440,7 +449,7 @@ function Dashboard({ user, theme, currentThemeName, setTheme, onLogout, showAler
         </div>
       )}
 
-      {/* MODAL SALDO (CLOUD SYNC) */}
+      {/* MODAL SALDO */}
       {isSaldoModalOpen && (
         <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000] animate-in fade-in zoom-in-95 font-black">
           <div className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl text-white italic">
@@ -455,7 +464,7 @@ function Dashboard({ user, theme, currentThemeName, setTheme, onLogout, showAler
         </div>
       )}
 
-      {/* MODAL CARTÃO (COM TRAVA DE 12 CHARS) */}
+      {/* MODAL CARTÃO */}
       {isCardModalOpen && (
         <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000] animate-in fade-in zoom-in-95 font-black">
           <form onSubmit={handleSalvarCartao} className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-8 md:p-10 border-4 border-slate-800 shadow-2xl text-white italic">

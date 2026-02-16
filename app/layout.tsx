@@ -13,14 +13,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "J Finanças",
-  description: "Gerenciador Financeiro Pessoal - Criado por Jhon",
+  title: "Wolf Finance",
+  description: "Gerenciador Financeiro Pessoal - Gestão de Elite",
   manifest: "/manifest.json",
-  applicationName: "J Finanças",
+  applicationName: "Wolf Finance",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "J Finanças",
+    title: "Wolf Finance",
   },
   formatDetection: {
     telephone: false,
@@ -37,7 +37,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#0f172a",
+  themeColor: "#0a0f1d", // Cor ajustada para o fundo do seu Dashboard
 };
 
 export default function RootLayout({
@@ -53,7 +53,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-950`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#0a0f1d]`}>
         {children}
       </body>
     </html>
