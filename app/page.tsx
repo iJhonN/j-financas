@@ -127,6 +127,7 @@ export default function HomePage() {
     if (!cleanDesc || vTotal <= 0) return showAlert("Dados inválidos", "error");
 
     try {
+      // GARANTE VALOR NEGATIVO PARA DESPESAS
       const valorBase = tipoMovimento === 'despesa' ? -Math.abs(vTotal) : Math.abs(vTotal);
       const valorParcela = parseFloat((valorBase / parcelas).toFixed(2));
       
@@ -190,6 +191,7 @@ export default function HomePage() {
 
   const transacoesFiltradas = filtroCartao === 'Todos' ? transacoes : transacoes.filter(t => t.forma_pagamento.includes(filtroCartao));
 
+  // FILTROS MENSAIS
   const entradasMensais = transacoes.filter(t => {
     const d = new Date(t.data_ordenacao);
     return Number(t.valor) > 0 && d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
@@ -200,6 +202,7 @@ export default function HomePage() {
     return Number(t.valor) < 0 && d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
   }).reduce((acc, t) => acc + Number(t.valor), 0);
 
+  // SALDO TOTAL (MATEMÁTICA REAL)
   const saldoCalculado = saldoInicial + transacoes.reduce((acc, t) => acc + Number(t.valor), 0);
 
   if (loading || !user) return <div className="min-h-screen flex items-center justify-center bg-[#0a0f1d]"><Loader2 className="h-12 w-12 animate-spin text-blue-600" /></div>;
@@ -231,7 +234,7 @@ export default function HomePage() {
             <img src="/logo.png" alt="Wolf Logo" className="w-10 h-10 object-contain" />
             <div className="leading-none">
               <h1 className="text-lg md:text-xl font-black uppercase tracking-tighter px-1">WOLF FINANCE</h1>
-              <div className="flex items-center gap-2 mt-1 leading-none font-black">
+              <div className="flex items-center gap-2 mt-1 leading-none font-black italic">
                 <p className={`text-[9px] md:text-[10px] font-black ${theme.text} uppercase`}>Olá, {user?.user_metadata?.full_name?.split(' ')[0]}</p>
                 <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full border ${isExpired ? 'border-rose-500 text-rose-500 bg-rose-500/10' : 'border-amber-500/50 text-amber-500 bg-amber-500/10'} text-[7px] font-black uppercase tracking-widest`}>
                   <Clock size={8} /> {diasRestantes} DIAS
@@ -255,8 +258,8 @@ export default function HomePage() {
           </div>
         </div>
         <div className="flex gap-2 font-black leading-none">
-          <button disabled={isExpired} onClick={() => setIsSaldoModalOpen(true)} className={`flex-1 p-3 rounded-2xl border border-emerald-800/50 text-[10px] uppercase flex items-center justify-center gap-2 leading-none transition-all ${isExpired ? 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed' : 'bg-emerald-900/20 text-emerald-400 active:scale-95'}`}><Coins size={14} /> Saldo</button>
-          <button disabled={isExpired} onClick={() => { setEditingCardId(null); setIsCardModalOpen(true); }} className={`flex-1 p-3 rounded-2xl border border-slate-700 text-[10px] uppercase flex items-center justify-center gap-2 leading-none transition-all ${isExpired ? 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed' : 'bg-slate-800/50 text-slate-300 active:scale-95'}`}><CreditCard size={14} /> Cartão</button>
+          <button disabled={isExpired} onClick={() => setIsSaldoModalOpen(true)} className={`flex-1 p-3 rounded-2xl border border-emerald-800/50 text-[10px] uppercase flex items-center justify-center gap-2 transition-all ${isExpired ? 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed' : 'bg-emerald-900/20 text-emerald-400 active:scale-95'}`}><Coins size={14} /> Saldo</button>
+          <button disabled={isExpired} onClick={() => { setEditingCardId(null); setIsCardModalOpen(true); }} className={`flex-1 p-3 rounded-2xl border border-slate-700 text-[10px] uppercase flex items-center justify-center gap-2 transition-all ${isExpired ? 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed' : 'bg-slate-800/50 text-slate-300 active:scale-95'}`}><CreditCard size={14} /> Cartão</button>
           <button disabled={isExpired} onClick={() => setIsModalOpen(true)} className={`w-full md:w-auto p-3.5 rounded-2xl shadow-lg text-[10px] uppercase flex items-center justify-center gap-2 transition-all ${isExpired ? 'bg-slate-800 text-slate-600 opacity-50 cursor-not-allowed' : `${theme.primary} text-white active:scale-95`}`}><Plus size={18} /> Novo Lançamento</button>
         </div>
       </header>
@@ -281,7 +284,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 leading-none">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 leading-none font-black">
         <div className="lg:col-span-2 space-y-6 leading-none">
           <div className="bg-[#111827] p-6 rounded-[2.5rem] border border-slate-800 shadow-2xl h-80 overflow-hidden font-black">
             <ResponsiveContainer width="100%" height="100%">
@@ -327,6 +330,7 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* MODAL NOVO LANÇAMENTO - REDESENHADO PARA CELULAR */}
       {isModalOpen && !isExpired && (
         <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[4000] animate-in fade-in zoom-in-95 leading-none font-black">
           <form onSubmit={handleSalvarGasto} className="bg-[#111827] w-full max-w-md rounded-[3rem] p-6 md:p-8 border-4 border-slate-800 shadow-2xl text-white font-black">
@@ -341,11 +345,12 @@ export default function HomePage() {
               </div>
               <input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="DESCRIÇÃO" className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-sm uppercase font-black" required />
               <div className="relative leading-none">
-                <span className={`absolute left-4 top-1/2 -translate-y-1/2 ${tipoMovimento === 'receita' ? 'text-emerald-500' : 'text-rose-500'} text-sm font-black`}>R$</span>
-                <input type="text" value={valorDisplay} onChange={(e) => setValorDisplay(aplicarMascara(e.target.value))} placeholder="0,00" className={`w-full pl-10 p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 ${tipoMovimento === 'receita' ? 'text-emerald-400' : 'text-rose-400'} text-lg outline-none font-black`} required />
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500 text-sm font-black">R$</span>
+                <input type="text" value={valorDisplay} onChange={(e) => setValorDisplay(aplicarMascara(e.target.value))} placeholder="0,00" className="w-full pl-10 p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-lg outline-none font-black" required />
               </div>
               
-              <div className="space-y-4 font-black">
+              {/* MUDANÇA AQUI: MÉTODO E DATA EMPILHADOS PARA CABER NO MOBILE */}
+              <div className="space-y-3 font-black">
                 <div className="space-y-1 font-black"><label className="text-[8px] text-slate-500 uppercase ml-2">Método / Cartão</label>
                   <select value={metodoPagamento} onChange={(e) => { setMetodoPagamento(e.target.value); if (e.target.value === 'Pix' || e.target.value === 'Dinheiro') setTipoPagamento('Dinheiro'); else setTipoPagamento('Crédito'); }} className="w-full p-4 bg-slate-800 rounded-2xl border-2 border-slate-700 text-[10px] outline-none uppercase font-black">
                     <option value="Pix">Pix / Dinheiro</option>
