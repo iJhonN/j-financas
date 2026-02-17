@@ -50,12 +50,10 @@ export default function HomePage() {
         setUser(session.user);
         await fetchDados(session.user.id);
         
-        // Lógica do Tour
         if (!localStorage.getItem('wolf_tour_complete')) {
           setTimeout(() => setTourStep(1), 1500);
         }
 
-        // Lógica de Instalação PWA
         const isInstalled = window.matchMedia('(display-mode: standalone)').matches;
         const hasSeenPrompt = localStorage.getItem('wolf_install_prompt_v1');
         if (!isInstalled && !hasSeenPrompt) {
@@ -85,7 +83,6 @@ export default function HomePage() {
     } catch (err) { console.error(err); }
   };
 
-  // Funções de Utilidade
   const showAlert = (msg: string, type: any = 'success') => {
     setAlertConfig({ show: true, msg, type });
     setTimeout(() => setAlertConfig(prev => ({ ...prev, show: false })), 4000);
@@ -102,7 +99,6 @@ export default function HomePage() {
   const togglePago = async (id: string, currentStatus: boolean) => {
     const { error } = await supabase.from('transacoes').update({ pago: !currentStatus }).eq('id', id);
     if (!error) fetchDados(user.id);
-    else showAlert("Erro ao atualizar", "error");
   };
 
   const aplicarMascara = (valor: string) => {
@@ -135,106 +131,38 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#0a0f1d] p-2 md:p-8 text-white font-black antialiased overflow-x-hidden pb-40 italic leading-none uppercase relative">
       
-      {/* BANNER PWA */}
-      {showInstallPrompt && (
-        <div className="fixed bottom-24 left-4 right-4 z-[10002] animate-in slide-in-from-bottom-10 duration-500">
-          <div className="bg-blue-600 p-5 rounded-[2.5rem] border-2 border-white shadow-2xl flex flex-col gap-3 relative">
-            <button onClick={closeInstallPrompt} className="absolute top-4 right-4 bg-white/20 p-1 rounded-full"><X size={16}/></button>
-            <div className="flex gap-4 items-center">
-              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-lg"><img src="/logo.png" className="w-8 h-8 object-contain" /></div>
-              <div>
-                <h3 className="text-[11px] font-black tracking-tighter italic">INSTALAR WOLF FINANCE</h3>
-                <p className="text-[8px] normal-case opacity-90">Use como um App na sua tela de início.</p>
-              </div>
+      {/* TOUR COM FOCO (HIGHLIGHT) */}
+      {tourStep > 0 && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-6 text-center pointer-events-none">
+          <div className="pointer-events-auto bg-gradient-to-b from-blue-600 to-blue-800 p-8 rounded-[3rem] border-[3px] border-white/20 shadow-2xl max-w-sm w-full animate-in zoom-in relative">
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-white text-blue-700 px-4 py-1.5 rounded-full text-[10px] font-black italic shadow-xl border-2 border-blue-600">
+              PASSO {tourStep} / 5
             </div>
-            <div className="bg-black/20 p-3 rounded-xl text-center"><p className="text-[8px] normal-case">Clique no <span className="font-black italic uppercase">menu do navegador</span> e selecione <span className="font-black italic uppercase">"Adicionar à tela de início"</span>.</p></div>
+            <div className="flex justify-end mb-2">
+               <button onClick={endTour} className="bg-white/10 p-2 rounded-full"><X size={18}/></button>
+            </div>
+            <div className="py-4">
+              {tourStep === 1 && <><Zap size={32} className="mx-auto mb-4 animate-pulse"/><h3 className="text-2xl mb-4 italic">BEM-VINDO!</h3><p className="text-[10px] normal-case mb-8 italic text-blue-50">Iniciando sua gestão WOLF FINANCE.</p></>}
+              {tourStep === 2 && <><Coins size={32} className="mx-auto mb-4"/><h3 className="text-2xl mb-4 italic">SALDO INICIAL</h3><p className="text-[10px] normal-case mb-8 italic text-blue-50">Defina sua base de cálculo no Dashboard.</p></>}
+              {tourStep === 3 && <><CreditCard size={32} className="mx-auto mb-4"/><h3 className="text-2xl mb-4 italic">MEUS CARTÕES</h3><p className="text-[10px] normal-case mb-8 italic text-blue-50">Área exclusiva para organizar suas faturas.</p></>}
+              {tourStep === 4 && <><Plus size={32} className="mx-auto mb-4"/><h3 className="text-2xl mb-4 italic">LANÇAMENTOS</h3><p className="text-[10px] normal-case mb-8 italic text-blue-50">Central de entradas e saídas rápidas.</p></>}
+              {tourStep === 5 && <><CheckCircle size={32} className="mx-auto mb-4 text-emerald-400"/><h3 className="text-2xl mb-4 italic">LIQUIDAÇÃO</h3><p className="text-[10px] normal-case mb-8 italic text-blue-50">Confirme o pagamento para atualizar o saldo real.</p></>}
+              <button onClick={tourStep === 5 ? endTour : nextTour} className={`w-full py-5 rounded-2xl text-[12px] font-black uppercase ${tourStep === 5 ? 'bg-emerald-500 text-white' : 'bg-white text-blue-700'}`}>
+                {tourStep === 5 ? 'Finalizar' : 'Próximo'}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* TOUR GUIADO */}
-     {/* TOUR GUIADO REFORMULADO - ALTO CONTRASTE */}
-      {tourStep > 0 && (
-        <div className="fixed inset-0 z-[10000] bg-[#0a0f1d]/60 backdrop-blur-[2px] flex items-center justify-center p-6 text-center animate-in fade-in duration-500">
-          <div className="bg-gradient-to-b from-blue-600 to-blue-800 p-8 rounded-[3rem] border-[3px] border-white/20 shadow-[0_0_50px_-12px_rgba(59,130,246,0.5)] max-w-sm w-full animate-in zoom-in duration-300 relative">
-            
-            {/* Indicador de Passo Flutuante */}
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-white text-blue-700 px-4 py-1.5 rounded-full text-[10px] font-black italic shadow-xl border-2 border-blue-600">
-              PASSO {tourStep} / 5
-            </div>
-
-            <div className="flex justify-end mb-2">
-               <button onClick={endTour} className="bg-white/10 p-2 rounded-full hover:bg-white/20 transition-colors"><X size={18}/></button>
-            </div>
-
-            <div className="py-4">
-              {tourStep === 1 && (
-                <>
-                  <div className="w-16 h-16 bg-white/10 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-white/20 shadow-inner">
-                    <Zap size={32} className="text-white animate-pulse" />
-                  </div>
-                  <h3 className="text-2xl mb-4 italic tracking-tighter text-white">BEM-VINDO!</h3>
-                  <p className="text-[11px] normal-case mb-8 italic text-blue-50 leading-relaxed font-medium">
-                    Iniciando a configuração da sua gestão <span className="font-black text-white uppercase">Wolf Finance</span>. 
-                    Pronto para o próximo nível?
-                  </p>
-                </>
-              )}
-
-              {tourStep === 2 && (
-                <>
-                  <div className="w-16 h-16 bg-white/10 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-white/20">
-                    <Coins size={32} className="text-white" />
-                  </div>
-                  <h3 className="text-2xl mb-4 italic tracking-tighter text-white uppercase">Saldo Inicial</h3>
-                  <p className="text-[11px] normal-case mb-8 italic text-blue-50 leading-relaxed font-medium">
-                    Ajuste seu valor atual em conta. Ele serve como a <span className="font-black text-white uppercase text-[10px]">base sólida</span> para todos os cálculos do Dashboard.
-                  </p>
-                </>
-              )}
-
-              {tourStep === 3 && (
-                <>
-                  <div className="w-16 h-16 bg-white/10 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-white/20">
-                    <CreditCard size={32} className="text-white" />
-                  </div>
-                  <h3 className="text-2xl mb-4 italic tracking-tighter text-white uppercase">Meus Cartões</h3>
-                  <p className="text-[11px] normal-case mb-8 italic text-blue-50 leading-relaxed font-medium">
-                    Gerencie seus cartões em uma área <span className="font-black text-white uppercase text-[10px]">exclusiva</span>. O sistema organiza tudo pelo dia do vencimento.
-                  </p>
-                </>
-              )}
-
-              {tourStep === 4 && (
-                <>
-                  <div className="w-16 h-16 bg-white/10 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-white/20">
-                    <Plus size={32} className="text-white" />
-                  </div>
-                  <h3 className="text-2xl mb-4 italic tracking-tighter text-white uppercase">Lançamentos</h3>
-                  <p className="text-[11px] normal-case mb-8 italic text-blue-50 leading-relaxed font-medium">
-                    Registrar entradas e saídas agora é <span className="font-black text-white uppercase text-[10px]">vapt-vupt</span> na nossa nova central de lançamentos.
-                  </p>
-                </>
-              )}
-
-              {tourStep === 5 && (
-                <>
-                  <div className="w-16 h-16 bg-white/10 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-white/20">
-                    <CheckCircle size={32} className="text-emerald-400" />
-                  </div>
-                  <h3 className="text-2xl mb-4 italic tracking-tighter text-white uppercase text-emerald-400">Pronto!</h3>
-                  <p className="text-[11px] normal-case mb-8 italic text-blue-50 leading-relaxed font-medium">
-                    Seu saldo só atualiza quando você <span className="font-black text-white uppercase text-[10px]">liquida</span> as contas na lista de atividade.
-                  </p>
-                </>
-              )}
-
-              <button 
-                onClick={tourStep === 5 ? endTour : nextTour} 
-                className={`w-full py-5 rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-2xl ${tourStep === 5 ? 'bg-emerald-500 text-white hover:bg-emerald-400' : 'bg-white text-blue-700 hover:bg-blue-50'}`}
-              >
-                {tourStep === 5 ? 'Começar Agora' : 'Próximo Passo'}
-              </button>
+      {/* BANNER INSTALAÇÃO PWA */}
+      {showInstallPrompt && (
+        <div className="fixed bottom-24 left-4 right-4 z-[9999] animate-in slide-in-from-bottom-10">
+          <div className="bg-blue-600 p-5 rounded-[2.5rem] border-2 border-white shadow-2xl flex flex-col gap-3 relative">
+            <button onClick={closeInstallPrompt} className="absolute top-4 right-4 bg-white/20 p-1 rounded-full"><X size={16}/></button>
+            <div className="flex gap-4 items-center">
+              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-lg"><img src="/logo.png" className="w-8 h-8 object-contain" /></div>
+              <div className="leading-tight"><h3 className="text-[11px] font-black italic">INSTALAR WOLF FINANCE</h3><p className="text-[8px] normal-case opacity-90 italic">Adicione o ícone na sua tela de início.</p></div>
             </div>
           </div>
         </div>
@@ -256,10 +184,7 @@ export default function HomePage() {
             <img src="/logo.png" className="w-10 h-10 object-contain" />
             <div className="leading-none">
               <h1 className="text-lg md:text-xl font-black tracking-tighter italic">WOLF FINANCE</h1>
-              <div className="flex items-center gap-2 mt-1 italic">
-                <p className={`text-[9px] font-black ${theme.text}`}>OLÁ, {user?.user_metadata?.full_name?.split(' ')[0]}</p>
-                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-500/50 text-amber-500 text-[7px] font-black"><Clock size={8} /> {diasRestantes} DIAS</div>
-              </div>
+              <div className="flex items-center gap-2 mt-1 italic"><p className={`text-[9px] font-black ${theme.text}`}>OLÁ, {user?.user_metadata?.full_name?.split(' ')[0]}</p><div className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-500/50 text-amber-500 text-[7px] font-black"><Clock size={8} /> {diasRestantes} DIAS</div></div>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -267,10 +192,34 @@ export default function HomePage() {
             <button onClick={() => router.push('/perfil')} className="bg-slate-800 text-slate-300 p-2.5 rounded-full border border-slate-700 active:scale-95 shadow-lg"><UserCircle size={20}/></button>
           </div>
         </div>
+
         <div className="flex gap-2">
-          <button onClick={() => setIsSaldoModalOpen(true)} className={`flex-1 p-3 rounded-2xl border border-emerald-800/50 text-[10px] flex items-center justify-center gap-2 bg-emerald-900/20 text-emerald-400 active:scale-95 transition-all font-black ${tourStep === 2 ? 'ring-4 ring-white animate-pulse' : ''}`}><Coins size={14} /> Saldo</button>
-          <button onClick={() => router.push('/cartoes')} className={`flex-1 p-3 rounded-2xl border border-slate-700 text-[10px] flex items-center justify-center gap-2 bg-slate-800/50 text-slate-300 active:scale-95 transition-all font-black ${tourStep === 3 ? 'ring-4 ring-white animate-pulse' : ''}`}><CreditCard size={14} /> Cartão</button>
-          <button onClick={() => router.push('/lancamento')} className={`w-full md:w-auto p-3.5 rounded-2xl shadow-lg text-[10px] flex items-center justify-center gap-2 ${theme.primary} text-white active:scale-95 transition-all font-black ${tourStep === 4 ? 'ring-4 ring-white animate-pulse' : ''}`}><Plus size={18} /> Novo</button>
+          {/* HOLOFOTE SALDO */}
+          <button 
+            onClick={() => setIsSaldoModalOpen(true)} 
+            className={`flex-1 p-3 rounded-2xl border border-emerald-800/50 text-[10px] flex items-center justify-center gap-2 bg-emerald-900/20 text-emerald-400 active:scale-95 transition-all font-black 
+            ${tourStep === 2 ? 'relative z-[10001] bg-emerald-600 text-white ring-4 ring-white animate-pulse shadow-[0_0_0_9999px_rgba(10,15,29,0.7)]' : ''}`}
+          >
+            <Coins size={14} /> Saldo
+          </button>
+          
+          {/* HOLOFOTE CARTÃO */}
+          <button 
+            onClick={() => router.push('/cartoes')} 
+            className={`flex-1 p-3 rounded-2xl border border-slate-700 text-[10px] flex items-center justify-center gap-2 bg-slate-800/50 text-slate-300 active:scale-95 transition-all font-black 
+            ${tourStep === 3 ? 'relative z-[10001] bg-blue-600 text-white ring-4 ring-white animate-pulse shadow-[0_0_0_9999px_rgba(10,15,29,0.7)]' : ''}`}
+          >
+            <CreditCard size={14} /> Cartão
+          </button>
+
+          {/* HOLOFOTE NOVO */}
+          <button 
+            onClick={() => router.push('/lancamento')} 
+            className={`w-full md:w-auto p-3.5 rounded-2xl shadow-lg text-[10px] flex items-center justify-center gap-2 ${theme.primary} text-white active:scale-95 transition-all font-black 
+            ${tourStep === 4 ? 'relative z-[10001] ring-4 ring-white animate-pulse shadow-[0_0_0_9999px_rgba(10,15,29,0.7)]' : ''}`}
+          >
+            <Plus size={18} /> Novo
+          </button>
         </div>
       </header>
 
@@ -285,7 +234,7 @@ export default function HomePage() {
               <span>{selectedDate.toLocaleString('pt-BR', { month: 'short', year: 'numeric' })}</span>
               <button onClick={() => setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth() + 1)))}><ChevronRight size={16}/></button>
            </div>
-           <button onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} className="w-full flex items-center justify-between text-[9px] uppercase font-black bg-slate-800/50 p-2 rounded-lg border border-slate-700 mt-2 truncate"><span className="truncate">{filtroCartao}</span><ChevronDown size={12}/></button>
+           <button onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} className="w-full flex items-center justify-between text-[9px] uppercase font-black bg-slate-800/50 p-2 rounded-lg border border-slate-700 mt-2 truncate italic"><span className="truncate">{filtroCartao}</span><ChevronDown size={12}/></button>
            {isFilterMenuOpen && (
              <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#111827] border-2 border-slate-800 rounded-xl shadow-2xl z-[500] max-h-40 overflow-y-auto">
                <button onClick={() => { setFiltroCartao('Todos'); setIsFilterMenuOpen(false); }} className="w-full text-left p-3 border-b border-slate-800 text-[9px] font-black uppercase hover:bg-slate-800 italic">Todos</button>
@@ -307,8 +256,8 @@ export default function HomePage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <div className="lg:col-span-2 bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 shadow-2xl">
-          <h2 className="text-white font-black mb-6 uppercase text-[10px] tracking-widest px-1 italic">Meus Cartões</h2>
+        <div className="lg:col-span-2 bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 shadow-2xl italic font-black">
+          <h2 className="text-white mb-6 uppercase text-[10px] tracking-widest px-1">Meus Cartões</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {cartoes.map(c => (
               <div key={c.id} className="p-4 border-2 border-slate-800 rounded-2xl flex justify-between items-center bg-slate-950/50 hover:border-blue-500 transition-all shadow-lg">
@@ -316,7 +265,7 @@ export default function HomePage() {
                   <div className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center border border-slate-700 overflow-hidden">
                     <img src={c.logo_url} className="w-full h-full object-contain p-1" onError={(e: any) => e.currentTarget.style.display = 'none'} />
                   </div>
-                  <div className="leading-tight"><p className="text-[8px] font-black text-slate-500 uppercase italic">{c.banco}</p><p className="font-black text-xs uppercase italic">{c.nome_cartao}</p></div>
+                  <div className="leading-tight"><p className="text-[8px] font-black text-slate-500 uppercase">{c.banco}</p><p className="font-black text-xs uppercase italic">{c.nome_cartao}</p></div>
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => router.push('/cartoes')} className="text-slate-600 hover:text-white transition-all"><Pencil size={18}/></button>
@@ -326,15 +275,15 @@ export default function HomePage() {
             ))}
           </div>
         </div>
-        <div className="bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 flex flex-col shadow-2xl min-h-[500px]">
-          <h2 className="text-white font-black mb-4 uppercase text-[10px] tracking-widest italic">Atividade</h2>
+        <div className="bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 flex flex-col shadow-2xl min-h-[500px] italic font-black">
+          <h2 className="text-white mb-4 uppercase text-[10px] tracking-widest">Atividade</h2>
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
             <input type="text" placeholder="BUSCAR..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2 pl-9 pr-4 text-[9px] outline-none font-black uppercase italic" />
           </div>
           <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-1">
             {transacoesFiltradas.map((t) => (
-              <div key={t.id} className={`flex justify-between items-center p-4 rounded-2xl border ${t.pago ? 'bg-slate-800/40 border-slate-800' : 'bg-rose-900/10 border-rose-900/30'} ${tourStep === 5 ? 'ring-2 ring-white z-[10001]' : ''}`}>
+              <div key={t.id} className={`flex justify-between items-center p-4 rounded-2xl border ${t.pago ? 'bg-slate-800/40 border-slate-800' : 'bg-rose-900/10 border-rose-900/30'} ${tourStep === 5 ? 'relative z-[10001] ring-4 ring-white shadow-[0_0_0_9999px_rgba(10,15,29,0.7)]' : ''}`}>
                 <div className="flex items-center gap-3">
                   <button onClick={() => togglePago(t.id, t.pago)} className={`p-1.5 rounded-full ${t.pago ? 'text-emerald-500 bg-emerald-500/10' : 'text-slate-500 bg-slate-800'} transition-all`}>{t.pago ? <CheckCircle size={18}/> : <Circle size={18}/>}</button>
                   <div className="leading-tight truncate max-w-[120px] italic"><p className="text-[10px] uppercase font-black">{t.descricao}</p><p className={`text-[7px] uppercase font-black ${theme.text}`}>{t.forma_pagamento}</p></div>
@@ -349,14 +298,14 @@ export default function HomePage() {
       {/* MODAL SALDO */}
       {isSaldoModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[6000]">
-          <div className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl relative text-center">
+          <div className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl relative text-center italic font-black">
             <button onClick={() => setIsSaldoModalOpen(false)} className="absolute top-6 right-6 p-2 bg-slate-800 rounded-full text-slate-400 hover:text-white transition-all"><X size={20}/></button>
-            <h2 className="text-xl mb-8 text-emerald-500 font-black italic uppercase italic">Saldo Bancário</h2>
+            <h2 className="text-xl mb-8 text-emerald-500 uppercase">Saldo Bancário</h2>
             <div className="relative mb-6">
               <label className="absolute -top-2 left-3 bg-[#111827] px-1 text-[7px] font-black text-emerald-500 z-10 uppercase">Valor em conta</label>
               <input type="text" value={saldoDisplay} onChange={(e) => setSaldoDisplay(aplicarMascara(e.target.value))} placeholder="R$ 0,00" className="w-full p-5 bg-slate-800 rounded-2xl border-2 border-slate-700 text-emerald-500 text-xl font-black text-center outline-none italic font-black" />
             </div>
-            <button onClick={async () => { const v = Number(saldoDisplay.replace(/\./g, '').replace(',', '.')); await supabase.from('profiles').update({ saldo_inicial: v }).eq('id', user.id); setSaldoInicial(v); setIsSaldoModalOpen(false); setSaldoDisplay(''); fetchDados(user.id); showAlert("Saldo ajustado!"); }} className="w-full bg-emerald-600 py-5 rounded-[2rem] text-[10px] font-black uppercase active:scale-95 shadow-lg italic">Confirmar Novo Saldo</button>
+            <button onClick={async () => { const v = Number(saldoDisplay.replace(/\./g, '').replace(',', '.')); await supabase.from('profiles').update({ saldo_inicial: v }).eq('id', user.id); setSaldoInicial(v); setIsSaldoModalOpen(false); setSaldoDisplay(''); fetchDados(user.id); showAlert("Saldo ajustado!"); }} className="w-full bg-emerald-600 py-5 rounded-[2rem] text-[10px] font-black uppercase active:scale-95 shadow-lg">Confirmar Novo Saldo</button>
           </div>
         </div>
       )}

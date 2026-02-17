@@ -28,3 +28,11 @@ body {
 html, body {
   height: 100%;
 }
+
+.tour-highlight {
+  position: relative !important;
+  z-index: 10001 !important; /* Um número acima do fundo do tour (10000) */
+  pointer-events: none; /* Evita que o usuário clique no botão durante o tour se você preferir */
+  box-shadow: 0 0 0 9999px rgba(10, 15, 29, 0.7); /* Cria o escurecimento ao redor do botão */
+  border: 2px solid white !important; /* Destaque visual no botão */
+}
