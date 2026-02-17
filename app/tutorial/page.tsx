@@ -4,107 +4,123 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Plus, UserCircle, ChevronLeft, HelpCircle, 
-  CreditCard, Banknote, Coins, TrendingUp, Search, Info
+  CreditCard, Banknote, Coins, TrendingUp, 
+  CheckCircle, Circle, Zap, Info, Clock
 } from 'lucide-react';
 
-export default function TutorialWolf() {
+export default function ManualWolf() {
   const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-[#0a0f1d] p-2 md:p-8 text-white font-black antialiased uppercase italic leading-none">
+    <div className="min-h-screen bg-[#0a0f1d] p-4 md:p-8 text-white font-black antialiased uppercase italic leading-none">
       
-      {/* HEADER DO TUTORIAL */}
-      <header className="flex flex-col gap-4 mb-8 bg-[#111827] p-6 rounded-[2rem] border-2 border-blue-500 shadow-2xl relative">
-        <div className="absolute -top-3 left-6 bg-blue-600 px-3 py-1 rounded-full text-[8px] animate-pulse">
-          MODO INSTRUTIVO
-        </div>
-        
+      {/* CABEÇALHO DO MANUAL */}
+      <header className="flex flex-col gap-4 mb-8 bg-[#111827] p-6 rounded-[2rem] border-2 border-blue-600 shadow-2xl relative">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <button onClick={() => router.push('/')} className="bg-slate-800 p-2 rounded-full hover:bg-blue-600 transition-all">
-              <ChevronLeft size={20}/>
+            <button 
+              onClick={() => router.push('/')} 
+              className="bg-slate-800 p-2.5 rounded-full border border-slate-700 hover:bg-blue-600 hover:text-white transition-all active:scale-95"
+            >
+              <ChevronLeft size={24}/>
             </button>
-            <h1 className="text-xl tracking-tighter">MANUAL WOLF FINANCE</h1>
+            <h1 className="text-xl md:text-2xl tracking-tighter">MANUAL DE OPERAÇÃO</h1>
           </div>
-          <HelpCircle size={24} className="text-blue-400" />
+          <HelpCircle size={32} className="text-blue-500 animate-pulse" />
         </div>
-        <p className="text-[10px] text-slate-400">APRENDA A DOMINAR SUA GESTÃO DE ELITE</p>
+        <p className="text-[10px] text-blue-400 tracking-[0.2em]">DOMINE A GESTÃO DA GR AUTO PEÇAS</p>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* EXPLICAÇÃO DOS CARDS */}
+        {/* COLUNA 1: LÓGICA FINANCEIRA */}
         <div className="space-y-6">
-          <section className="bg-[#111827] p-6 rounded-[2.5rem] border border-slate-800">
+          <section className="bg-[#111827] p-6 rounded-[2.5rem] border border-slate-800 shadow-xl">
             <div className="flex items-center gap-3 mb-4 text-emerald-400">
-              <Coins size={20} />
-              <h2 className="text-sm">SALDO CALCULADO</h2>
+              <Coins size={24} />
+              <h2 className="text-sm">COMO O SALDO É CALCULADO?</h2>
             </div>
-            <p className="text-[10px] leading-relaxed text-slate-400 normal-case italic">
-              O sistema soma seu <span className="text-white font-black">SALDO INICIAL</span> (definido no botão verde) com todas as transações marcadas como <span className="text-emerald-500 font-black">PAGAS</span>. 
-              Lançamentos pendentes não afetam este valor até que você confirme o pagamento.
+            <p className="text-[10px] leading-relaxed text-slate-400 normal-case italic mb-4">
+              O sistema utiliza uma fórmula de fluxo de caixa real:
+            </p>
+            <div className="bg-black/40 p-4 rounded-2xl border border-slate-800 text-center mb-4">
+              <span className="text-xs text-white">SALDO INICIAL + RECEITAS PAGAS - DESPESAS PAGAS</span>
+            </div>
+            <p className="text-[9px] text-slate-500 normal-case italic">
+              * Lançamentos pendentes (círculo vazio) não alteram seu saldo até que você clique para confirmar o pagamento.
             </p>
           </section>
 
-          <section className="bg-[#111827] p-6 rounded-[2.5rem] border border-slate-800">
-            <div className="flex items-center gap-3 mb-4 text-blue-400">
-              <Plus size={20} />
-              <h2 className="text-sm">LANÇAMENTOS WOLF</h2>
+          
+
+          <section className="bg-[#111827] p-6 rounded-[2.5rem] border border-slate-800 shadow-xl">
+            <div className="flex items-center gap-3 mb-4 text-amber-500">
+              <Zap size={24} />
+              <h2 className="text-sm">TIPOS DE LANÇAMENTO</h2>
             </div>
-            <div className="space-y-3">
-              <div className="flex items-start gap-2">
-                <div className="bg-blue-600 p-1 rounded">1</div>
-                <p className="text-[9px] text-slate-300">⚡ PIX: É lançado como "Dinheiro" e marcado como PAGO automaticamente.</p>
+            <div className="space-y-4">
+              <div className="border-l-4 border-blue-600 pl-4">
+                <h3 className="text-[11px] mb-1">⚡ PIX / DINHEIRO</h3>
+                <p className="text-[9px] text-slate-400 normal-case italic">Entra no sistema como "PAGO" instantaneamente. Ideal para vendas rápidas no balcão da loja.</p>
               </div>
-              <div className="flex items-start gap-2">
-                <div className="bg-blue-600 p-1 rounded">2</div>
-                <p className="text-[9px] text-slate-300">💳 CRÉDITO: O sistema calcula a data de vencimento com base no dia que você configurou no cartão.</p>
-              </div>
-              <div className="flex items-start gap-2">
-                <div className="bg-blue-600 p-1 rounded">3</div>
-                <p className="text-[9px] text-slate-300">🔄 PARCELAS: Ao definir parcelas, o Wolf cria automaticamente os lançamentos para os meses seguintes.</p>
+              <div className="border-l-4 border-rose-600 pl-4">
+                <h3 className="text-[11px] mb-1">💳 CRÉDITO PARCELADO</h3>
+                <p className="text-[9px] text-slate-400 normal-case italic">Ao escolher parcelas, o Wolf cria automaticamente os lançamentos para os próximos meses, respeitando o dia de vencimento do cartão.</p>
               </div>
             </div>
           </section>
         </div>
 
-        {/* EXPLICAÇÃO DE INTERFACE */}
+        {/* COLUNA 2: INTERFACE E AÇÕES */}
         <div className="space-y-6">
-          <div className="bg-[#111827] p-6 rounded-[2.5rem] border border-slate-800 relative overflow-hidden">
-            <div className="flex justify-between items-center mb-6">
-               <h2 className="text-sm">STATUS DE PAGAMENTO</h2>
-               <div className="flex gap-2">
-                 <CheckCircle size={18} className="text-emerald-500" />
-                 <Circle size={18} className="text-slate-600" />
-               </div>
+          <section className="bg-[#111827] p-6 rounded-[2.5rem] border border-slate-800 shadow-xl">
+            <div className="flex items-center gap-3 mb-6 text-blue-400">
+              <CheckCircle size={24} />
+              <h2 className="text-sm">CONTROLE DE ATIVIDADE</h2>
             </div>
-            <p className="text-[10px] leading-relaxed text-slate-400 normal-case italic mb-4">
-              Clique no círculo ao lado da transação na sua lista de atividade para alternar entre:
-            </p>
-            <ul className="space-y-2 text-[9px]">
-              <li className="flex items-center gap-2"><div className="w-2 h-2 bg-emerald-500 rounded-full"/> EFETUADO: O valor já saiu ou entrou na conta.</li>
-              <li className="flex items-center gap-2"><div className="w-2 h-2 bg-rose-500 rounded-full"/> PENDENTE: Gasto planejado, mas ainda não liquidado.</li>
-            </ul>
-          </div>
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-4 bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
+                <CheckCircle className="text-emerald-500" size={24} />
+                <p className="text-[9px] text-slate-300 italic normal-case">LANÇAMENTO CONCLUÍDO: VALOR JÁ FOI LIQUIDADO NA CONTA BANCÁRIA.</p>
+              </div>
+              <div className="flex items-center gap-4 bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
+                <Circle className="text-slate-600" size={24} />
+                <p className="text-[9px] text-slate-300 italic normal-case">LANÇAMENTO PENDENTE: PREVISÃO DE GASTO OU ENTRADA (AINDA NÃO LIQUIDADO).</p>
+              </div>
+            </div>
+          </section>
 
-          <div className="bg-blue-600 p-8 rounded-[2.5rem] shadow-2xl flex flex-col items-center text-center">
-             <UserCircle size={40} className="mb-4" />
-             <h2 className="text-lg mb-2">CUSTOMIZAÇÃO</h2>
-             <p className="text-[10px] mb-6">NO SEU PERFIL, VOCÊ PODE ALTERAR O TEMA DO SISTEMA PARA COMBINAR COM A IDENTIDADE DA SUA ALCATEIA.</p>
-             <button 
+          <section className="bg-blue-600 p-8 rounded-[2.5rem] shadow-2xl flex flex-col items-center text-center group">
+            <div className="bg-white text-blue-600 p-4 rounded-full mb-4 shadow-lg group-hover:scale-110 transition-transform">
+              <ShieldCheck size={40} />
+            </div>
+            <h2 className="text-lg mb-2">SISTEMA BLINDADO</h2>
+            <p className="text-[10px] mb-6 normal-case italic text-blue-100">
+              TODOS OS SEUS DADOS SÃO CRIPTOGRAFADOS E ARMAZENADOS COM SEGURANÇA MÁXIMA.
+            </p>
+            <button 
               onClick={() => router.push('/')}
-              className="bg-white text-blue-600 px-8 py-4 rounded-2xl text-xs font-black shadow-xl active:scale-95 transition-all"
-             >
-               VOLTAR AO TRABALHO
-             </button>
-          </div>
+              className="w-full bg-white text-blue-600 py-5 rounded-2xl text-[11px] font-black shadow-xl active:scale-95 transition-all"
+            >
+              VOLTAR AO SISTEMA REAL
+            </button>
+          </section>
         </div>
 
       </div>
 
-      <footer className="mt-12 text-center text-[8px] text-slate-600 tracking-[0.3em]">
-        WOLF FINANCE - SISTEMA DE GESTÃO DE ELITE - VERSÃO 2026
+      <footer className="mt-12 text-center">
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 rounded-full border border-slate-800">
+           <Clock size={12} className="text-amber-500" />
+           <span className="text-[8px] text-slate-500 tracking-[0.2em]">WOLF FINANCE v2.0 - SUPORTE TÉCNICO ATIVO</span>
+        </div>
       </footer>
     </div>
   );
 }
+
+// Subcomponente ShieldCheck caso não esteja no import
+function ShieldCheck({ size }: { size: number }) {
+  return <ShieldCheckIcon size={size} />;
+}
+import { ShieldCheck as ShieldCheckIcon } from 'lucide-react';
