@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Definindo o fundo escuro da Wolf Finance como padrão */
+  --background: #0a0f1d;
+  --foreground: #ffffff;
 }
 
 @theme inline {
@@ -12,15 +13,18 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* Removemos o prefers-color-scheme para o site não ficar branco 
+   do nada se o Windows do usuário estiver no modo claro */
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  /* Garante que não haja scroll global acidental */
+  overflow-x: hidden;
+}
+
+/* Ajuste para garantir que o h-screen funcione bem em celulares */
+html, body {
+  height: 100%;
 }
