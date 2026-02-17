@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState(''); // Estado para erro de senha
   const [nome, setNome] = useState('');
   const [pin, setPin] = useState(''); 
   const [showPassword, setShowPassword] = useState(false);
@@ -17,19 +18,42 @@ export default function LoginPage() {
   const [step, setStep] = useState(1); 
   const router = useRouter();
 
-  // Variáveis de ambiente para sua segurança exclusiva
   const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
   const ADMIN_PIN = process.env.NEXT_PUBLIC_ADMIN_PIN;
 
-  // Reseta estados ao alternar entre Login e Cadastro
+  // Função de validação de senha segura
+  const validatePassword = (pass: string) => {
+    const hasUpper = /[A-Z]/.test(pass);
+    const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(pass);
+    const hasLength = pass.length >= 10;
+
+    if (!pass) return "";
+    if (!hasLength) return "Mínimo de 10 caracteres";
+    if (!hasUpper) return "Pelo menos uma letra maiúscula";
+    if (!hasSymbol) return "Pelo menos um símbolo (!@#...)";
+    
+    return "";
+  };
+
   useEffect(() => {
     setPassword('');
+    setPasswordError('');
     setPin('');
     setStep(1);
   }, [authMode]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validação extra antes de tentar cadastrar
+    if (authMode === 'signup') {
+      const error = validatePassword(password);
+      if (error) {
+        setPasswordError(error);
+        return;
+      }
+    }
+
     if (loading) return;
     setLoading(true);
 
@@ -37,12 +61,11 @@ export default function LoginPage() {
 
     try {
       if (authMode === 'login') {
-        // --- CAMADA DE SEGURANÇA EXCLUSIVA PARA VOCÊ ---
         if (cleanEmail === ADMIN_EMAIL && step === 1) {
           const { error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
           if (error) throw error;
           
-          setStep(2); // Ativa tela de PIN
+          setStep(2);
           setLoading(false);
           return;
         }
@@ -56,16 +79,13 @@ export default function LoginPage() {
           }
           return;
         }
-        // --- FIM DA CAMADA EXCLUSIVA ---
 
-        // Login padrão para demais usuários
         const { error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
         if (error) throw error;
         router.push('/');
         router.refresh();
 
       } else {
-        // Fluxo de Cadastro
         const { error } = await supabase.auth.signUp({ 
           email: cleanEmail, 
           password, 
@@ -91,7 +111,6 @@ export default function LoginPage() {
           onSubmit={handleAuth} 
           className="bg-[#111827]/80 backdrop-blur-xl w-full max-w-md rounded-[2.5rem] p-8 md:p-10 border-4 border-slate-800/50 shadow-2xl transition-all"
         >
-          {/* Header com Logo e Brilho Sutil */}
           <div className="flex flex-col items-center mb-10 text-center">
             <div className="relative mb-4">
               <div className="absolute inset-0 bg-blue-600/20 blur-3xl rounded-full scale-125" />
@@ -136,13 +155,16 @@ export default function LoginPage() {
                 </div>
                 
                 <div className="relative group">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors" size={18} />
+                  <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${passwordError ? 'text-red-500' : 'text-slate-500 group-focus-within:text-blue-500'}`} size={18} />
                   <input 
                     type={showPassword ? "text" : "password"} 
                     placeholder="SENHA" 
                     value={password} 
-                    onChange={(e) => setPassword(e.target.value)} 
-                    className="w-full p-4 pl-12 bg-slate-900/50 rounded-2xl border-2 border-slate-700 outline-none focus:border-blue-600 text-white font-black text-xs" 
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (authMode === 'signup') setPasswordError(validatePassword(e.target.value));
+                    }} 
+                    className={`w-full p-4 pl-12 bg-slate-900/50 rounded-2xl border-2 outline-none text-white font-black text-xs transition-all ${passwordError ? 'border-red-500/50 focus:border-red-500' : 'border-slate-700 focus:border-blue-600'}`} 
                     required 
                   />
                   <button 
@@ -152,10 +174,16 @@ export default function LoginPage() {
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
+
+                  {/* Mensagem de Erro de Senha */}
+                  {authMode === 'signup' && passwordError && (
+                    <p className="absolute -bottom-5 left-2 text-[9px] text-red-500 font-black uppercase italic tracking-widest animate-pulse">
+                      {passwordError}
+                    </p>
+                  )}
                 </div>
               </>
             ) : (
-              /* TELA DE PIN EXCLUSIVA */
               <div className="space-y-4 animate-in zoom-in-95 duration-300">
                 <div className="flex flex-col items-center gap-2 mb-2">
                   <ShieldCheck className="text-blue-500" size={32} />
@@ -179,7 +207,7 @@ export default function LoginPage() {
             <button 
               type="submit" 
               disabled={loading} 
-              className="w-full bg-blue-600 text-white font-black py-5 rounded-[2rem] shadow-[0_10px_20px_rgba(37,99,235,0.3)] hover:bg-blue-700 active:scale-[0.97] transition-all uppercase text-sm mt-4 italic tracking-widest flex items-center justify-center gap-3"
+              className="w-full bg-blue-600 text-white font-black py-5 rounded-[2rem] shadow-[0_10px_20px_rgba(37,99,235,0.3)] hover:bg-blue-700 active:scale-[0.97] transition-all uppercase text-sm mt-4 italic tracking-widest flex items-center justify-center gap-3 disabled:opacity-50"
             >
               {loading ? (
                 <Loader2 className="animate-spin" />
@@ -200,7 +228,7 @@ export default function LoginPage() {
           </div>
         </form>
 
-{/* Créditos */}
+        {/* Créditos */}
         <div className="absolute bottom-8 w-full flex flex-col items-center opacity-30 hover:opacity-100 transition-all duration-700">
           <p className="text-[8px] tracking-[0.4em] uppercase font-black mb-1">
             Engineered by
@@ -209,7 +237,6 @@ export default function LoginPage() {
             Jhonatha <span className="text-white">| Wolf Finance © 2026</span>
           </p>
         </div>
-
       </div>
     </>
   );
