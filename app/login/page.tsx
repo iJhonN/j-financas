@@ -96,14 +96,14 @@ export default function LoginPage() {
     <>
       <BackgroundPaths />
 
-      {/* h-dvh garante altura real do dispositivo. justify-center centraliza verticalmente. */}
-      <div className="h-dvh w-full flex items-center justify-center p-4 text-white font-black italic relative z-10 overflow-hidden">
+      {/* O segredo: h-dvh (altura real) + overflow-hidden (trava o scroll) */}
+      <div className="h-dvh w-full flex flex-col items-center justify-center p-4 text-white font-black italic relative z-10 overflow-hidden">
         
         <form 
           onSubmit={handleAuth} 
-          className="bg-[#111827]/80 backdrop-blur-xl w-full max-w-md rounded-[2.5rem] p-7 md:p-10 border-4 border-slate-800/50 shadow-2xl transition-all flex flex-col justify-center"
+          className="bg-[#111827]/80 backdrop-blur-xl w-full max-w-md rounded-[2.5rem] p-8 md:p-10 border-4 border-slate-800/50 shadow-2xl transition-all flex flex-col justify-center"
         >
-          {/* Header */}
+          {/* Header ajustado para ocupar menos espaço vertical no mobile */}
           <div className="flex flex-col items-center mb-6 md:mb-10 text-center">
             <div className="relative mb-3">
               <div className="absolute inset-0 bg-blue-600/20 blur-3xl rounded-full scale-125" />
@@ -184,7 +184,7 @@ export default function LoginPage() {
           </div>
         </form>
 
-        {/* Créditos posicionado fixo na base para não atrapalhar o centro */}
+        {/* Rodapé fixado na base com absolute - Não empurra o card */}
         <div className="absolute bottom-6 flex flex-col items-center opacity-30 hover:opacity-100 transition-all duration-700 pointer-events-none">
           <p className="text-[7px] tracking-[0.4em] uppercase font-black mb-1">Engineered by</p>
           <p className="text-[10px] tracking-tighter font-black italic uppercase text-blue-500">
