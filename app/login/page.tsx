@@ -137,7 +137,7 @@ export default function LoginPage() {
                   {authMode === 'signup' && !password && (
                     <div className="flex items-center gap-1 mb-1 text-[7px] md:text-[8px] text-blue-400 font-black uppercase tracking-[0.2em] animate-pulse">
                       <Info size={10} />
-                      10+ caracteres, 1 Maiúscula e 1 Símbolo
+                      10+ chars, 1 Maiúscula e 1 Símbolo
                     </div>
                   )}
                   <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${passwordError ? 'text-red-500' : 'text-slate-500 group-focus-within:text-blue-500'}`} size={18} />
@@ -184,13 +184,13 @@ export default function LoginPage() {
           </div>
         </form>
 
-        {/* Créditos fixos na base absoluta do visor para não gerar scroll */}
-        <div className="absolute bottom-6 flex flex-col items-center opacity-30 hover:opacity-100 transition-all duration-700 pointer-events-none">
-          <p className="text-[7px] tracking-[0.4em] uppercase font-black mb-1">Engineered by</p>
-          <p className="text-[10px] tracking-tighter font-black italic uppercase text-blue-500">
-            Jhonatha <span className="text-white">| Wolf Finance © 2026</span>
-          </p>
-        </div>
+{/* Créditos fixos na base do visor - Estilo Login Wolf */}
+      <div className="fixed bottom-6 left-0 right-0 flex flex-col items-center opacity-30 hover:opacity-100 transition-all duration-700 pointer-events-none z-[10]">
+        <p className="text-[7px] tracking-[0.4em] uppercase font-black mb-1">Engineered by</p>
+        <p className="text-[10px] tracking-tighter font-black italic uppercase text-blue-500">
+          Jhonatha <span className="text-white">| Wolf Finance © 2026</span>
+        </p>
+      </div>
 
       </div>
     </>
