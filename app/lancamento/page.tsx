@@ -48,7 +48,7 @@ export default function LancamentoPage() {
   const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault();
     const vTotal = Number(valorDisplay.replace(/\./g, '').replace(',', '.'));
-    if (vTotal <= 0) return alert("Insira um valor válido");
+    if (vTotal <= 0) return;
 
     try {
       const valorComSinal = tipoMovimento === 'receita' ? Math.abs(vTotal) : -Math.abs(vTotal);
@@ -78,94 +78,103 @@ export default function LancamentoPage() {
       }
       await supabase.from('transacoes').insert(novosLancamentos);
       router.push('/');
-    } catch (err) { alert("Erro ao salvar lançamento"); }
+    } catch (err) { console.error(err); }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-[#0a0f1d]"><Loader2 className="animate-spin text-blue-600" size={48} /></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-[#0a0f1d]"><Loader2 className="animate-spin text-blue-600" size={32} /></div>;
 
   return (
-    <div className="min-h-screen bg-[#0a0f1d] p-4 md:p-8 text-white font-black antialiased uppercase italic leading-none">
+    <div className="min-h-screen bg-[#0a0f1d] p-3 md:p-6 text-white font-black antialiased uppercase italic leading-none">
       
-      <header className="flex items-center gap-4 mb-8">
-        <button onClick={() => router.push('/')} className="bg-slate-800 p-2.5 rounded-full border border-slate-700 active:scale-95 shadow-lg">
-          <ChevronLeft size={24}/>
-        </button>
-        <h1 className="text-xl md:text-2xl tracking-tighter">NOVO LANÇAMENTO</h1>
+      {/* HEADER COMPACTO */}
+      <header className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <button onClick={() => router.push('/')} className="bg-slate-800 p-2 rounded-full border border-slate-700 active:scale-90 transition-all">
+            <ChevronLeft size={20}/>
+          </button>
+          <h1 className="text-lg tracking-tighter uppercase">NOVO LANÇAMENTO</h1>
+        </div>
+        <Zap size={20} className="text-amber-500 animate-pulse" />
       </header>
 
-      <form onSubmit={handleSalvar} className="max-w-2xl mx-auto bg-[#111827] p-6 md:p-10 rounded-[3rem] border-4 border-slate-800 shadow-2xl space-y-6">
+      <form onSubmit={handleSalvar} className="max-w-lg mx-auto bg-[#111827] p-5 rounded-[2rem] border-2 border-slate-800 shadow-2xl space-y-4">
         
-        {/* TIPO DE MOVIMENTO */}
-        <div className="flex gap-2 p-1 bg-slate-800 rounded-2xl">
-          <button type="button" onClick={() => setTipoMovimento('despesa')} className={`flex-1 py-4 rounded-xl text-xs font-black transition-all ${tipoMovimento === 'despesa' ? 'bg-rose-600 shadow-lg scale-[1.02]' : 'text-slate-500'}`}>
-            <ArrowDownCircle size={16} className="inline mr-2" /> SAÍDA / DESPESA
+        {/* TIPO DE MOVIMENTO COMPACTO */}
+        <div className="grid grid-cols-2 gap-2 p-1 bg-slate-800 rounded-xl">
+          <button type="button" onClick={() => setTipoMovimento('despesa')} className={`py-3 rounded-lg text-[10px] font-black transition-all ${tipoMovimento === 'despesa' ? 'bg-rose-600 shadow-lg' : 'text-slate-500'}`}>
+            <ArrowDownCircle size={14} className="inline mr-1" /> SAÍDA
           </button>
-          <button type="button" onClick={() => setTipoMovimento('receita')} className={`flex-1 py-4 rounded-xl text-xs font-black transition-all ${tipoMovimento === 'receita' ? 'bg-emerald-600 shadow-lg scale-[1.02]' : 'text-slate-500'}`}>
-            <ArrowUpCircle size={16} className="inline mr-2" /> ENTRADA / RECEITA
+          <button type="button" onClick={() => setTipoMovimento('receita')} className={`py-3 rounded-lg text-[10px] font-black transition-all ${tipoMovimento === 'receita' ? 'bg-emerald-600 shadow-lg' : 'text-slate-500'}`}>
+            <ArrowUpCircle size={14} className="inline mr-1" /> ENTRADA
           </button>
         </div>
 
-        {/* CAMPOS PRINCIPAIS */}
-        <div className="space-y-4">
-          <div className="relative">
-            <input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="O QUE FOI COMPRADO/VENDIDO?" className="w-full p-5 bg-slate-800 rounded-2xl border-2 border-slate-700 outline-none text-sm font-black uppercase" required />
-          </div>
+        {/* INPUTS PRINCIPAIS */}
+        <div className="space-y-3">
+          <input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="DESCRIÇÃO RÁPIDA" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none text-[11px] font-black uppercase" required />
 
           <div className="relative">
-            <label className="absolute -top-2 left-4 bg-[#111827] px-2 text-[8px] text-blue-500">VALOR DO LANÇAMENTO</label>
-            <input type="text" value={valorDisplay} onChange={(e) => setValorDisplay(aplicarMascara(e.target.value))} placeholder="R$ 0,00" className="w-full p-6 bg-slate-800 rounded-2xl border-2 border-slate-700 text-2xl font-black text-center outline-none" required />
+            <input type="text" value={valorDisplay} onChange={(e) => setValorDisplay(aplicarMascara(e.target.value))} placeholder="R$ 0,00" className="w-full p-5 bg-slate-900 rounded-xl border-2 border-slate-700 text-xl font-black text-center outline-none text-emerald-400" required />
           </div>
         </div>
 
-        {/* PAGAMENTO */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* SELETORES EM GRID COMPACTO */}
+        <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
-            <label className="text-[8px] opacity-50 ml-2">MÉTODO</label>
-            <select value={metodoPagamento} onChange={(e) => { setMetodoPagamento(e.target.value); setTipoPagamento(e.target.value === 'Pix' ? 'Dinheiro' : 'Crédito'); }} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[11px] outline-none font-black">
+            <label className="text-[7px] opacity-40 ml-1">MÉTODO PAGAMENTO</label>
+            <select value={metodoPagamento} onChange={(e) => { setMetodoPagamento(e.target.value); setTipoPagamento(e.target.value === 'Pix' ? 'Dinheiro' : 'Crédito'); }} className="w-full p-3 bg-slate-800 rounded-lg border border-slate-700 text-[10px] font-black outline-none">
               <option value="Pix">PIX / DINHEIRO</option>
-              {cartoes.map(c => (<option key={c.id} value={`${c.banco} - ${c.nome_cartao}`}>{c.banco} - {c.nome_cartao}</option>))}
+              {cartoes.map(c => (<option key={c.id} value={`${c.banco} - ${c.nome_cartao}`}>{c.banco}</option>))}
             </select>
           </div>
           <div className="space-y-1">
-            <label className="text-[8px] opacity-50 ml-2">MODALIDADE</label>
-            <select value={tipoPagamento} onChange={(e) => setTipoPagamento(e.target.value as any)} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[11px] outline-none font-black" disabled={metodoPagamento === 'Pix'}>
-              {metodoPagamento === 'Pix' ? <option value="Dinheiro">DINHEIRO (À VISTA)</option> : <><option value="Crédito">CRÉDITO</option><option value="Débito">DÉBITO</option></>}
+            <label className="text-[7px] opacity-40 ml-1">MODALIDADE</label>
+            <select value={tipoPagamento} onChange={(e) => setTipoPagamento(e.target.value as any)} className="w-full p-3 bg-slate-800 rounded-lg border border-slate-700 text-[10px] font-black outline-none" disabled={metodoPagamento === 'Pix'}>
+              {metodoPagamento === 'Pix' ? <option value="Dinheiro">À VISTA</option> : <><option value="Crédito">CRÉDITO</option><option value="Débito">DÉBITO</option></>}
             </select>
           </div>
         </div>
 
-        {/* DATA E PARCELAS DINÂMICAS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* DATA E PARCELAS LADO A LADO */}
+        <div className="grid grid-cols-2 gap-3 items-end">
           {tipoPagamento === 'Crédito' && metodoPagamento !== 'Pix' && !recorrente ? (
             <div className="relative">
-              <label className="absolute -top-2 left-4 bg-[#111827] px-2 text-[8px] text-blue-500">Nº DE PARCELAS</label>
-              <input type="number" min="1" max="48" value={parcelas} onChange={(e) => setParcelas(Number(e.target.value))} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-center font-black" />
+              <label className="text-[7px] text-blue-500 ml-1 uppercase">Parcelas</label>
+              <input type="number" min="1" max="48" value={parcelas} onChange={(e) => setParcelas(Number(e.target.value))} className="w-full p-3 bg-slate-800 rounded-lg border border-slate-700 text-center font-black text-xs" />
             </div>
           ) : (
-            <div className="w-full p-5 bg-slate-900/50 rounded-xl border border-slate-800 flex items-center justify-center text-emerald-500 text-[10px] font-black italic">
-              <Zap size={14} className="mr-2" /> {recorrente ? 'LANÇAMENTO FIXO MENSAL' : 'LIQUIDAÇÃO À VISTA'}
+            <div className={`p-3 rounded-lg border border-slate-700 text-[9px] font-black text-center ${recorrente ? 'text-purple-400 bg-purple-900/10' : 'text-slate-500 bg-slate-900/50'}`}>
+              {recorrente ? 'FIXO MENSAL' : 'À VISTA'}
             </div>
           )}
           
           {/* DATA SÓ PARA PIX/DÉBITO */}
-          {(metodoPagamento === 'Pix' || tipoPagamento !== 'Crédito') && (
+          {(metodoPagamento === 'Pix' || tipoPagamento !== 'Crédito') ? (
             <div className="relative">
-              <label className="absolute -top-2 left-4 bg-[#111827] px-2 text-[8px] text-slate-500">DATA DO EVENTO</label>
-              <input type="date" value={dataLancamento} onChange={(e) => setDataLancamento(e.target.value)} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-center font-black outline-none" required />
+              <label className="text-[7px] text-slate-500 ml-1 uppercase">Data</label>
+              <input type="date" value={dataLancamento} onChange={(e) => setDataLancamento(e.target.value)} className="w-full p-3 bg-slate-800 rounded-lg border border-slate-700 text-center font-black text-[10px] outline-none" required />
+            </div>
+          ) : (
+            <div className="p-3 rounded-lg border border-slate-700 text-[9px] font-black text-center text-blue-400 bg-blue-900/10 uppercase">
+              Venc. Cartão
             </div>
           )}
         </div>
 
-        {/* RECORRÊNCIA */}
-        <button type="button" onClick={() => setRecorrente(!recorrente)} className={`w-full p-4 rounded-xl border-2 transition-all flex items-center justify-center gap-3 font-black text-[10px] ${recorrente ? 'border-purple-600 bg-purple-900/20 text-purple-400 shadow-lg shadow-purple-900/20' : 'border-slate-800 bg-slate-900/50 text-slate-500'}`}>
-          <RefreshCcw size={18} className={recorrente ? 'animate-spin' : ''} style={{animationDuration: '3s'}} />
-          {recorrente ? 'RECORRÊNCIA ATIVA (12 MESES)' : 'ATIVAR RECORRÊNCIA MENSAL?'}
+        {/* BOTÃO RECORRÊNCIA MINI */}
+        <button type="button" onClick={() => setRecorrente(!recorrente)} className={`w-full py-3 rounded-lg border transition-all flex items-center justify-center gap-2 font-black text-[9px] ${recorrente ? 'border-purple-600 bg-purple-900/30 text-purple-400' : 'border-slate-800 bg-slate-900/30 text-slate-500'}`}>
+          <RefreshCcw size={14} className={recorrente ? 'animate-spin' : ''} />
+          {recorrente ? 'CONTA FIXA ATIVA' : 'ATIVAR RECORRÊNCIA?'}
         </button>
 
-        <button type="submit" className="w-full bg-blue-600 py-6 rounded-[2rem] shadow-2xl text-[13px] font-black active:scale-95 transition-all flex items-center justify-center gap-3">
-          <Save size={20} /> FINALIZAR LANÇAMENTO WOLF
+        <button type="submit" className="w-full bg-blue-600 py-4 rounded-2xl shadow-xl text-[11px] font-black active:scale-95 transition-all flex items-center justify-center gap-2">
+          <Save size={16} /> CONFIRMAR LANÇAMENTO
         </button>
       </form>
+
+      <footer className="mt-6 text-center text-[8px] text-slate-700 tracking-widest">
+        WOLF FINANCE - FAST MODE
+      </footer>
     </div>
   );
 }
