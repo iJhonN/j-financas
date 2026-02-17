@@ -153,18 +153,89 @@ export default function HomePage() {
       )}
 
       {/* TOUR GUIADO */}
+     {/* TOUR GUIADO REFORMULADO - ALTO CONTRASTE */}
       {tourStep > 0 && (
-        <div className="fixed inset-0 z-[10000] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6 text-center">
-          <div className="bg-blue-600 p-8 rounded-[3rem] border-4 border-white shadow-2xl max-w-sm w-full animate-in zoom-in">
-            <div className="flex justify-between items-center mb-6">
-               <span className="text-[10px] bg-white text-blue-600 px-3 py-1 rounded-full font-black italic">PASSO {tourStep} / 5</span>
-               <button onClick={endTour} className="bg-white/10 p-1 rounded-full"><X size={20}/></button>
+        <div className="fixed inset-0 z-[10000] bg-[#0a0f1d]/60 backdrop-blur-[2px] flex items-center justify-center p-6 text-center animate-in fade-in duration-500">
+          <div className="bg-gradient-to-b from-blue-600 to-blue-800 p-8 rounded-[3rem] border-[3px] border-white/20 shadow-[0_0_50px_-12px_rgba(59,130,246,0.5)] max-w-sm w-full animate-in zoom-in duration-300 relative">
+            
+            {/* Indicador de Passo Flutuante */}
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-white text-blue-700 px-4 py-1.5 rounded-full text-[10px] font-black italic shadow-xl border-2 border-blue-600">
+              PASSO {tourStep} / 5
             </div>
-            {tourStep === 1 && <><h3 className="text-2xl mb-4 italic">BEM-VINDO!</h3><p className="text-[10px] normal-case mb-6 italic text-blue-100">Bem-vindo à GR AUTO PEÇAS. Vamos configurar sua gestão.</p><button onClick={nextTour} className="w-full bg-white text-blue-600 py-4 rounded-2xl text-[12px] font-black">INICIAR TOUR</button></>}
-            {tourStep === 2 && <><Coins size={48} className="mx-auto mb-4"/><h3 className="text-2xl mb-4 italic">SALDO INICIAL</h3><p className="text-[10px] normal-case mb-6 italic text-blue-100">Ajuste seu valor atual em conta para o Dashboard.</p><button onClick={nextTour} className="w-full bg-white text-blue-600 py-4 rounded-2xl text-[12px] font-black">PRÓXIMO</button></>}
-            {tourStep === 3 && <><CreditCard size={48} className="mx-auto mb-4"/><h3 className="text-2xl mb-4 italic">MEUS CARTÕES</h3><p className="text-[10px] normal-case mb-6 italic text-blue-100">Gerencie seus cartões em uma página segura.</p><button onClick={nextTour} className="w-full bg-white text-blue-600 py-4 rounded-2xl text-[12px] font-black">PRÓXIMO</button></>}
-            {tourStep === 4 && <><Plus size={48} className="mx-auto mb-4"/><h3 className="text-2xl mb-4 italic">LANÇAMENTOS</h3><p className="text-[10px] normal-case mb-6 italic text-blue-100">Acesse a central para registrar entradas e saídas.</p><button onClick={nextTour} className="w-full bg-white text-blue-600 py-4 rounded-2xl text-[12px] font-black">PRÓXIMO</button></>}
-            {tourStep === 5 && <><CheckCircle size={48} className="mx-auto mb-4"/><h3 className="text-2xl mb-4 italic">LIQUIDAÇÃO</h3><p className="text-[10px] normal-case mb-6 italic text-blue-100">O saldo real só muda quando você confirma o pagamento.</p><button onClick={endTour} className="w-full bg-emerald-500 text-white py-4 rounded-2xl text-[12px] font-black shadow-lg">Começar Agora</button></>}
+
+            <div className="flex justify-end mb-2">
+               <button onClick={endTour} className="bg-white/10 p-2 rounded-full hover:bg-white/20 transition-colors"><X size={18}/></button>
+            </div>
+
+            <div className="py-4">
+              {tourStep === 1 && (
+                <>
+                  <div className="w-16 h-16 bg-white/10 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-white/20 shadow-inner">
+                    <Zap size={32} className="text-white animate-pulse" />
+                  </div>
+                  <h3 className="text-2xl mb-4 italic tracking-tighter text-white">BEM-VINDO!</h3>
+                  <p className="text-[11px] normal-case mb-8 italic text-blue-50 leading-relaxed font-medium">
+                    Iniciando a configuração da sua gestão <span className="font-black text-white uppercase">Wolf Finance</span>. 
+                    Pronto para o próximo nível?
+                  </p>
+                </>
+              )}
+
+              {tourStep === 2 && (
+                <>
+                  <div className="w-16 h-16 bg-white/10 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-white/20">
+                    <Coins size={32} className="text-white" />
+                  </div>
+                  <h3 className="text-2xl mb-4 italic tracking-tighter text-white uppercase">Saldo Inicial</h3>
+                  <p className="text-[11px] normal-case mb-8 italic text-blue-50 leading-relaxed font-medium">
+                    Ajuste seu valor atual em conta. Ele serve como a <span className="font-black text-white uppercase text-[10px]">base sólida</span> para todos os cálculos do Dashboard.
+                  </p>
+                </>
+              )}
+
+              {tourStep === 3 && (
+                <>
+                  <div className="w-16 h-16 bg-white/10 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-white/20">
+                    <CreditCard size={32} className="text-white" />
+                  </div>
+                  <h3 className="text-2xl mb-4 italic tracking-tighter text-white uppercase">Meus Cartões</h3>
+                  <p className="text-[11px] normal-case mb-8 italic text-blue-50 leading-relaxed font-medium">
+                    Gerencie seus cartões em uma área <span className="font-black text-white uppercase text-[10px]">exclusiva</span>. O sistema organiza tudo pelo dia do vencimento.
+                  </p>
+                </>
+              )}
+
+              {tourStep === 4 && (
+                <>
+                  <div className="w-16 h-16 bg-white/10 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-white/20">
+                    <Plus size={32} className="text-white" />
+                  </div>
+                  <h3 className="text-2xl mb-4 italic tracking-tighter text-white uppercase">Lançamentos</h3>
+                  <p className="text-[11px] normal-case mb-8 italic text-blue-50 leading-relaxed font-medium">
+                    Registrar entradas e saídas agora é <span className="font-black text-white uppercase text-[10px]">vapt-vupt</span> na nossa nova central de lançamentos.
+                  </p>
+                </>
+              )}
+
+              {tourStep === 5 && (
+                <>
+                  <div className="w-16 h-16 bg-white/10 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-white/20">
+                    <CheckCircle size={32} className="text-emerald-400" />
+                  </div>
+                  <h3 className="text-2xl mb-4 italic tracking-tighter text-white uppercase text-emerald-400">Pronto!</h3>
+                  <p className="text-[11px] normal-case mb-8 italic text-blue-50 leading-relaxed font-medium">
+                    Seu saldo só atualiza quando você <span className="font-black text-white uppercase text-[10px]">liquida</span> as contas na lista de atividade.
+                  </p>
+                </>
+              )}
+
+              <button 
+                onClick={tourStep === 5 ? endTour : nextTour} 
+                className={`w-full py-5 rounded-2xl text-[12px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-2xl ${tourStep === 5 ? 'bg-emerald-500 text-white hover:bg-emerald-400' : 'bg-white text-blue-700 hover:bg-blue-50'}`}
+              >
+                {tourStep === 5 ? 'Começar Agora' : 'Próximo Passo'}
+              </button>
+            </div>
           </div>
         </div>
       )}
