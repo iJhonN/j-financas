@@ -197,16 +197,17 @@ export default function LancamentoPage() {
         </button>
       </form>
 
-      <div className="fixed bottom-6 left-0 right-0 flex flex-col items-center opacity-30 hover:opacity-100 transition-all duration-700 pointer-events-none z-[10]">
+{/* CRÉDITOS NO FINAL DA PÁGINA (NÃO FIXO) */}
+      <div className="relative mt-12 pb-8 flex flex-col items-center opacity-30 hover:opacity-100 transition-all duration-700 pointer-events-none z-[10] font-black italic">
         <p className="text-[7px] tracking-[0.4em] uppercase font-black mb-1">Engineered by</p>
         <p className="text-[10px] tracking-tighter font-black italic uppercase text-blue-500">
           Jhonatha <span className="text-white">| Wolf Finance © 2026</span>
         </p>
       </div>
 
-      <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+      <style jsx global>{` 
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; } 
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; } 
       `}</style>
     </div>
   );
