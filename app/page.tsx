@@ -28,7 +28,7 @@ export default function HomePage() {
   const router = useRouter();
   const theme = THEMES[currentTheme];
 
-  // Estados de UI, Filtros e Busca
+  // Estados de UI e Filtros Unificados
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
@@ -55,7 +55,7 @@ export default function HomePage() {
   const [diaRecorrencia, setDiaRecorrencia] = useState(new Date().getDate());
   const [dataLancamento, setDataLancamento] = useState(new Date().toISOString().split('T')[0]);
 
-  // Estados de Edição e Perfil
+  // Perfil e Edição
   const [novoNome, setNovoNome] = useState("");
   const [novaSenha, setNovaSenha] = useState('');
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
@@ -173,7 +173,7 @@ export default function HomePage() {
       setIsCardModalOpen(false);
       setBanco(''); setNomeCartao(''); setVencimento(''); setEditingCardId(null);
       showAlert("Cartão salvo!");
-    } else { showAlert("Erro ao salvar cartão", "error"); }
+    }
   };
 
   const aplicarMascara = (valor: string) => {
@@ -230,19 +230,19 @@ export default function HomePage() {
         <div className="mb-6 bg-rose-600/20 border-2 border-rose-600 p-4 rounded-3xl flex items-center gap-4 animate-pulse leading-none font-black">
           <div className="bg-rose-600 p-2 rounded-xl text-white shadow-lg"><Lock size={20} /></div>
           <div className="leading-none">
-            <h3 className="text-xs uppercase">Acesso Beta Expirado</h3>
-            <p className="text-[9px] text-rose-400 uppercase mt-1">Fale com o administrador para renovar!</p>
+            <h3 className="text-xs uppercase font-black">Acesso Beta Expirado</h3>
+            <p className="text-[9px] text-rose-400 uppercase mt-1 font-black">Fale com o administrador para renovar!</p>
           </div>
         </div>
       )}
 
       <header className="flex flex-col gap-4 mb-6 bg-[#111827] p-4 md:p-6 rounded-[2rem] border border-slate-800 shadow-2xl leading-none">
         <div className="flex justify-between items-center w-full leading-none">
-          <div className="flex items-center gap-3 leading-none font-black">
+          <div className="flex items-center gap-3 leading-none font-black italic">
             <img src="/logo.png" alt="Wolf Logo" className="w-10 h-10 object-contain" />
             <div className="leading-none">
               <h1 className="text-lg md:text-xl font-black uppercase tracking-tighter px-1">WOLF FINANCE</h1>
-              <div className="flex items-center gap-2 mt-1 leading-none">
+              <div className="flex items-center gap-2 mt-1 leading-none font-black italic">
                 <p className={`text-[9px] md:text-[10px] font-black ${theme.text} uppercase`}>Olá, {user?.user_metadata?.full_name?.split(' ')[0]}</p>
                 <div className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-500/50 text-amber-500 text-[7px] font-black uppercase tracking-widest">
                   <Clock size={8} /> {diasRestantes} DIAS
@@ -250,7 +250,7 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-          <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="bg-slate-800 text-slate-300 p-2.5 rounded-full border border-slate-700 hover:bg-blue-600 relative transition-all leading-none"><UserCircle size={20} /></button>
+          <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="bg-slate-800 text-slate-300 p-2.5 rounded-full border border-slate-700 hover:bg-blue-600 transition-all leading-none font-black"><UserCircle size={20} /></button>
           {isProfileMenuOpen && (
             <div className="absolute right-0 mt-12 w-64 bg-[#111827] border-2 border-slate-800 rounded-[2rem] shadow-2xl z-[500] overflow-hidden animate-in fade-in slide-in-from-top-2">
               {isAdmin && (
@@ -271,15 +271,31 @@ export default function HomePage() {
       </header>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 font-black leading-none">
-        <Card title="Saldo Real (Pago)" value={`R$ ${formatarMoeda(saldoCalculado)}`} icon={<Banknote size={20}/>} color={`bg-[#111827] border-b-8 ${theme.border}`} />
+        <Card title="Saldo Atual (Pago)" value={`R$ ${formatarMoeda(saldoCalculado)}`} icon={<Banknote size={20}/>} color={`bg-[#111827] border-b-8 ${theme.border}`} />
         <Card title="Gasto do Mês" value={`R$ ${formatarMoeda(saidasMensais)}`} icon={<CreditCard size={20}/>} color="bg-[#111827] border-b-8 border-rose-600" />
         <Card title="Entradas do Mês" value={`R$ ${formatarMoeda(entradasMensais)}`} icon={<TrendingUp size={20}/>} color="bg-[#111827] border-b-8 border-emerald-600" />
-        <div className="bg-[#111827] p-4 rounded-[1.5rem] border-b-8 border-amber-500 flex flex-col justify-between h-32">
-           <span className="text-white/40 text-[7px] uppercase font-black">Navegar Mês</span>
-           <div className="flex items-center justify-between font-black uppercase text-[10px] italic">
-              <button onClick={() => setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth() - 1)))}><ChevronLeft size={20}/></button>
+        
+        {/* CARD UNIFICADO DE FILTROS: MÊS + CARTÃO */}
+        <div className="bg-[#111827] p-4 rounded-[1.5rem] border-b-8 border-amber-500 flex flex-col justify-between h-32 relative">
+           <div className="flex items-center justify-between font-black uppercase text-[9px] italic border-b border-white/10 pb-2">
+              <button onClick={() => setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth() - 1)))}><ChevronLeft size={16}/></button>
               <span>{selectedDate.toLocaleString('pt-BR', { month: 'short', year: 'numeric' })}</span>
-              <button onClick={() => setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth() + 1)))}><ChevronRight size={20}/></button>
+              <button onClick={() => setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth() + 1)))}><ChevronRight size={16}/></button>
+           </div>
+           
+           <div className="relative">
+             <button onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} className="w-full flex items-center justify-between text-[9px] uppercase font-black bg-slate-800/50 p-2 rounded-lg border border-slate-700">
+               <span className="truncate">{filtroCartao}</span>
+               <ChevronDown size={12}/>
+             </button>
+             {isFilterMenuOpen && (
+               <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#111827] border-2 border-slate-800 rounded-xl shadow-2xl z-[500] max-h-40 overflow-y-auto">
+                 <button onClick={() => { setFiltroCartao('Todos'); setIsFilterMenuOpen(false); }} className="w-full text-left p-3 border-b border-slate-800 text-[9px] uppercase font-black hover:bg-slate-800">Todos os Gastos</button>
+                 {cartoes.map(c => (
+                   <button key={c.id} onClick={() => { setFiltroCartao(`${c.banco} - ${c.nome_cartao}`); setIsFilterMenuOpen(false); }} className="w-full text-left p-3 border-b border-slate-800 text-[9px] uppercase font-black hover:bg-slate-800">{c.banco} - {c.nome_cartao}</button>
+                 ))}
+               </div>
+             )}
            </div>
         </div>
       </div>
@@ -301,7 +317,7 @@ export default function HomePage() {
           </div>
 
           <div className="bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 shadow-2xl font-black leading-none">
-            <h2 className="text-white font-black mb-6 uppercase text-[10px] tracking-widest px-1">Meus Cartões</h2>
+            <h2 className="text-white font-black mb-6 uppercase text-[10px] tracking-widest px-1 leading-none font-black italic">Meus Cartões</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {cartoes.map(c => (
                 <div key={c.id} className="p-4 border-2 border-slate-800 rounded-2xl flex justify-between items-center bg-slate-950/50 hover:border-blue-500 transition-all leading-none font-black italic">
@@ -321,7 +337,7 @@ export default function HomePage() {
 
         <div className="bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 h-full overflow-hidden flex flex-col shadow-2xl min-h-[500px] leading-none">
           <div className="flex flex-col gap-4 mb-4">
-            <h2 className="text-white font-black mb-2 uppercase text-[10px] tracking-widest px-1">Lançamentos</h2>
+            <h2 className="text-white font-black mb-2 uppercase text-[10px] tracking-widest leading-none px-1 italic font-black">Lançamentos</h2>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
               <input type="text" placeholder="PESQUISAR..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2 pl-9 pr-4 text-[9px] outline-none focus:border-blue-500 transition-all font-black uppercase" />
@@ -331,7 +347,7 @@ export default function HomePage() {
             {transacoesFiltradas.map((t) => (
               <div key={t.id} className={`flex justify-between items-center p-4 rounded-2xl border transition-all ${t.pago ? 'bg-slate-800/40 border-slate-800' : 'bg-rose-900/10 border-rose-900/30'}`}>
                 <div className="flex items-center gap-3">
-                  <button onClick={() => togglePago(t.id, t.pago)} className={`p-1.5 rounded-full ${t.pago ? 'text-emerald-500 bg-emerald-500/10' : 'text-slate-500 bg-slate-800'}`}>
+                  <button onClick={() => togglePago(t.id, t.pago)} className={`p-1.5 rounded-full transition-all ${t.pago ? 'text-emerald-500 bg-emerald-500/10' : 'text-slate-500 bg-slate-800'}`}>
                     {t.pago ? <CheckCircle size={18}/> : <Circle size={18}/>}
                   </button>
                   <div className="leading-tight">
@@ -356,8 +372,8 @@ export default function HomePage() {
             <div className="flex justify-between items-center mb-6"><h2 className="text-xl uppercase font-black">Lançamento</h2><button type="button" onClick={() => setIsModalOpen(false)} className="bg-slate-800 p-2 rounded-full"><X size={20}/></button></div>
             <div className="space-y-4">
               <div className="flex gap-2 p-1 bg-slate-800 rounded-2xl">
-                <button type="button" onClick={() => setTipoMovimento('despesa')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase font-black ${tipoMovimento === 'despesa' ? 'bg-rose-600' : 'text-slate-500'}`}>Despesa</button>
-                <button type="button" onClick={() => setTipoMovimento('receita')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase font-black ${tipoMovimento === 'receita' ? 'bg-emerald-600' : 'text-slate-500'}`}>Receita</button>
+                <button type="button" onClick={() => setTipoMovimento('despesa')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase font-black ${tipoMovimento === 'despesa' ? 'bg-rose-600 text-white' : 'text-slate-500'}`}>Despesa</button>
+                <button type="button" onClick={() => setTipoMovimento('receita')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase font-black ${tipoMovimento === 'receita' ? 'bg-emerald-600 text-white' : 'text-slate-500'}`}>Receita</button>
               </div>
               <input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="DESCRIÇÃO" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-sm font-black uppercase outline-none" required />
               <input type="text" value={valorDisplay} onChange={(e) => setValorDisplay(aplicarMascara(e.target.value))} placeholder="R$ 0,00" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-lg font-black text-center outline-none" required />
@@ -377,7 +393,7 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
-              <button type="submit" className={`w-full ${theme.primary} py-5 rounded-[2rem] shadow-xl uppercase text-[10px] font-black active:scale-95 transition-all`}>Confirmar Lançamento</button>
+              <button type="submit" className={`w-full ${theme.primary} py-5 rounded-[2rem] shadow-xl uppercase text-[10px] font-black active:scale-95 transition-all`}>Confirmar</button>
             </div>
           </form>
         </div>
@@ -444,10 +460,10 @@ function Card({ title, value, icon, color }: any) {
   return (
     <div className={`${color} p-4 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl transition-transform active:scale-[0.98] border-black/20 flex flex-col justify-between h-32 md:h-36 text-white text-left font-black italic leading-none`}>
       <div className="flex justify-between items-start w-full leading-none font-black italic">
-        <span className="text-white/20 font-black text-[7px] md:text-[10px] uppercase tracking-widest leading-none">{title}</span>
+        <span className="text-white/20 font-black text-[7px] md:text-[10px] uppercase tracking-widest leading-none font-black">{title}</span>
         <div className="p-1.5 md:p-3 bg-white/5 rounded-xl backdrop-blur-md border border-white/5 opacity-50 leading-none">{icon}</div>
       </div>
-      <div className="text-sm md:text-2xl font-black truncate uppercase px-1 leading-tight">{value}</div>
+      <div className="text-sm md:text-2xl font-black truncate uppercase px-1 leading-tight font-black">{value}</div>
     </div>
   );
 }
