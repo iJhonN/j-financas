@@ -3,8 +3,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  ChevronLeft, CheckCheck, CreditCard, Calendar, 
-  Filter, ArrowUpCircle, ArrowDownCircle, Loader2, AlertCircle
+  ChevronLeft, ChevronRight, CheckCheck, CreditCard, 
+  ArrowUpCircle, ArrowDownCircle, Loader2, AlertCircle,
+  UserCircle, ShieldCheck, LogOut, Settings, Clock
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -15,15 +16,16 @@ export default function DetalhesGastos() {
   const [transacoes, setTransacoes] = useState<any[]>([]);
   const [cartoes, setCartoes] = useState<any[]>([]);
   const [filtroCartao, setFiltroCartao] = useState('Todos');
-  const [mesAno, setMesAno] = useState(new Date().toISOString().slice(0, 7)); // Formato YYYY-MM
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [alertConfig, setAlertConfig] = useState({ show: false, msg: '', type: 'success' });
 
   useEffect(() => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push('/login');
-      } else {
+      if (!session) router.push('/login');
+      else {
         setUser(session.user);
         await fetchData(session.user.id);
       }
@@ -34,22 +36,11 @@ export default function DetalhesGastos() {
 
   const fetchData = async (userId: string) => {
     try {
-      const { data: tData } = await supabase
-        .from('transacoes')
-        .select('*')
-        .eq('user_id', userId)
-        .order('data_ordenacao', { ascending: false });
-      
-      const { data: cData } = await supabase
-        .from('cartoes')
-        .select('*')
-        .eq('user_id', userId);
-
+      const { data: tData } = await supabase.from('transacoes').select('*').eq('user_id', userId).order('data_ordenacao', { ascending: false });
+      const { data: cData } = await supabase.from('cartoes').select('*').eq('user_id', userId);
       if (tData) setTransacoes(tData);
       if (cData) setCartoes(cData);
-    } catch (err) {
-      console.error("Erro ao buscar dados:", err);
-    }
+    } catch (err) { console.error(err); }
   };
 
   const showAlert = (msg: string, type: any = 'success') => {
@@ -59,133 +50,115 @@ export default function DetalhesGastos() {
 
   const listaFiltrada = useMemo(() => {
     return transacoes.filter(t => {
-      const matchMes = t.data_ordenacao.startsWith(mesAno);
-      const matchCartao = filtroCartao === 'Todos' || t.forma_pagamento === filtroCartao;
-      return matchMes && matchCartao;
+      const d = new Date(t.data_ordenacao + 'T12:00:00');
+      const matchMonth = d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear();
+      const matchCard = filtroCartao === 'Todos' || t.forma_pagamento === filtroCartao;
+      return matchMonth && matchCard;
     });
-  }, [transacoes, mesAno, filtroCartao]);
+  }, [transacoes, selectedDate, filtroCartao]);
 
   const totalPendente = useMemo(() => {
-    return listaFiltrada
-      .filter(t => !t.pago && t.valor < 0)
-      .reduce((acc, t) => acc + Math.abs(t.valor), 0);
+    return listaFiltrada.filter(t => !t.pago && t.valor < 0).reduce((acc, t) => acc + Math.abs(t.valor), 0);
   }, [listaFiltrada]);
 
   const pagarTudo = async () => {
     const idsParaPagar = listaFiltrada.filter(t => !t.pago).map(t => t.id);
-    
-    if (idsParaPagar.length === 0) {
-      return showAlert("Nenhum lançamento pendente nesta lista!", "error");
-    }
+    if (idsParaPagar.length === 0) return showAlert("Nada pendente aqui!", "error");
 
-    if (confirm(`Deseja marcar os ${idsParaPagar.length} itens visíveis como pagos?`)) {
-      try {
-        const { error } = await supabase
-          .from('transacoes')
-          .update({ pago: true })
-          .in('id', idsParaPagar);
-
-        if (error) throw error;
-        
-        showAlert("Tudo pago com sucesso!");
-        fetchData(user.id);
-      } catch (err) {
-        showAlert("Erro ao processar pagamento", "error");
-      }
+    if (confirm(`Liquidar ${idsParaPagar.length} lançamentos?`)) {
+      const { error } = await supabase.from('transacoes').update({ pago: true }).in('id', idsParaPagar);
+      if (!error) { showAlert("Fatura atualizada!"); fetchData(user.id); }
     }
   };
 
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0f1d]">
-      <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
-    </div>
-  );
+  if (loading || !user) return <div className="min-h-screen flex items-center justify-center bg-[#0a0f1d]"><Loader2 className="h-12 w-12 animate-spin text-blue-600" /></div>;
 
   return (
-    <div className="min-h-screen bg-[#0a0f1d] p-4 md:p-8 text-white font-black italic uppercase antialiased pb-20">
+    <div className="min-h-screen bg-[#0a0f1d] p-2 md:p-8 text-white font-black italic uppercase antialiased pb-24">
       
-      {/* Alertas */}
       {alertConfig.show && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] px-4 w-full max-w-sm">
           <div className={`flex items-center gap-3 p-4 rounded-2xl border-2 shadow-2xl backdrop-blur-xl ${alertConfig.type === 'error' ? 'bg-rose-950/80 border-rose-500 text-rose-200' : 'bg-emerald-950/80 border-emerald-500 text-emerald-200'}`}>
-            <AlertCircle size={20}/>
-            <p className="text-[10px] font-black">{alertConfig.msg}</p>
+            <AlertCircle size={20}/> <p className="text-[10px] font-black">{alertConfig.msg}</p>
           </div>
         </div>
       )}
 
-      {/* Header */}
-      <header className="flex items-center justify-between mb-8 bg-[#111827] p-6 rounded-[2rem] border border-slate-800 shadow-2xl">
-        <button onClick={() => router.back()} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-full transition-all">
-          <ChevronLeft size={24} />
-        </button>
-        <div className="text-center">
-          <h1 className="text-lg tracking-tighter">Gerenciar Fatura</h1>
-          <p className="text-[8px] text-blue-400 tracking-widest">WOLF FINANCE SYSTEM</p>
+      {/* Header Wolf Finance (Versão Reduzida) */}
+      <header className="flex flex-col gap-4 mb-6 bg-[#111827] p-4 md:p-6 rounded-[2rem] border border-slate-800 shadow-2xl">
+        <div className="flex justify-between items-center w-full">
+          <div className="flex items-center gap-3">
+            <button onClick={() => router.back()} className="p-2 bg-slate-800 rounded-full mr-2"><ChevronLeft size={20}/></button>
+            <img src="/logo.png" alt="Wolf Logo" className="w-10 h-10 object-contain" />
+            <div className="leading-none">
+              <h1 className="text-lg md:text-xl font-black tracking-tighter">WOLF FINANCE</h1>
+              <p className="text-[9px] text-blue-400">GERENCIAMENTO DE FATURA</p>
+            </div>
+          </div>
+          <div className="relative">
+            <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="bg-slate-800 text-slate-300 p-2.5 rounded-full border border-slate-700 hover:bg-blue-600 transition-all"><UserCircle size={20} /></button>
+            {isProfileMenuOpen && (
+              <div className="absolute right-0 mt-2 w-64 bg-[#111827] border-2 border-slate-800 rounded-[2rem] shadow-2xl z-[500] overflow-hidden">
+                <button onClick={() => router.push('/')} className="w-full flex items-center gap-3 p-4 hover:bg-slate-800 border-b border-slate-800/50 text-[10px]"><Settings size={18} /> Dashboard</button>
+                <button onClick={async () => { await supabase.auth.signOut(); router.push('/login'); }} className="w-full flex items-center gap-3 p-4 hover:bg-rose-900/20 text-rose-500 text-[10px]"><LogOut size={18} /> Sair</button>
+              </div>
+            )}
+          </div>
         </div>
-        <div className="w-12" /> {/* Spacer */}
       </header>
 
-      {/* Resumo e Filtros */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-[#111827] p-5 rounded-3xl border border-slate-800 flex flex-col justify-center">
-          <span className="text-[8px] text-slate-500 mb-1">PENDENTE NO FILTRO</span>
-          <h2 className="text-2xl text-rose-500">R$ {totalPendente.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</h2>
-        </div>
-        
-        <div className="relative">
-          <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-          <input 
-            type="month" 
-            value={mesAno} 
-            onChange={(e) => setMesAno(e.target.value)}
-            className="w-full bg-[#111827] p-5 pl-12 rounded-3xl border border-slate-800 outline-none focus:border-blue-500 transition-all"
-          />
+      {/* Grid de Cards Superiores */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {/* Card de Filtro Estilo Dashboard */}
+        <div className="bg-[#111827] p-6 rounded-[2.5rem] border-b-8 border-amber-500 flex flex-col justify-between h-40 relative shadow-2xl">
+          <div className="flex items-center justify-between uppercase text-xs border-b border-white/10 pb-3">
+            <button onClick={() => setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth() - 1)))}><ChevronLeft size={20}/></button>
+            <span className="tracking-widest">{selectedDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</span>
+            <button onClick={() => setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth() + 1)))}><ChevronRight size={20}/></button>
+          </div>
+          
+          <div className="relative mt-2">
+            <button onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} className="w-full flex items-center justify-between text-[10px] bg-slate-800/50 p-4 rounded-2xl border border-slate-700 hover:bg-slate-800 transition-all">
+              <span className="truncate">{filtroCartao}</span><CreditCard size={16}/>
+            </button>
+            {isFilterMenuOpen && (
+              <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#111827] border-2 border-slate-800 rounded-2xl shadow-2xl z-[500] max-h-48 overflow-y-auto">
+                <button onClick={() => { setFiltroCartao('Todos'); setIsFilterMenuOpen(false); }} className="w-full text-left p-4 border-b border-slate-800 text-[10px] hover:bg-slate-800">Todos os Cartões</button>
+                <button onClick={() => { setFiltroCartao('Pix'); setIsFilterMenuOpen(false); }} className="w-full text-left p-4 border-b border-slate-800 text-[10px] hover:bg-slate-800">Pix / Dinheiro</button>
+                {cartoes.map(c => <button key={c.id} onClick={() => { setFiltroCartao(`${c.banco} - ${c.nome_cartao}`); setIsFilterMenuOpen(false); }} className="w-full text-left p-4 border-b border-slate-800 text-[10px] hover:bg-slate-800">{c.banco} - {c.nome_cartao}</button>)}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="relative">
-          <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-          <select 
-            value={filtroCartao} 
-            onChange={(e) => setFiltroCartao(e.target.value)}
-            className="w-full bg-[#111827] p-5 pl-12 rounded-3xl border border-slate-800 outline-none focus:border-blue-500 transition-all appearance-none"
-          >
-            <option value="Todos">Todos os Cartões</option>
-            <option value="Pix">Pix / Dinheiro</option>
-            {cartoes.map(c => (
-              <option key={c.id} value={`${c.banco} - ${c.nome_cartao}`}>
-                {c.banco} - {c.nome_cartao}
-              </option>
-            ))}
-          </select>
+        {/* Card de Valor Pendente */}
+        <div className="bg-[#111827] p-6 rounded-[2.5rem] border-b-8 border-rose-600 flex flex-col justify-between h-40 shadow-2xl">
+          <div className="flex justify-between items-start w-full">
+            <span className="text-white/20 text-[10px] uppercase tracking-widest">Pendente no Filtro</span>
+            <div className="p-3 bg-white/5 rounded-xl backdrop-blur-md opacity-50"><ArrowDownCircle size={20}/></div>
+          </div>
+          <div className="text-2xl md:text-3xl font-black text-rose-500">R$ {totalPendente.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
         </div>
       </div>
 
-      {/* Botão de Ação em Massa */}
+      {/* Botão de Liquidação */}
       <button 
         onClick={pagarTudo}
         className="w-full mb-8 p-6 bg-emerald-600 hover:bg-emerald-700 rounded-[2.5rem] flex items-center justify-center gap-3 shadow-xl shadow-emerald-900/20 transition-all active:scale-95 group"
       >
         <CheckCheck size={24} className="group-hover:scale-110 transition-transform" />
-        <span className="text-sm">Liquidar Lançamentos Visíveis</span>
+        <span className="text-sm tracking-widest">Liquidar Lançamentos Selecionados</span>
       </button>
 
       {/* Lista de Transações */}
       <div className="space-y-4">
         {listaFiltrada.length === 0 ? (
-          <div className="text-center p-10 bg-[#111827] rounded-3xl border border-slate-800 opacity-50">
-            <p className="text-xs">Nenhum lançamento encontrado para este período.</p>
+          <div className="text-center p-10 bg-[#111827] rounded-[2rem] border border-slate-800 opacity-50">
+            <p className="text-[10px]">Nenhum lançamento encontrado.</p>
           </div>
         ) : (
           listaFiltrada.map((t) => (
-            <div 
-              key={t.id} 
-              className={`flex justify-between items-center p-5 rounded-[1.8rem] border-2 transition-all ${
-                t.pago 
-                ? 'bg-slate-900/40 border-slate-800/50 opacity-60' 
-                : 'bg-[#111827] border-slate-800 shadow-lg'
-              }`}
-            >
+            <div key={t.id} className={`flex justify-between items-center p-5 rounded-[2rem] border-2 transition-all ${t.pago ? 'bg-slate-900/40 border-slate-800 opacity-50' : 'bg-[#111827] border-slate-800 shadow-lg'}`}>
               <div className="flex items-center gap-4">
                 <div className={`p-3 rounded-2xl ${t.valor > 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
                   {t.valor > 0 ? <ArrowUpCircle size={20} /> : <ArrowDownCircle size={20} />}
@@ -198,13 +171,12 @@ export default function DetalhesGastos() {
                   </div>
                 </div>
               </div>
-
               <div className="text-right">
                 <p className={`text-xs md:text-sm ${t.valor > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                  {t.valor > 0 ? '+' : '-'} R$ {Math.abs(t.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  R$ {Math.abs(t.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </p>
-                <span className={`text-[7px] ${t.pago ? 'text-emerald-500' : 'text-rose-500'}`}>
-                  {t.pago ? 'EFETUADO' : 'AGUARDANDO'}
+                <span className={`text-[7px] ${t.pago ? 'text-emerald-500' : 'text-slate-600'}`}>
+                  {t.pago ? 'EFETUADO' : 'PENDENTE'}
                 </span>
               </div>
             </div>
