@@ -382,7 +382,7 @@ export default function HomePage() {
       {isModalOpen && (
         <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000]">
           <form onSubmit={handleSalvarGasto} className="bg-[#111827] w-full max-w-md rounded-[3rem] p-6 border-4 border-slate-800 shadow-2xl">
-            <div className="flex justify-between items-center mb-6"><h2 className="text-xl uppercase font-black">Novo Lançamento</h2><button type="button" onClick={() => setIsModalOpen(false)} className="bg-slate-800 p-2 rounded-full"><X size={20}/></button></div>
+            <div className="flex justify-between items-center mb-6"><h2 className="text-xl uppercase font-black italic">Novo Lançamento</h2><button type="button" onClick={() => setIsModalOpen(false)} className="bg-slate-800 p-2 rounded-full"><X size={20}/></button></div>
             <div className="space-y-4">
               <div className="flex gap-2 p-1 bg-slate-800 rounded-2xl">
                 <button type="button" onClick={() => setTipoMovimento('despesa')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase font-black ${tipoMovimento === 'despesa' ? 'bg-rose-600' : 'text-slate-500'}`}>Despesa</button>
@@ -421,18 +421,28 @@ export default function HomePage() {
 
               <div className="grid grid-cols-2 gap-3">
                 {tipoPagamento === 'Crédito' && metodoPagamento !== 'Pix' ? (
-                  <input type="number" min="1" value={parcelas} onChange={(e) => setParcelas(Number(e.target.value))} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] font-black text-center outline-none" placeholder="PARCELAS" />
+                  <div className="relative">
+                    <label className="absolute -top-2 left-3 bg-[#111827] px-1 text-[7px] font-black uppercase text-blue-500 z-10">Parcelas</label>
+                    <div className="flex items-center bg-slate-800 rounded-xl border-2 border-slate-700 focus-within:border-blue-500 transition-all">
+                      <input type="number" min="1" max="48" value={parcelas} onChange={(e) => setParcelas(Number(e.target.value))} className="w-full p-4 bg-transparent text-[10px] font-black text-center outline-none" />
+                      <span className="pr-4 text-[10px] font-black text-slate-500 italic">X</span>
+                    </div>
+                  </div>
                 ) : (
-                  <div className="w-full p-4 bg-slate-900/50 rounded-xl border border-slate-800 text-[8px] flex items-center justify-center text-emerald-500 font-black uppercase">
-                    {metodoPagamento === 'Pix' && <Zap size={10} className="mr-1" />} À Vista
+                  <div className="relative w-full">
+                    <div className="w-full p-4 bg-slate-900/50 rounded-xl border border-slate-800 text-[8px] flex items-center justify-center text-emerald-500 font-black uppercase italic">
+                       {metodoPagamento === 'Pix' && <Zap size={10} className="mr-1" />} À Vista
+                    </div>
                   </div>
                 )}
                 {tipoPagamento !== 'Crédito' && (
-                  <input type="date" value={dataLancamento} onChange={(e) => setDataLancamento(e.target.value)} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] font-black text-center outline-none" required />
+                  <div className="relative">
+                    <label className="absolute -top-2 left-3 bg-[#111827] px-1 text-[7px] font-black uppercase text-slate-500 z-10">Data</label>
+                    <input type="date" value={dataLancamento} onChange={(e) => setDataLancamento(e.target.value)} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] font-black text-center outline-none" required />
+                  </div>
                 )}
               </div>
 
-              {/* RECORRÊNCIA E DIA DA RECORRÊNCIA */}
               <div className={`p-3 rounded-2xl border-2 transition-all ${recorrente ? 'bg-emerald-900/20 border-emerald-600' : 'bg-slate-800/40 border-slate-800'}`}>
                 <div className="flex justify-between items-center mb-2" onClick={() => setRecorrente(!recorrente)}>
                   <div className="leading-tight"><p className="text-[9px] uppercase font-black">Recorrente?</p><p className="text-[7px] text-slate-500 uppercase">Mensal por 1 ano</p></div>
@@ -453,7 +463,57 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* MODAL CONFIGURAÇÕES E SALDO ... [Ficarão iguais ao anterior] */}
+      {/* MODAIS DE APOIO */}
+      {isConfigModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[6000]">
+          <div className="bg-[#111827] w-full max-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl">
+            <h2 className="text-xl uppercase mb-8 font-black italic">Ajustes</h2>
+            <div className="mb-8">
+              <p className="text-[8px] text-slate-500 uppercase mb-4 tracking-widest"><Palette size={12} className="inline mr-2"/> Estilo Visual</p>
+              <div className="flex justify-between">
+                {Object.keys(THEMES).map((tKey) => (
+                  <button key={tKey} onClick={() => changeTheme(tKey as any)} className={`w-10 h-10 rounded-full border-4 transition-all ${currentTheme === tKey ? 'border-white scale-110' : 'border-transparent opacity-40'} ${THEMES[tKey as keyof typeof THEMES].primary}`} />
+                ))}
+              </div>
+            </div>
+            <div className="space-y-4">
+              <input value={novoNome} onChange={(e) => setNovoNome(e.target.value)} placeholder="NOME" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none text-white text-sm font-black uppercase" />
+              <button onClick={async () => { const { error } = await supabase.auth.updateUser({ data: { full_name: novoNome } }); if (!error) { showAlert("Perfil salvo!"); setIsConfigModalOpen(false); } }} className={`w-full ${theme.primary} py-5 rounded-[2rem] uppercase text-[10px] font-black active:scale-95 transition-all`}>Salvar Perfil</button>
+              <button onClick={() => setIsConfigModalOpen(false)} className="w-full text-slate-500 text-[8px] uppercase font-black">Fechar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isSaldoModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[6000]">
+          <div className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl">
+            <h2 className="text-xl mb-8 text-emerald-500 text-center uppercase font-black italic tracking-tighter">Saldo Bancário</h2>
+            <input type="text" value={saldoDisplay} onChange={(e) => setSaldoDisplay(aplicarMascara(e.target.value))} placeholder="R$ 0,00" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-emerald-500 text-xl outline-none font-black text-center mb-6" />
+            <button onClick={async () => { 
+              const v = Number(saldoDisplay.replace(/\./g, '').replace(',', '.'));
+              await supabase.from('profiles').update({ saldo_inicial: v }).eq('id', user.id);
+              setSaldoInicial(v); setIsSaldoModalOpen(false); setSaldoDisplay(''); fetchDados(user.id); showAlert("Saldo ajustado!");
+            }} className="w-full bg-emerald-600 py-5 rounded-[2rem] uppercase text-[10px] font-black active:scale-95 transition-all">Confirmar Novo Saldo</button>
+          </div>
+        </div>
+      )}
+
+      {isCardModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[6000]">
+          <form onSubmit={handleSalvarCartao} className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-8 border-4 border-slate-800 shadow-2xl">
+            <h2 className="text-xl mb-6 text-center uppercase tracking-widest font-black italic">{editingCardId ? 'Editar' : 'Novo'} Cartão</h2>
+            <div className="space-y-4">
+              <input value={banco} onChange={(e) => setBanco(e.target.value.toUpperCase())} placeholder="BANCO (EX: NUBANK)" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none text-sm font-black uppercase" required />
+              <input value={nomeCartao} onChange={(e) => setNomeCartao(e.target.value.toUpperCase())} placeholder="NOME NO APP" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none text-sm font-black uppercase" required />
+              <input type="number" min="1" max="31" value={vencimento} onChange={(e) => setVencimento(e.target.value)} placeholder="DIA VENCIMENTO" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-sm font-black text-center outline-none" required />
+              <button type="submit" className={`w-full ${theme.primary} py-4 rounded-[2rem] uppercase text-[10px] font-black active:scale-95 transition-all`}>Salvar Cartão</button>
+              <button type="button" onClick={() => setIsCardModalOpen(false)} className="w-full text-slate-500 py-2 uppercase text-[9px] font-black">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      )}
+
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
