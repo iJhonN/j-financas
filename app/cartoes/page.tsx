@@ -171,7 +171,7 @@ export default function CartoesPage() {
 
             <div className="space-y-1">
               <label className="text-[7px] opacity-40 ml-1 uppercase">Apelido do Cartão</label>
-              <input value={nomeCartao} onChange={(e) => setNomeCartao(e.target.value)} placeholder="EX: CARTÃO DO JHONATHA / OFICINA" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none font-black uppercase text-xs focus:border-blue-500 transition-all" required />
+              <input value={nomeCartao} onChange={(e) => setNomeCartao(e.target.value)} placeholder="EX: CARTÃO DO LOBO" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none font-black uppercase text-xs focus:border-blue-500 transition-all" required />
             </div>
             
             <div className="relative">
