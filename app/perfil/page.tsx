@@ -93,7 +93,7 @@ export default function PerfilPage() {
       <div className="max-w-2xl mx-auto space-y-6">
         {/* NOME */}
         <section className="bg-[#111827] p-6 rounded-[2.5rem] border border-slate-800 shadow-2xl">
-          <label className="text-[10px] text-slate-500 mb-4 block tracking-widest">NOME DO OPERADOR</label>
+          <label className="text-[10px] text-slate-500 mb-4 block tracking-widest">NOME DE USUÁRIO</label>
           <div className="flex gap-2">
             <input value={novoNome} onChange={(e) => setNovoNome(e.target.value)} className="flex-1 bg-slate-800 border-2 border-slate-700 p-4 rounded-2xl outline-none focus:border-blue-500 font-black text-xs uppercase" />
             <button onClick={async () => { await supabase.auth.updateUser({ data: { full_name: novoNome.toUpperCase() } }); showAlert("Salvo!"); }} 
