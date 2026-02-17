@@ -42,7 +42,7 @@ export default function DetalhesGastos() {
     try {
       const { data: tData } = await supabase.from('transacoes').select('*').eq('user_id', userId).order('data_ordenacao', { ascending: false });
       const { data: cData } = await supabase.from('cartoes').select('*').eq('user_id', userId);
-      if (tData) setTransacoes(tData);
+      if (tData) setTransacoes(tData.map(t => ({ ...t, valor: Number(t.valor) })));
       if (cData) setCartoes(cData);
     } catch (err) { console.error(err); }
   };
@@ -52,33 +52,18 @@ export default function DetalhesGastos() {
     setTimeout(() => setAlertConfig(prev => ({ ...prev, show: false })), 4000);
   };
 
-  // Lógica para excluir TODA a recorrência
-  const excluirRecorrencia = async (descricaoBase: string, valor: number) => {
-    // Remove o sufixo de parcelas "(1/12)" para pegar o nome limpo
-    const nomeLimpo = descricaoBase.split(' (')[0];
-
-    if (confirm(`DESEJA EXCLUIR TODOS OS LANÇAMENTOS DE: "${nomeLimpo}" EM TODOS OS MESES?`)) {
-      const { error } = await supabase
-        .from('transacoes')
-        .delete()
-        .eq('user_id', user.id)
-        .ilike('descricao', `${nomeLimpo}%`) // Pega todas que começam com o nome
-        .eq('valor', valor);
-
-      if (!error) {
-        showAlert("Recorrência removida!");
-        fetchData(user.id);
-      } else {
-        showAlert("Erro ao excluir", "error");
-      }
-    }
-  };
-
+  // Filtro Corrigido (Resiliente a strings de cartões)
   const listaFiltrada = useMemo(() => {
     return transacoes.filter(t => {
       const d = new Date(t.data_ordenacao + 'T12:00:00');
       const matchMonth = d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear();
-      const matchCard = filtroCartao === 'Todos' || t.forma_pagamento === filtroCartao;
+      
+      // Normalização para comparação segura
+      const formaPagamento = t.forma_pagamento || "";
+      const matchCard = filtroCartao === 'Todos' || 
+                        formaPagamento.trim().toUpperCase() === filtroCartao.trim().toUpperCase() ||
+                        formaPagamento.includes(filtroCartao);
+                        
       return matchMonth && matchCard;
     });
   }, [transacoes, selectedDate, filtroCartao]);
@@ -90,6 +75,7 @@ export default function DetalhesGastos() {
   const pagarTudo = async () => {
     const idsParaPagar = listaFiltrada.filter(t => !t.pago).map(t => t.id);
     if (idsParaPagar.length === 0) return showAlert("Nada pendente aqui!", "error");
+    
     const { error } = await supabase.from('transacoes').update({ pago: true }).in('id', idsParaPagar);
     if (!error) {
       setLastUpdatedIds(idsParaPagar);
@@ -106,6 +92,14 @@ export default function DetalhesGastos() {
     if (!error) { setShowUndo(false); setLastUpdatedIds([]); fetchData(user.id); showAlert("Revertido!"); }
   };
 
+  const excluirRecorrencia = async (descricaoBase: string, valor: number) => {
+    const nomeLimpo = descricaoBase.split(' (')[0];
+    if (confirm(`EXCLUIR TODA A RECORRÊNCIA DE: "${nomeLimpo}"?`)) {
+      const { error } = await supabase.from('transacoes').delete().eq('user_id', user.id).ilike('descricao', `${nomeLimpo}%`).eq('valor', valor);
+      if (!error) { showAlert("Removido!"); fetchData(user.id); }
+    }
+  };
+
   if (loading || !user) return <div className="min-h-screen flex items-center justify-center bg-[#0a0f1d]"><Loader2 className="h-12 w-12 animate-spin text-blue-600" /></div>;
 
   return (
@@ -116,7 +110,7 @@ export default function DetalhesGastos() {
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[10000] w-[90%] max-w-md animate-in slide-in-from-bottom-10">
           <div className="bg-blue-600 p-4 rounded-3xl shadow-2xl flex items-center justify-between border-2 border-white/20">
             <span className="text-[10px]">Fatura Liquidada!</span>
-            <button onClick={desfazerPagamento} className="bg-white text-blue-600 px-4 py-2 rounded-xl text-[9px]">DESFAZER</button>
+            <button onClick={desfazerPagamento} className="bg-white text-blue-600 px-4 py-2 rounded-xl text-[9px] font-black">DESFAZER</button>
           </div>
         </div>
       )}
@@ -125,76 +119,93 @@ export default function DetalhesGastos() {
       <header className="flex flex-col gap-4 mb-6 bg-[#111827] p-4 md:p-6 rounded-[2rem] border border-slate-800 shadow-2xl">
         <div className="flex justify-between items-center w-full">
           <div className="flex items-center gap-3">
-            <button onClick={() => router.back()} className="p-2 bg-slate-800 rounded-full mr-2"><ChevronLeft size={20}/></button>
+            <button onClick={() => router.back()} className="p-2 bg-slate-800 rounded-full mr-2 hover:bg-blue-600 transition-all"><ChevronLeft size={20}/></button>
             <div className="leading-none">
               <h1 className="text-lg md:text-xl font-black tracking-tighter">WOLF FINANCE</h1>
-              <p className="text-[9px] text-blue-400">GERENCIAMENTO DE FATURA</p>
+              <p className="text-[9px] text-blue-400">FATURA DETALHADA</p>
             </div>
           </div>
           <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="bg-slate-800 p-2.5 rounded-full border border-slate-700"><UserCircle size={20} /></button>
+          {isProfileMenuOpen && (
+            <div className="absolute right-4 mt-16 w-48 bg-[#111827] border-2 border-slate-800 rounded-2xl z-[500] overflow-hidden shadow-2xl">
+              <button onClick={() => router.push('/')} className="w-full text-left p-4 hover:bg-slate-800 border-b border-slate-800/50 text-[10px] flex items-center gap-2"><Settings size={14}/> Dashboard</button>
+              <button onClick={async () => { await supabase.auth.signOut(); router.push('/login'); }} className="w-full text-left p-4 hover:bg-rose-900/20 text-rose-500 text-[10px] flex items-center gap-2"><LogOut size={14}/> Sair</button>
+            </div>
+          )}
         </div>
       </header>
 
-      {/* Cards de Filtro e Resumo */}
+      {/* Cards de Controle */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="bg-[#111827] p-6 rounded-[2.5rem] border-b-8 border-amber-500 flex flex-col justify-between h-40 shadow-2xl">
+        {/* Card Filtro Data e Cartão */}
+        <div className="bg-[#111827] p-6 rounded-[2.5rem] border-b-8 border-amber-500 flex flex-col justify-between h-44 shadow-2xl relative">
           <div className="flex items-center justify-between text-xs border-b border-white/10 pb-3">
             <button onClick={() => setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth() - 1)))}><ChevronLeft size={20}/></button>
             <span className="tracking-widest">{selectedDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}</span>
             <button onClick={() => setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth() + 1)))}><ChevronRight size={20}/></button>
           </div>
-          <button onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} className="mt-2 w-full flex items-center justify-between text-[10px] bg-slate-800/50 p-4 rounded-2xl border border-slate-700">
-            <span>{filtroCartao}</span><CreditCard size={16}/>
-          </button>
-          {isFilterMenuOpen && (
-            <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#111827] border-2 border-slate-800 rounded-2xl z-[500] max-h-48 overflow-y-auto">
-              <button onClick={() => { setFiltroCartao('Todos'); setIsFilterMenuOpen(false); }} className="w-full text-left p-4 border-b border-slate-800 text-[10px]">Todos</button>
-              {cartoes.map(c => <button key={c.id} onClick={() => { setFiltroCartao(`${c.banco} - ${c.nome_cartao}`); setIsFilterMenuOpen(false); }} className="w-full text-left p-4 border-b border-slate-800 text-[10px]">{c.banco} - {c.nome_cartao}</button>)}
-            </div>
-          )}
+          <div className="relative mt-3">
+            <button onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} className="w-full flex items-center justify-between text-[10px] bg-slate-800/50 p-4 rounded-2xl border border-slate-700">
+              <span className="truncate">{filtroCartao}</span><CreditCard size={16}/>
+            </button>
+            {isFilterMenuOpen && (
+              <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#111827] border-2 border-slate-800 rounded-2xl z-[1000] max-h-48 overflow-y-auto shadow-2xl">
+                <button onClick={() => { setFiltroCartao('Todos'); setIsFilterMenuOpen(false); }} className="w-full text-left p-4 border-b border-slate-800 text-[10px] hover:bg-slate-800">Todos</button>
+                <button onClick={() => { setFiltroCartao('Pix'); setIsFilterMenuOpen(false); }} className="w-full text-left p-4 border-b border-slate-800 text-[10px] hover:bg-slate-800">Pix / Dinheiro</button>
+                {cartoes.map(c => (
+                  <button key={c.id} onClick={() => { setFiltroCartao(`${c.banco} - ${c.nome_cartao}`); setIsFilterMenuOpen(false); }} className="w-full text-left p-4 border-b border-slate-800 text-[10px] hover:bg-slate-800 uppercase">
+                    {c.banco} - {c.nome_cartao}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="bg-[#111827] p-6 rounded-[2.5rem] border-b-8 border-rose-600 flex flex-col justify-between h-40 shadow-2xl">
+        {/* Card Valor */}
+        <div className="bg-[#111827] p-6 rounded-[2.5rem] border-b-8 border-rose-600 flex flex-col justify-between h-44 shadow-2xl">
           <span className="text-white/20 text-[10px] uppercase tracking-widest">Pendente no Filtro</span>
-          <div className="text-2xl md:text-3xl font-black text-rose-500 italic">R$ {totalPendente.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+          <div className="text-2xl md:text-3xl font-black text-rose-500 italic leading-none">R$ {totalPendente.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
         </div>
       </div>
 
-      <button onClick={pagarTudo} className="w-full mb-8 p-6 bg-emerald-600 rounded-[2.5rem] flex items-center justify-center gap-3 shadow-xl active:scale-95 transition-all">
-        <CheckCheck size={24} /> <span className="text-sm tracking-widest">Liquidar Fatura</span>
+      <button onClick={pagarTudo} className="w-full mb-8 p-6 bg-emerald-600 hover:bg-emerald-700 rounded-[2.5rem] flex items-center justify-center gap-3 shadow-xl active:scale-95 transition-all font-black uppercase tracking-widest">
+        <CheckCheck size={24} /> Liquidar Fatura
       </button>
 
-      {/* Lista de Transações */}
+      {/* Lista */}
       <div className="space-y-4">
-        {listaFiltrada.map((t) => (
-          <div key={t.id} className={`flex justify-between items-center p-5 rounded-[2rem] border-2 ${t.pago ? 'bg-slate-900/40 border-slate-800 opacity-50' : 'bg-[#111827] border-slate-800 shadow-lg'}`}>
-            <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-2xl ${t.valor > 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                {t.valor > 0 ? <ArrowUpCircle size={20} /> : <ArrowDownCircle size={20} />}
-              </div>
-              <div className="max-w-[150px] md:max-w-none">
-                <h3 className="text-[10px] md:text-xs leading-none mb-1 truncate">{t.descricao}</h3>
-                <p className="text-[7px] font-black opacity-50">{t.data_ordenacao.split('-').reverse().join('/')} • {t.forma_pagamento}</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className={`text-xs md:text-sm ${t.valor > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>R$ {Math.abs(t.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                <span className="text-[7px] opacity-50">{t.pago ? 'PAGO' : 'PENDENTE'}</span>
+        {listaFiltrada.length === 0 ? (
+          <div className="text-center p-12 bg-[#111827] rounded-[2rem] border border-slate-800 opacity-30 text-[10px]">Sem lançamentos para este filtro</div>
+        ) : (
+          listaFiltrada.map((t) => (
+            <div key={t.id} className={`flex justify-between items-center p-5 rounded-[2rem] border-2 transition-all ${t.pago ? 'bg-slate-900/40 border-slate-800 opacity-40 scale-[0.98]' : 'bg-[#111827] border-slate-800 shadow-lg'}`}>
+              <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-2xl ${t.valor > 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                  {t.valor > 0 ? <ArrowUpCircle size={20} /> : <ArrowDownCircle size={20} />}
+                </div>
+                <div className="max-w-[120px] md:max-w-none">
+                  <h3 className="text-[10px] md:text-xs leading-none mb-1 truncate font-black">{t.descricao}</h3>
+                  <p className="text-[7px] font-black opacity-50 uppercase">{t.data_ordenacao.split('-').reverse().join('/')} • {t.forma_pagamento}</p>
+                </div>
               </div>
               
-              {/* BOTÃO DE EXCLUIR RECORRÊNCIA */}
-              <button 
-                onClick={() => excluirRecorrencia(t.descricao, t.valor)}
-                title="Excluir toda a recorrência"
-                className="p-3 bg-rose-500/10 text-rose-500 rounded-2xl hover:bg-rose-500 hover:text-white transition-all"
-              >
-                <Layers size={16} />
-              </button>
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <p className={`text-xs md:text-sm font-black ${t.valor > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>R$ {Math.abs(t.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                  <span className={`text-[7px] font-black ${t.pago ? 'text-emerald-500' : 'text-slate-600'}`}>{t.pago ? 'EFETUADO' : 'PENDENTE'}</span>
+                </div>
+                
+                <button 
+                  onClick={() => excluirRecorrencia(t.descricao, t.valor)}
+                  className="p-3 bg-rose-950/30 text-rose-500 rounded-2xl hover:bg-rose-600 hover:text-white transition-all"
+                >
+                  <Layers size={16} />
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
