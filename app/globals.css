@@ -1,72 +1,111 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* Cores Fixas Wolf (Mesmo no Light/Dark) */
   --color-wolf-bg: #0a0f1d;
   --color-wolf-card: #111827;
   --color-wolf-border: #1e293b;
-  
-  /* Fontes */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  
-  /* Animações customizadas podem ser adicionadas aqui se necessário */
 }
 
 /* --- ESTILOS TÁTEIS E REATIVOS --- */
 @layer components {
-  /* Classe Base para Transições */
-  .wolf-transition {
-    @apply transition-all duration-300 ease-in-out;
-  }
-
-  /* --- BOTÕES (REATIVOS AO TOQUE/CLIQUE) --- */
+  
+  /* Substituímos o @apply interno por propriedades CSS nativas para evitar erro de build */
   .btn-wolf {
-    @apply flex items-center justify-center gap-2 font-black italic uppercase tracking-widest 
-           wolf-transition active:scale-95 hover:brightness-110 disabled:opacity-20 
-           select-none cursor-pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-weight: 900; /* black */
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    transition: all 300ms ease-in-out;
+    cursor: pointer;
+    user-select: none;
+  }
+  
+  .btn-wolf:active {
+    transform: scale(0.95);
   }
 
-  .btn-wolf-primary { @apply btn-wolf bg-blue-600 text-white shadow-lg shadow-blue-600/20 rounded-2xl; }
-  .btn-wolf-success { @apply btn-wolf bg-emerald-600 text-white shadow-lg shadow-emerald-600/20 rounded-2xl; }
-  .btn-wolf-admin   { @apply btn-wolf bg-amber-500 text-black shadow-lg shadow-amber-500/20 rounded-2xl; }
-  .btn-wolf-danger  { @apply btn-wolf bg-rose-600 text-white shadow-lg shadow-rose-600/20 rounded-2xl; }
+  .btn-wolf:hover {
+    filter: brightness(110%);
+  }
+
+  /* Agora as variações usam a base .btn-wolf e o @apply do Tailwind apenas para as cores */
+  .btn-wolf-primary {
+    @apply btn-wolf bg-blue-600 text-white rounded-2xl;
+    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
+  }
+
+  .btn-wolf-success {
+    @apply btn-wolf bg-emerald-600 text-white rounded-2xl;
+    box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2);
+  }
+
+  .btn-wolf-admin {
+    @apply btn-wolf bg-amber-500 text-black rounded-2xl;
+    box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.2);
+  }
+
+  .btn-wolf-danger {
+    @apply btn-wolf bg-rose-600 text-white rounded-2xl;
+    box-shadow: 0 10px 15px -3px rgba(225, 29, 72, 0.2);
+  }
   
   .btn-wolf-icon {
-    @apply flex items-center justify-center p-2.5 rounded-full border-2 border-slate-700 
-           bg-slate-800 text-slate-300 wolf-transition hover:bg-blue-600 
-           hover:text-white hover:scale-110 active:scale-90 shadow-md;
+    @apply flex items-center justify-center p-2.5 rounded-full border-2 border-slate-700 bg-slate-800 text-slate-300;
+    transition: all 300ms ease-in-out;
+  }
+  
+  .btn-wolf-icon:hover {
+    @apply bg-blue-600 text-white scale-110;
+  }
+  
+  .btn-wolf-icon:active {
+    @apply scale-90;
   }
 
   /* --- INPUTS --- */
   .input-wolf {
-    @apply w-full bg-wolf-card border-4 border-slate-800 p-4 rounded-2xl 
-           outline-none font-black italic uppercase text-sm wolf-transition
-           focus:border-amber-500 focus:shadow-[0_0_20px_rgba(245,158,11,0.15)]
-           placeholder:text-slate-600 text-white;
+    @apply w-full bg-wolf-card border-4 border-slate-800 p-4 rounded-2xl outline-none font-black italic uppercase text-sm text-white;
+    transition: all 300ms ease-in-out;
+  }
+
+  .input-wolf:focus {
+    @apply border-amber-500;
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.15);
   }
 
   /* --- CARDS E LISTAS --- */
   .card-wolf {
-    @apply bg-wolf-card border-4 border-slate-800 rounded-[2.5rem] shadow-2xl 
-           wolf-transition relative overflow-hidden;
+    @apply bg-wolf-card border-4 border-slate-800 rounded-[2.5rem];
+    transition: all 300ms ease-in-out;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   }
 
   .list-item-wolf {
-    @apply p-6 flex items-center justify-between wolf-transition 
-           hover:bg-slate-800/30 border-b-4 border-slate-800 last:border-b-0;
+    @apply p-6 flex items-center justify-between border-b-4 border-slate-800 last:border-b-0;
+    transition: all 300ms ease-in-out;
+  }
+
+  .list-item-wolf:hover {
+    @apply bg-slate-800/30;
   }
 }
 
 /* --- RESET GLOBAL --- */
 @layer base {
   body {
-    @apply bg-wolf-bg text-white antialiased overflow-x-hidden selection:bg-blue-600/30;
+    @apply bg-wolf-bg text-white antialiased overflow-x-hidden;
     font-family: var(--font-geist-sans), sans-serif;
   }
 
-  /* Scrollbar Wolf */
   ::-webkit-scrollbar { @apply w-1.5; }
   ::-webkit-scrollbar-track { @apply bg-wolf-bg; }
-  ::-webkit-scrollbar-thumb { @apply bg-slate-800 rounded-full hover:bg-slate-700 transition-colors; }
+  ::-webkit-scrollbar-thumb { @apply bg-slate-800 rounded-full; }
 }
