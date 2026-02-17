@@ -18,6 +18,7 @@ export default function LoginPage() {
   const [step, setStep] = useState(1); 
   const router = useRouter();
 
+  // Variáveis de ambiente exclusivas para Jhonatha
   const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
   const ADMIN_PIN = process.env.NEXT_PUBLIC_ADMIN_PIN;
 
@@ -96,103 +97,99 @@ export default function LoginPage() {
     <>
       <BackgroundPaths />
 
-      {/* Container principal travado em h-dvh e sem overflow */}
-      <div className="h-dvh w-full flex flex-col items-center justify-start pt-8 md:justify-center p-4 text-white font-black italic relative z-10 overflow-hidden">
+      {/* fixed inset-0 trava a tela e impede o scroll */}
+      <div className="fixed inset-0 flex flex-col items-center justify-center p-4 text-white font-black italic z-10 overflow-hidden">
         
-        {/* Wrapper que agrupa formulário + créditos para subirem juntos */}
-        <div className="w-full max-w-md flex flex-col items-center gap-6">
-          <form 
-            onSubmit={handleAuth} 
-            className="bg-[#111827]/80 backdrop-blur-xl w-full rounded-[2.5rem] p-7 md:p-10 border-4 border-slate-800/50 shadow-2xl transition-all"
-          >
-            {/* Header com logo menor no mobile para ganhar espaço */}
-            <div className="flex flex-col items-center mb-6 md:mb-10 text-center">
-              <div className="relative mb-3">
-                <div className="absolute inset-0 bg-blue-600/20 blur-3xl rounded-full scale-125" />
-                <img 
-                  src="/logo.png" 
-                  alt="Wolf Finance Logo" 
-                  className="relative w-20 h-20 md:w-36 md:h-36 object-contain" 
-                />
-              </div>
-              <h1 className="text-xl md:text-2xl font-black uppercase italic tracking-tighter">
-                WOLF <span className="text-blue-500">FINANCE</span>
-              </h1>
+        <form 
+          onSubmit={handleAuth} 
+          className="bg-[#111827]/80 backdrop-blur-xl w-full max-w-md rounded-[2.5rem] p-7 md:p-10 border-4 border-slate-800/50 shadow-2xl transition-all mb-16 md:mb-0"
+        >
+          <div className="flex flex-col items-center mb-6 md:mb-10 text-center">
+            <div className="relative mb-3">
+              <div className="absolute inset-0 bg-blue-600/20 blur-3xl rounded-full scale-125" />
+              <img 
+                src="/logo.png" 
+                alt="Wolf Finance Logo" 
+                className="relative w-24 h-24 md:w-36 md:h-36 object-contain" 
+              />
             </div>
-            
-            <div className="space-y-4">
-              {step === 1 ? (
-                <>
-                  {authMode === 'signup' && (
-                    <div className="relative group">
-                      <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                      <input type="text" placeholder="NOME" value={nome} onChange={(e) => setNome(e.target.value)} className="w-full p-4 pl-12 bg-slate-900/50 rounded-2xl border-2 border-slate-700 outline-none focus:border-blue-600 text-white font-black uppercase text-xs" required />
+            <h1 className="text-xl md:text-2xl font-black uppercase italic tracking-tighter leading-none">
+              WOLF <span className="text-blue-500">FINANCE</span>
+            </h1>
+          </div>
+          
+          <div className="space-y-4">
+            {step === 1 ? (
+              <>
+                {authMode === 'signup' && (
+                  <div className="relative group">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors" size={18} />
+                    <input type="text" placeholder="NOME" value={nome} onChange={(e) => setNome(e.target.value)} className="w-full p-4 pl-12 bg-slate-900/50 rounded-2xl border-2 border-slate-700 outline-none focus:border-blue-600 text-white font-black uppercase text-xs" required />
+                  </div>
+                )}
+                
+                <div className="relative group">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors" size={18} />
+                  <input type="email" placeholder="E-MAIL" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-4 pl-12 bg-slate-900/50 rounded-2xl border-2 border-slate-700 outline-none focus:border-blue-600 text-white font-black text-xs" required />
+                </div>
+                
+                <div className="relative group">
+                  {authMode === 'signup' && !password && (
+                    <div className="flex items-center gap-1 mb-1 text-[7px] md:text-[8px] text-blue-400 font-black uppercase tracking-[0.2em] animate-pulse">
+                      <Info size={10} />
+                      10+ caracteres, 1 Maiúscula e 1 Símbolo
                     </div>
                   )}
-                  
-                  <div className="relative group">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                    <input type="email" placeholder="E-MAIL" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-4 pl-12 bg-slate-900/50 rounded-2xl border-2 border-slate-700 outline-none focus:border-blue-600 text-white font-black text-xs" required />
-                  </div>
-                  
-                  <div className="relative group">
-                    {authMode === 'signup' && !password && (
-                      <div className="flex items-center gap-1 mb-1 text-[7px] text-blue-400 font-black uppercase tracking-[0.2em] animate-pulse">
-                        <Info size={10} />
-                        10+ Caracteres, 1 Maiúscula e 1 Símbolo
-                      </div>
-                    )}
-                    <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${passwordError ? 'text-red-500' : 'text-slate-500'}`} size={18} />
-                    <input 
-                      type={showPassword ? "text" : "password"} 
-                      placeholder="SENHA" 
-                      value={password} 
-                      onChange={(e) => {
-                        setPassword(e.target.value);
-                        if (authMode === 'signup') setPasswordError(validatePassword(e.target.value));
-                      }} 
-                      className={`w-full p-4 pl-12 bg-slate-900/50 rounded-2xl border-2 outline-none text-white font-black text-xs ${passwordError ? 'border-red-500/50' : 'border-slate-700 focus:border-blue-600'}`} 
-                      required 
-                    />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500">
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                    {authMode === 'signup' && passwordError && (
-                      <p className="absolute -bottom-5 left-2 text-[8px] text-red-500 font-black uppercase animate-pulse">
-                        {passwordError}
-                      </p>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div className="space-y-4 animate-in zoom-in-95 duration-300">
-                  <div className="flex flex-col items-center gap-2 mb-2">
-                    <ShieldCheck className="text-blue-500" size={32} />
-                    <p className="text-center text-[10px] text-blue-400 uppercase tracking-widest font-black">PIN de Segurança</p>
-                  </div>
-                  <input autoFocus type="password" maxLength={6} placeholder="******" value={pin} onChange={(e) => setPin(e.target.value)} className="w-full p-4 text-center text-3xl tracking-[0.5em] bg-blue-900/20 rounded-2xl border-2 border-blue-600 outline-none text-white font-black" required />
+                  <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${passwordError ? 'text-red-500' : 'text-slate-500 group-focus-within:text-blue-500'}`} size={18} />
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    placeholder="SENHA" 
+                    value={password} 
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (authMode === 'signup') setPasswordError(validatePassword(e.target.value));
+                    }} 
+                    className={`w-full p-4 pl-12 bg-slate-900/50 rounded-2xl border-2 outline-none text-white font-black text-xs transition-all ${passwordError ? 'border-red-500/50 focus:border-red-500' : 'border-slate-700 focus:border-blue-600'}`} 
+                    required 
+                  />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                  {authMode === 'signup' && passwordError && (
+                    <p className="absolute -bottom-5 left-2 text-[8px] text-red-500 font-black uppercase italic tracking-widest animate-pulse">
+                      {passwordError}
+                    </p>
+                  )}
                 </div>
-              )}
+              </>
+            ) : (
+              <div className="space-y-4 animate-in zoom-in-95 duration-300">
+                <div className="flex flex-col items-center gap-2 mb-2">
+                  <ShieldCheck className="text-blue-500" size={32} />
+                  <p className="text-center text-[10px] text-blue-400 uppercase tracking-widest font-black">PIN de Segurança</p>
+                </div>
+                <input autoFocus type="password" maxLength={6} placeholder="******" value={pin} onChange={(e) => setPin(e.target.value)} className="w-full p-4 text-center text-3xl tracking-[0.5em] bg-blue-900/20 rounded-2xl border-2 border-blue-600 outline-none text-white font-black" required />
+              </div>
+            )}
 
-              <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white font-black py-4 md:py-5 rounded-[2rem] shadow-[0_10px_20px_rgba(37,99,235,0.3)] hover:bg-blue-700 active:scale-[0.97] transition-all uppercase text-xs md:text-sm italic tracking-widest flex items-center justify-center gap-3">
-                {loading ? <Loader2 className="animate-spin" /> : (step === 2 ? 'Validar PIN' : (authMode === 'login' ? 'Entrar' : 'Cadastrar'))}
+            <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white font-black py-4 md:py-5 rounded-[2rem] shadow-[0_10px_20px_rgba(37,99,235,0.3)] hover:bg-blue-700 active:scale-[0.97] transition-all uppercase text-xs md:text-sm mt-2 italic tracking-widest flex items-center justify-center gap-3">
+              {loading ? <Loader2 className="animate-spin" /> : (step === 2 ? 'Validar PIN' : (authMode === 'login' ? 'Entrar' : 'Cadastrar'))}
+            </button>
+            
+            {step === 1 && (
+              <button type="button" onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="w-full text-center text-[9px] text-slate-500 mt-4 cursor-pointer uppercase hover:text-blue-400 transition-all font-black">
+                {authMode === 'login' ? 'Não tem conta? Registre-se' : 'Já sou membro? Login'}
               </button>
-              
-              {step === 1 && (
-                <button type="button" onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="w-full text-center text-[9px] text-slate-500 mt-2 cursor-pointer uppercase hover:text-blue-400 transition-all font-black">
-                  {authMode === 'login' ? 'Não tem conta? Registre-se' : 'Já sou membro? Login'}
-                </button>
-              )}
-            </div>
-          </form>
-
-          {/* Créditos agora "colados" no formulário para subirem juntos */}
-          <div className="flex flex-col items-center opacity-40 hover:opacity-100 transition-all duration-700">
-            <p className="text-[7px] tracking-[0.4em] uppercase font-black mb-1">Engineered by</p>
-            <p className="text-[11px] tracking-tighter font-black italic uppercase text-blue-500">
-              Jhonatha <span className="text-white">| Wolf Finance © 2026</span>
-            </p>
+            )}
           </div>
+        </form>
+
+        {/* Créditos fixos na base absoluta do visor para não gerar scroll */}
+        <div className="absolute bottom-6 flex flex-col items-center opacity-30 hover:opacity-100 transition-all duration-700 pointer-events-none">
+          <p className="text-[7px] tracking-[0.4em] uppercase font-black mb-1">Engineered by</p>
+          <p className="text-[10px] tracking-tighter font-black italic uppercase text-blue-500">
+            Jhonatha <span className="text-white">| Wolf Finance © 2026</span>
+          </p>
         </div>
 
       </div>
