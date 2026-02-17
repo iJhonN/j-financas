@@ -199,6 +199,17 @@ export default function LoginPage() {
             )}
           </div>
         </form>
+
+{/* Créditos */}
+        <div className="absolute bottom-8 w-full flex flex-col items-center opacity-30 hover:opacity-100 transition-all duration-700">
+          <p className="text-[8px] tracking-[0.4em] uppercase font-black mb-1">
+            Engineered by
+          </p>
+          <p className="text-xs tracking-tighter font-black italic uppercase text-blue-500">
+            Jhonatha <span className="text-white">| Wolf Finance © 2026</span>
+          </p>
+        </div>
+
       </div>
     </>
   );
