@@ -9,92 +9,71 @@
 }
 
 @layer components {
-  /* 1. Criamos a BASE (sem @apply para não bugar o compilador) */
-  .btn-wolf-base {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    font-weight: 900;
-    font-style: italic;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    transition: all 300ms ease-in-out;
-    cursor: pointer;
-    user-select: none;
-    border-radius: 1rem; /* rounded-2xl */
-  }
-
-  .btn-wolf-base:active {
-    transform: scale(0.95);
-  }
-
-  .btn-wolf-base:hover {
-    filter: brightness(110%);
-  }
-
-  /* 2. Definimos as VARIAÇÕES usando apenas cores no @apply */
+  /* 1. VARIAÇÕES DE BOTÕES (CSS Puro + Tailwind Utilities) */
   .btn-wolf-primary {
-    @apply btn-wolf-base bg-blue-600 text-white;
-    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
+    @apply flex items-center justify-center gap-2 font-black italic uppercase tracking-widest 
+           transition-all duration-300 ease-in-out active:scale-95 hover:brightness-110 
+           bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-600/20 cursor-pointer select-none;
   }
 
   .btn-wolf-success {
-    @apply btn-wolf-base bg-emerald-600 text-white;
-    box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2);
+    @apply flex items-center justify-center gap-2 font-black italic uppercase tracking-widest 
+           transition-all duration-300 ease-in-out active:scale-95 hover:brightness-110 
+           bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-600/20 cursor-pointer select-none;
   }
 
   .btn-wolf-admin {
-    @apply btn-wolf-base bg-amber-500 text-black;
-    box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.2);
+    @apply flex items-center justify-center gap-2 font-black italic uppercase tracking-widest 
+           transition-all duration-300 ease-in-out active:scale-95 hover:brightness-110 
+           bg-amber-500 text-black rounded-2xl shadow-lg shadow-amber-500/20 cursor-pointer select-none;
   }
 
   .btn-wolf-danger {
-    @apply btn-wolf-base bg-rose-600 text-white;
-    box-shadow: 0 10px 15px -3px rgba(225, 29, 72, 0.2);
+    @apply flex items-center justify-center gap-2 font-black italic uppercase tracking-widest 
+           transition-all duration-300 ease-in-out active:scale-95 hover:brightness-110 
+           bg-rose-600 text-white rounded-2xl shadow-lg shadow-rose-600/20 cursor-pointer select-none;
   }
 
   .btn-wolf-outline {
-    @apply btn-wolf-base border-2 border-slate-700 bg-slate-800/30 text-slate-300;
+    @apply flex items-center justify-center gap-2 font-black italic uppercase tracking-widest 
+           transition-all duration-300 ease-in-out active:scale-95 hover:brightness-110 
+           border-2 border-slate-700 bg-slate-800/30 text-slate-300 rounded-2xl cursor-pointer select-none;
   }
 
-  /* 3. Inputs e Cards (CSS Puro com @apply simples) */
+  /* 2. INPUTS E CARDS */
   .input-wolf {
-    @apply w-full bg-[#111827] border-4 border-slate-800 p-4 rounded-2xl outline-none font-black italic uppercase text-sm text-white;
-    transition: all 300ms ease-in-out;
+    @apply w-full bg-[#111827] border-4 border-slate-800 p-4 rounded-2xl outline-none 
+           font-black italic uppercase text-sm text-white transition-all duration-300 
+           focus:border-amber-500;
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0);
   }
 
   .input-wolf:focus {
-    @apply border-amber-500;
     box-shadow: 0 0 20px rgba(245, 158, 11, 0.15);
   }
 
   .card-wolf {
-    @apply bg-[#111827] border-4 border-slate-800 rounded-[2.5rem];
+    @apply bg-[#111827] border-4 border-slate-800 rounded-[2.5rem] relative overflow-hidden;
     transition: all 300ms ease-in-out;
-    position: relative;
-    overflow: hidden;
   }
 
   .card-wolf-interactive {
-    @apply card-wolf cursor-pointer;
-  }
-
-  .card-wolf-interactive:active {
-    @apply scale-[0.98];
+    @apply card-wolf cursor-pointer active:scale-[0.98];
   }
 
   .btn-wolf-icon {
-    @apply flex items-center justify-center p-2.5 rounded-full border-2 border-slate-700 bg-slate-800 text-slate-300;
-    transition: all 300ms ease-in-out;
+    @apply flex items-center justify-center p-2.5 rounded-full border-2 border-slate-700 
+           bg-slate-800 text-slate-300 transition-all duration-300 
+           hover:bg-blue-600 hover:text-white hover:scale-110 active:scale-90 shadow-md;
   }
 
-  .btn-wolf-icon:hover {
-    @apply bg-blue-600 text-white scale-110;
+  /* 3. UTILITÁRIOS DE TEXTO */
+  .text-wolf-title {
+    @apply font-black italic uppercase tracking-tighter;
   }
 
-  .btn-wolf-icon:active {
-    @apply scale-90;
+  .text-wolf-label {
+    @apply text-[9px] font-black uppercase tracking-[0.2em] text-slate-500;
   }
 }
 
@@ -104,7 +83,13 @@
     font-family: var(--font-geist-sans), sans-serif;
   }
 
-  ::-webkit-scrollbar { @apply w-1.5; }
-  ::-webkit-scrollbar-track { @apply bg-[#0a0f1d]; }
-  ::-webkit-scrollbar-thumb { @apply bg-slate-800 rounded-full; }
+  ::-webkit-scrollbar {
+    @apply w-1.5;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-[#0a0f1d];
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-800 rounded-full;
+  }
 }
