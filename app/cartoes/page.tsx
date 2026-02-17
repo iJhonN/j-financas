@@ -32,6 +32,7 @@ const BANCOS_SUPORTADOS = [
   { id: 'riachuelo', nome: 'RIACHUELO', logo: '/logos/riachuelo.svg' },
   { id: 'asaas', nome: 'ASAAS', logo: '/logos/asaas.svg' },
   { id: 'bne', nome: 'BANCO DO NORDESTE', logo: '/logos/bancodonordeste.svg' },
+  { id: 'bne', nome: 'C&A', logo: '/logos/cea.svg' },
   { id: 'outros', nome: 'OUTRO BANCO', logo: '/logo.png' },
 ];
 
