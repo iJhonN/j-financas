@@ -1,16 +1,17 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   TrendingUp, Trash2, CreditCard, Banknote, Plus, X, Coins, Pencil, LogOut, 
   UserCircle, ShieldCheck, Loader2, ChevronDown, Settings, Zap,
-  AlertCircle, CheckCircle, Clock, Lock, RefreshCcw, Palette, Search, ChevronLeft, ChevronRight, Circle
+  AlertCircle, CheckCircle, Clock, Lock, RefreshCcw, Palette, Search, ChevronLeft, ChevronRight, Circle,
+  ArrowUpCircle, ArrowDownCircle
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { supabase } from '@/lib/supabase';
 
-// Temas do Sistema Wolf - Identidade Visual Black & Italic
+// Temas do Sistema Wolf - Black & Italic
 const THEMES = {
   blue: { primary: 'bg-blue-600', text: 'text-blue-400', border: 'border-blue-600', hover: 'hover:bg-blue-700', shadow: 'shadow-blue-500/20', chart: '#3b82f6' },
   emerald: { primary: 'bg-emerald-600', text: 'text-emerald-400', border: 'border-emerald-600', hover: 'hover:bg-emerald-700', shadow: 'shadow-emerald-500/20', chart: '#10b981' },
@@ -29,7 +30,7 @@ export default function HomePage() {
   const router = useRouter();
   const theme = THEMES[currentTheme];
 
-  // Estados de Modais e Interface
+  // Estados de Modais e UI
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
@@ -39,13 +40,13 @@ export default function HomePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date());
   
-  // Estados de Dados (Supabase)
+  // Dados do Supabase
   const [transacoes, setTransacoes] = useState<any[]>([]);
   const [cartoes, setCartoes] = useState<any[]>([]);
   const [filtroCartao, setFiltroCartao] = useState('Todos');
   const [saldoInicial, setSaldoInicial] = useState(0);
 
-  // Estados de Formulários de Lançamento
+  // Estados de Formulários
   const [descricao, setDescricao] = useState('');
   const [valorDisplay, setValorDisplay] = useState('');
   const [metodoPagamento, setMetodoPagamento] = useState('Pix');
@@ -56,7 +57,7 @@ export default function HomePage() {
   const [diaRecorrencia, setDiaRecorrencia] = useState(new Date().getDate());
   const [dataLancamento, setDataLancamento] = useState(new Date().toISOString().split('T')[0]);
 
-  // Estados de Gestão de Perfil e Cartões
+  // Estados de Perfil e Edição
   const [novoNome, setNovoNome] = useState("");
   const [novaSenha, setNovaSenha] = useState('');
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
@@ -106,28 +107,58 @@ export default function HomePage() {
     setTimeout(() => setAlertConfig(prev => ({ ...prev, show: false })), 4000);
   };
 
-  const sanitize = (val: string) => val.replace(/<[^>]*>?/gm, '').trim();
+  const changeTheme = async (newTheme: keyof typeof THEMES) => {
+    try {
+      setCurrentTheme(newTheme);
+      await supabase.from('profiles').update({ theme: newTheme }).eq('id', user.id);
+      showAlert("Estilo atualizado!");
+    } catch (err) { showAlert("Erro ao salvar tema", "error"); }
+  };
 
-  // MÁQUINA DE REGRAS DE LANÇAMENTO
+  const togglePago = async (id: string, currentStatus: boolean) => {
+    const { error } = await supabase.from('transacoes').update({ pago: !currentStatus }).eq('id', id);
+    if (!error) fetchDados(user.id);
+    else showAlert("Erro ao atualizar status", "error");
+  };
+
+  const handleSalvarCartao = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanBanco = banco.toUpperCase();
+    const cleanNomeC = nomeCartao.toUpperCase();
+    const fileName = cleanBanco.toLowerCase().trim().replace(/\s+/g, '');
+    const logoUrl = `/logos/${fileName}.svg`;
+
+    let res;
+    if (editingCardId) {
+      res = await supabase.from('cartoes').update({ banco: cleanBanco, nome_cartao: cleanNomeC, vencimento: Number(vencimento), logo_url: logoUrl }).eq('id', editingCardId);
+    } else {
+      res = await supabase.from('cartoes').insert([{ banco: cleanBanco, nome_cartao: cleanNomeC, vencimento: Number(vencimento), logo_url: logoUrl, user_id: user.id }]);
+    }
+    
+    if (!res.error) {
+      fetchDados(user.id);
+      setIsCardModalOpen(false);
+      setBanco(''); setNomeCartao(''); setVencimento(''); setEditingCardId(null);
+      showAlert("Cartão salvo!");
+    }
+  };
+
   const handleSalvarGasto = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isExpired) return showAlert("Acesso expirado!", "error");
     
-    const cleanDesc = sanitize(descricao).toUpperCase();
+    const cleanDesc = descricao.replace(/<[^>]*>?/gm, '').trim().toUpperCase();
     const vTotal = Number(valorDisplay.replace(/\./g, '').replace(',', '.'));
     
     if (!cleanDesc || vTotal <= 0) return showAlert("Dados inválidos", "error");
 
     try {
       const valorComSinal = tipoMovimento === 'receita' ? Math.abs(vTotal) : -Math.abs(vTotal);
-      
-      // Flags de Controle de Tipo
       const isPix = metodoPagamento === 'Pix';
       const isDebito = tipoPagamento === 'Débito';
       const isCredito = tipoPagamento === 'Crédito';
 
-      // Pix e Débito forçam 1 parcela (à vista)
-      const numRepeticoes = (isPix || isDebito) ? 1 : (recorrente ? 12 : parcelas);
+      const numRepeticoes = (isPix || isDebito || tipoPagamento === 'Dinheiro') ? 1 : (recorrente ? 12 : parcelas);
       const valorParcela = parseFloat((valorComSinal / numRepeticoes).toFixed(2));
       
       const novosLancamentos = [];
@@ -135,8 +166,6 @@ export default function HomePage() {
 
       for (let i = 0; i < numRepeticoes; i++) {
         let d = new Date();
-
-        // Lógica de Datas: Crédito usa vencimento do cartão, outros usam data selecionada
         if (isCredito && !isPix) {
            const cartao = cartoes.find(c => `${c.banco} - ${c.nome_cartao}` === metodoPagamento);
            if (cartao) {
@@ -150,13 +179,11 @@ export default function HomePage() {
         d.setMonth(d.getMonth() + i);
         if (recorrente) d.setDate(diaRecorrencia);
 
-        // Formatação da Descrição com identificadores visuais
         const sufixo = numRepeticoes > 1 ? ` - PARCELA ${(i + 1).toString().padStart(2, '0')}/${numRepeticoes.toString().padStart(2, '0')}` : "";
         const prefixoZap = isPix ? "⚡ " : "";
-        const descricaoFinal = `${prefixoZap}${cleanDesc}${sufixo}`;
 
         novosLancamentos.push({
-          descricao: descricaoFinal,
+          descricao: `${prefixoZap}${cleanDesc}${sufixo}`,
           valor: valorParcela,
           forma_pagamento: metodoPagamento,
           tipo: tipoMovimento,
@@ -164,15 +191,14 @@ export default function HomePage() {
           recorrente: recorrente,
           data_ordenacao: d.toISOString().split('T')[0],
           user_id: user.id,
-          // Status Pago: Automático para Débito, Pix, Dinheiro e Receitas
-          pago: isDebito || isPix || tipoMovimento === 'receita' || tipoPagamento === 'Dinheiro'
+          pago: isPix || isDebito || tipoMovimento === 'receita' || tipoPagamento === 'Dinheiro'
         });
       }
 
       const { error } = await supabase.from('transacoes').insert(novosLancamentos);
       if (error) throw error;
       
-      showAlert((isPix || isDebito) ? "Liquidado com sucesso! ⚡" : "Lançado na fatura!"); 
+      showAlert((isPix || isDebito) ? "Liquidado e descontado! ⚡" : "Lançamento realizado!"); 
       setIsModalOpen(false);
       setDescricao(''); setValorDisplay(''); setParcelas(1); setRecorrente(false);
       fetchDados(user.id);
@@ -187,7 +213,7 @@ export default function HomePage() {
   };
 
   const formatarMoeda = (v: number) => Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  // Lógica de Filtros e Cálculos de Saldo
+  // Inteligência de Filtros e Projeções
   const transacoesFiltradas = useMemo(() => {
     return transacoes.filter(t => {
       const d = new Date(t.data_ordenacao + 'T12:00:00');
@@ -211,12 +237,17 @@ export default function HomePage() {
 
   const entradasMensais = transacoesFiltradas.filter(t => t.valor > 0).reduce((acc, t) => acc + t.valor, 0);
   const saidasMensais = transacoesFiltradas.filter(t => t.valor < 0).reduce((acc, t) => acc + t.valor, 0);
+  
+  // Saldo Calculado: Saldo Inicial + Tudo que estiver PAGO (Pix e Débito entram aqui na hora)
   const saldoCalculado = saldoInicial + transacoes.filter(t => t.pago).reduce((acc, t) => acc + t.valor, 0);
 
   const formatarDadosGrafico = () => {
     return [...transacoesFiltradas].reverse().map(t => {
       const d = new Date(t.data_ordenacao + 'T12:00:00');
-      return { data: `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`, valor: parseFloat(Math.abs(t.valor).toFixed(2)) };
+      return { 
+        data: `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`, 
+        valor: parseFloat(Math.abs(t.valor).toFixed(2)) 
+      };
     });
   };
 
@@ -268,7 +299,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Grid Principal de Resumo */}
+      {/* Cards de Resumo */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6">
         <Card title="Saldo Pago" value={`R$ ${formatarMoeda(saldoCalculado)}`} icon={<Banknote size={20}/>} color={`bg-[#111827] border-b-8 ${theme.border}`} />
         <Card title="Gasto Mês" value={`R$ ${formatarMoeda(saidasMensais)}`} icon={<CreditCard size={20}/>} color="bg-[#111827] border-b-8 border-rose-600" onClick={() => router.push('/detalhes-gastos')} />
@@ -291,7 +322,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Gráfico de Desempenho */}
+      {/* Gráfico de Performance */}
       <div className="bg-[#111827] p-6 rounded-[2.5rem] border border-slate-800 shadow-2xl h-80 overflow-hidden mb-6">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={formatarDadosGrafico()}>
@@ -302,69 +333,63 @@ export default function HomePage() {
           </AreaChart>
         </ResponsiveContainer>
       </div>
-      {/* Lista de Cartões e Gastos por Cartão */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div className="bg-[#111827] p-6 rounded-[2.5rem] border border-slate-800 shadow-2xl">
-          <h3 className="text-[10px] uppercase font-black mb-4 flex items-center gap-2 opacity-50"><CreditCard size={14}/> Faturas Atuais</h3>
-          <div className="space-y-3">
-            {cartoes.length === 0 && <p className="text-[9px] uppercase text-slate-600 text-center py-4">Nenhum cartão registado</p>}
-            {cartoes.map(c => {
-              const totalGasto = gastosPorCartao.get(`${c.banco} - ${c.nome_cartao}`) || 0;
-              return (
-                <div key={c.id} className="flex items-center justify-between p-4 bg-slate-900/50 rounded-2xl border border-slate-800">
-                  <div className="leading-tight">
-                    <p className="text-[10px] uppercase font-black">{c.banco}</p>
-                    <p className="text-[8px] text-slate-500 uppercase">{c.nome_cartao} (Venc. {c.vencimento})</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div className="lg:col-span-2 space-y-6">
+          {/* LISTA DE CARTÕES COM LOGOS */}
+          <div className="bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 shadow-2xl">
+            <h2 className="text-white font-black mb-6 uppercase text-[10px] tracking-widest px-1">Meus Cartões</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {cartoes.map(c => {
+                const idCard = `${c.banco} - ${c.nome_cartao}`;
+                const faturaMes = gastosPorCartao.get(idCard) || 0;
+                return (
+                  <div key={c.id} className="p-4 border-2 border-slate-800 rounded-2xl flex justify-between items-center bg-slate-950/50 hover:border-blue-500 transition-all group">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center overflow-hidden border border-slate-700">
+                        <img src={c.logo_url} className="w-full h-full object-contain" onError={(e: any) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex'; }} />
+                        <div className="hidden w-full h-full items-center justify-center text-[10px] text-slate-500 uppercase font-black">{c.banco.charAt(0)}</div>
+                      </div>
+                      <div className="leading-tight">
+                        <p className="text-[8px] font-black text-slate-500 uppercase">{c.banco}</p>
+                        <p className="font-black text-xs uppercase">{c.nome_cartao}</p>
+                        <p className={`text-[9px] font-black uppercase mt-1 ${faturaMes > 0 ? 'text-rose-500' : 'text-slate-600'}`}>Fatura: R$ {formatarMoeda(faturaMes)}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => { setEditingCardId(c.id); setBanco(c.banco); setNomeCartao(c.nome_cartao); setVencimento(c.vencimento.toString()); setIsCardModalOpen(true); }} className="text-slate-600 hover:text-white transition-colors"><Pencil size={16}/></button>
+                      <button onClick={async () => { if(confirm("Apagar cartão?")) { await supabase.from('cartoes').delete().eq('id', c.id); fetchDados(user.id); } }} className="text-slate-600 hover:text-rose-500 transition-colors"><Trash2 size={16}/></button>
+                    </div>
                   </div>
-                  <p className="text-[11px] font-black text-rose-500 italic">R$ {formatarMoeda(totalGasto)}</p>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        {/* Histórico de Transações */}
-        <div className="bg-[#111827] p-6 rounded-[2.5rem] border border-slate-800 shadow-2xl flex flex-col max-h-[500px]">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[10px] uppercase font-black opacity-50 flex items-center gap-2"><Search size={14}/> Atividade</h3>
-            <input 
-              value={searchTerm} 
-              onChange={(e) => setSearchTerm(e.target.value)} 
-              placeholder="BUSCAR..." 
-              className="bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 text-[9px] uppercase font-black outline-none w-32 focus:w-48 transition-all"
-            />
+        {/* HISTÓRICO DE LANÇAMENTOS COM BUSCA */}
+        <div className="bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 h-full overflow-hidden flex flex-col shadow-2xl min-h-[500px]">
+          <div className="flex flex-col gap-4 mb-4">
+            <h2 className="text-white font-black mb-2 uppercase text-[10px] tracking-widest">Atividade</h2>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
+              <input type="text" placeholder="BUSCAR..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2 pl-9 pr-4 text-[9px] outline-none font-black uppercase focus:border-blue-500 transition-all" />
+            </div>
           </div>
-          <div className="overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-            {transacoesFiltradas.length === 0 && <p className="text-[9px] uppercase text-slate-600 text-center py-10">Sem lançamentos este mês</p>}
+          <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-1">
             {transacoesFiltradas.map((t) => (
-              <div key={t.id} className="flex items-center justify-between p-4 bg-slate-900/40 rounded-2xl border border-slate-800/50 group hover:border-slate-600 transition-all">
+              <div key={t.id} className={`flex justify-between items-center p-4 rounded-2xl border ${t.pago ? 'bg-slate-800/40 border-slate-800 opacity-60' : 'bg-[#111827] border-slate-800 shadow-lg'}`}>
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-xl ${t.valor > 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                    {t.valor > 0 ? <TrendingUp size={14}/> : <TrendingUp className="rotate-180" size={14}/>}
-                  </div>
+                  <button onClick={() => togglePago(t.id, t.pago)} className={`p-1.5 rounded-full transition-all ${t.pago ? 'text-emerald-500 bg-emerald-500/10' : 'text-slate-500 bg-slate-800'}`}>
+                    {t.pago ? <CheckCircle size={18}/> : <Circle size={18}/>}
+                  </button>
                   <div className="leading-tight">
-                    <p className="text-[10px] uppercase font-black max-w-[140px] truncate">{t.descricao}</p>
-                    <p className="text-[7px] text-slate-500 uppercase font-black">
-                      {new Date(t.data_ordenacao + 'T12:00:00').toLocaleDateString('pt-BR')} • {t.forma_pagamento}
-                    </p>
+                    <p className={`text-[10px] uppercase truncate max-w-[110px] font-black ${t.pago ? 'text-slate-400 line-through' : 'text-slate-200'}`}>{t.descricao}</p>
+                    <p className={`text-[7px] uppercase font-black ${theme.text}`}>{t.forma_pagamento}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <p className={`text-[11px] font-black italic ${t.valor > 0 ? 'text-emerald-500' : 'text-white'}`}>
-                      R$ {formatarMoeda(t.valor)}
-                    </p>
-                    {t.pago && <span className="text-[6px] bg-emerald-500/20 text-emerald-500 px-1.5 rounded-full font-black uppercase tracking-tighter">Liquidado</span>}
-                  </div>
-                  <button onClick={async () => {
-                    if(confirm("Eliminar este lançamento?")) {
-                      await supabase.from('transacoes').delete().eq('id', t.id);
-                      fetchDados(user.id);
-                      showAlert("Lançamento removido");
-                    }
-                  }} className="opacity-0 group-hover:opacity-100 p-2 text-rose-500 hover:bg-rose-500/10 rounded-lg transition-all">
-                    <Trash2 size={14}/>
-                  </button>
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-black ${t.valor > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>R$ {formatarMoeda(t.valor)}</span>
+                  <button onClick={async () => { if(confirm("Apagar lançamento?")) { await supabase.from('transacoes').delete().eq('id', t.id); fetchDados(user.id); } }} className="text-slate-700 hover:text-rose-500 transition-colors"><Trash2 size={14} /></button>
                 </div>
               </div>
             ))}
@@ -372,50 +397,68 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* MODAL CONFIGURAÇÕES / PERFIL */}
+      {/* MODAL NOVO LANÇAMENTO (LÓGICA PIX/DÉBITO/CRÉDITO) */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[5000]">
+          <form onSubmit={handleSalvarGasto} className="bg-[#111827] w-full max-w-md rounded-[3rem] p-6 border-4 border-slate-800 shadow-2xl animate-in zoom-in duration-300">
+            <div className="flex justify-between items-center mb-6"><h2 className="text-xl uppercase font-black italic">Novo Lançamento</h2><button type="button" onClick={() => setIsModalOpen(false)} className="bg-slate-800 p-2 rounded-full"><X size={20}/></button></div>
+            <div className="space-y-4">
+              <div className="flex gap-2 p-1 bg-slate-800 rounded-2xl">
+                <button type="button" onClick={() => setTipoMovimento('despesa')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase font-black ${tipoMovimento === 'despesa' ? 'bg-rose-600' : 'text-slate-500'}`}>Despesa</button>
+                <button type="button" onClick={() => setTipoMovimento('receita')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase font-black ${tipoMovimento === 'receita' ? 'bg-emerald-600' : 'text-slate-500'}`}>Receita</button>
+              </div>
+              <input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="DESCRIÇÃO" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-sm font-black uppercase outline-none focus:border-blue-500" required />
+              <input type="text" value={valorDisplay} onChange={(e) => setValorDisplay(aplicarMascara(e.target.value))} placeholder="R$ 0,00" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-lg font-black text-center outline-none" required />
+              <div className="grid grid-cols-2 gap-2">
+                <select value={metodoPagamento} onChange={(e) => { setMetodoPagamento(e.target.value); if(e.target.value === 'Pix') setTipoPagamento('Dinheiro'); }} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] uppercase font-black outline-none">
+                  <option value="Pix">Pix / Dinheiro</option>
+                  {cartoes.map(c => (<option key={c.id} value={`${c.banco} - ${c.nome_cartao}`}>{c.banco} - {c.nome_cartao}</option>))}
+                </select>
+                <select value={tipoPagamento} onChange={(e) => setTipoPagamento(e.target.value as any)} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] uppercase font-black outline-none">
+                  <option value="Dinheiro">Dinheiro</option>
+                  <option value="Débito">Débito</option>
+                  <option value="Crédito">Crédito</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {(metodoPagamento === 'Pix' || tipoPagamento === 'Débito' || tipoPagamento === 'Dinheiro') ? (
+                  <div className="w-full p-4 bg-slate-900/50 rounded-xl border border-slate-800 text-[8px] flex items-center justify-center text-emerald-500 font-black tracking-widest uppercase italic">
+                    <Zap size={10} className="mr-1" /> À Vista
+                  </div>
+                ) : (
+                  <input type="number" min="1" value={parcelas} onChange={(e) => setParcelas(Number(e.target.value))} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] font-black text-center" placeholder="PARCELAS" />
+                )}
+                {tipoPagamento !== 'Crédito' && (
+                  <input type="date" value={dataLancamento} onChange={(e) => setDataLancamento(e.target.value)} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] font-black text-center outline-none" required />
+                )}
+              </div>
+              <div className="p-3 bg-slate-900/50 rounded-xl border border-slate-800 flex justify-between items-center group cursor-pointer" onClick={() => setRecorrente(!recorrente)}>
+                <div className="leading-tight"><p className="text-[9px] uppercase font-black">Recorrente?</p><p className="text-[7px] text-slate-500 uppercase">Mensal por 1 ano</p></div>
+                <div className={`w-10 h-5 rounded-full relative transition-all ${recorrente ? 'bg-emerald-600' : 'bg-slate-700'}`}><div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${recorrente ? 'left-6' : 'left-1'}`} /></div>
+              </div>
+              <button type="submit" className={`w-full ${theme.primary} py-5 rounded-[2rem] shadow-xl uppercase text-[10px] font-black active:scale-95 transition-all`}>Confirmar Lançamento</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* MODAL AJUSTES E TEMAS (REVISADO) */}
       {isConfigModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[6000]">
-          <div className="bg-[#111827] w-full max-w-md rounded-[3rem] p-8 border-4 border-slate-800 shadow-2xl relative">
-            <button onClick={() => setIsConfigModalOpen(false)} className="absolute top-6 right-6 p-2 bg-slate-800 rounded-full hover:bg-slate-700"><X size={20}/></button>
-            <h2 className="text-xl uppercase font-black mb-8 italic flex items-center gap-3"><Settings className={theme.text} /> Ajustes</h2>
-            
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[9px] uppercase font-black ml-2 opacity-50">Tema do Sistema</label>
-                <div className="flex justify-between gap-2 p-2 bg-slate-800 rounded-2xl border border-slate-700">
-                  {Object.keys(THEMES).map((tKey) => (
-                    <button 
-                      key={tKey} 
-                      onClick={async () => {
-                        setCurrentTheme(tKey as any);
-                        await supabase.from('profiles').update({ theme: tKey }).eq('id', user.id);
-                      }} 
-                      className={`w-full py-3 rounded-xl border-2 transition-all ${currentTheme === tKey ? THEMES[tKey as keyof typeof THEMES].border : 'border-transparent'}`}
-                    >
-                      <Circle fill={THEMES[tKey as keyof typeof THEMES].chart} className="mx-auto" size={14}/>
-                    </button>
-                  ))}
-                </div>
+          <div className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl">
+            <h2 className="text-xl uppercase mb-8 font-black italic">Ajustes</h2>
+            <div className="mb-8">
+              <p className="text-[8px] text-slate-500 uppercase mb-4 tracking-widest"><Palette size={12} className="inline mr-2"/> Estilo Visual</p>
+              <div className="flex justify-between">
+                {Object.keys(THEMES).map((tKey) => (
+                  <button key={tKey} onClick={() => changeTheme(tKey as any)} className={`w-10 h-10 rounded-full border-4 transition-all ${currentTheme === tKey ? 'border-white scale-110' : 'border-transparent opacity-40'} ${THEMES[tKey as keyof typeof THEMES].primary}`} />
+                ))}
               </div>
-
-              <div className="space-y-2">
-                <label className="text-[9px] uppercase font-black ml-2 opacity-50">Nome de Utilizador</label>
-                <input 
-                  value={novoNome} 
-                  onChange={(e) => setNovoNome(e.target.value)} 
-                  className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] font-black uppercase outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <button 
-                onClick={async () => {
-                  const { error } = await supabase.auth.updateUser({ data: { full_name: novoNome } });
-                  if (!error) showAlert("Perfil Atualizado!");
-                }}
-                className={`w-full ${theme.primary} py-4 rounded-2xl shadow-xl uppercase text-[10px] font-black active:scale-95 transition-all`}
-              >
-                Guardar Alterações
-              </button>
+            </div>
+            <div className="space-y-4">
+              <input value={novoNome} onChange={(e) => setNovoNome(e.target.value)} placeholder="NOME" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none text-white text-sm font-black uppercase" />
+              <button onClick={async () => { const { error } = await supabase.auth.updateUser({ data: { full_name: novoNome } }); if (!error) { showAlert("Perfil salvo!"); setIsConfigModalOpen(false); } }} className={`w-full ${theme.primary} py-5 rounded-[2rem] uppercase text-[10px] font-black active:scale-95 transition-all`}>Salvar Perfil</button>
+              <button onClick={() => setIsConfigModalOpen(false)} className="w-full text-slate-500 text-[8px] uppercase font-black">Fechar</button>
             </div>
           </div>
         </div>
@@ -424,52 +467,47 @@ export default function HomePage() {
       {/* MODAL SALDO INICIAL */}
       {isSaldoModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[6000]">
-          <div className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-8 border-4 border-slate-800 shadow-2xl relative">
-            <button onClick={() => setIsSaldoModalOpen(false)} className="absolute top-6 right-6 p-2 bg-slate-800 rounded-full"><X size={20}/></button>
-            <h2 className="text-lg uppercase font-black mb-6 italic">Ajustar Saldo Bancário</h2>
-            <input 
-              type="text" 
-              value={saldoDisplay} 
-              onChange={(e) => setSaldoDisplay(aplicarMascara(e.target.value))} 
-              placeholder="R$ 0,00" 
-              className="w-full p-5 bg-slate-800 rounded-2xl border-2 border-slate-700 text-xl font-black text-center outline-none mb-6"
-            />
-            <button 
-              onClick={async () => {
-                const valor = Number(saldoDisplay.replace(/\./g, '').replace(',', '.'));
-                await supabase.from('profiles').update({ saldo_inicial: valor }).eq('id', user.id);
-                setSaldoInicial(valor);
-                setIsSaldoModalOpen(false);
-                showAlert("Saldo atualizado!");
-              }}
-              className={`w-full ${theme.primary} py-4 rounded-2xl uppercase text-[10px] font-black active:scale-95 transition-all`}
-            >
-              Definir Saldo
-            </button>
+          <div className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl">
+            <h2 className="text-xl mb-8 text-emerald-500 text-center uppercase font-black italic tracking-tighter">Saldo Bancário</h2>
+            <input type="text" value={saldoDisplay} onChange={(e) => setSaldoDisplay(aplicarMascara(e.target.value))} placeholder="R$ 0,00" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-emerald-500 text-xl outline-none font-black text-center mb-6" />
+            <button onClick={async () => { 
+              const v = Number(saldoDisplay.replace(/\./g, '').replace(',', '.'));
+              await supabase.from('profiles').update({ saldo_inicial: v }).eq('id', user.id);
+              setSaldoInicial(v); setIsSaldoModalOpen(false); setSaldoDisplay(''); fetchDados(user.id); showAlert("Saldo ajustado!");
+            }} className="w-full bg-emerald-600 py-5 rounded-[2rem] uppercase text-[10px] font-black active:scale-95 transition-all">Confirmar Novo Saldo</button>
           </div>
         </div>
       )}
 
-      {/* RODAPÉ E ESTILOS */}
+      {/* MODAL CARTÃO (REVISADO) */}
+      {isCardModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[6000]">
+          <form onSubmit={handleSalvarCartao} className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-8 border-4 border-slate-800 shadow-2xl">
+            <h2 className="text-xl mb-6 text-center uppercase tracking-widest font-black italic">{editingCardId ? 'Editar' : 'Novo'} Cartão</h2>
+            <div className="space-y-4">
+              <input value={banco} onChange={(e) => setBanco(e.target.value.toUpperCase())} placeholder="BANCO (EX: NUBANK)" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none text-sm font-black uppercase" required />
+              <input value={nomeCartao} onChange={(e) => setNomeCartao(e.target.value.toUpperCase())} placeholder="NOME NO APP" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none text-sm font-black uppercase" required />
+              <input type="number" min="1" max="31" value={vencimento} onChange={(e) => setVencimento(e.target.value)} placeholder="DIA VENCIMENTO" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-sm font-black text-center outline-none" required />
+              <button type="submit" className={`w-full ${theme.primary} py-4 rounded-[2rem] uppercase text-[10px] font-black active:scale-95 transition-all`}>Salvar Cartão</button>
+              <button type="button" onClick={() => setIsCardModalOpen(false)} className="w-full text-slate-500 py-2 uppercase text-[9px] font-black">Cancelar</button>
+            </div>
+          </form>
+        </div>
+      )}
+
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
-        @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
       `}</style>
     </div>
   );
 }
 
-// Componente Card Reutilizável
 function Card({ title, value, icon, color, onClick }: any) {
   return (
-    <div 
-      onClick={onClick}
-      className={`${color} ${onClick ? 'cursor-pointer hover:scale-[1.02] active:scale-95' : ''} p-4 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl flex flex-col justify-between h-32 md:h-36 text-white text-left font-black italic transition-all animate-in fade-in slide-in-from-bottom-2 duration-500`}
-    >
-      <div className="flex justify-between items-start w-full tracking-widest">
-        <span className="text-white/20 text-[7px] md:text-[10px] uppercase">{title}</span>
+    <div onClick={onClick} className={`${color} ${onClick ? 'cursor-pointer hover:scale-[1.03] active:scale-95 transition-all' : ''} p-4 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl flex flex-col justify-between h-32 md:h-36 text-white text-left font-black italic`}>
+      <div className="flex justify-between items-start w-full">
+        <span className="text-white/20 text-[7px] md:text-[10px] uppercase tracking-widest">{title}</span>
         <div className="p-1.5 md:p-3 bg-white/5 rounded-xl backdrop-blur-md opacity-50">{icon}</div>
       </div>
       <div className="text-sm md:text-2xl font-black truncate uppercase px-1 leading-tight">{value}</div>
