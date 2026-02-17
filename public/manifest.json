@@ -1,21 +1,21 @@
 {
-  "name": "J Finanças",
-  "short_name": "JFinanças",
-  "description": "Controle financeiro inteligente",
-  "theme_color": "#0f172a",
-  "background_color": "#0f172a",
+  "name": "Wolf Finance",
+  "short_name": "WolfFinance",
+  "description": "Controle financeiro inteligente - Gestão de Elite",
+  "theme_color": "#0a0f1d",
+  "background_color": "#0a0f1d",
   "display": "standalone",
   "orientation": "portrait",
   "scope": "/",
   "start_url": "/",
   "icons": [
     {
-      "src": "icons/icon-192x192.png",
+      "src": "/logo.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "icons/icon-512x512.png",
+      "src": "/logo.png",
       "sizes": "512x512",
       "type": "image/png"
     }
