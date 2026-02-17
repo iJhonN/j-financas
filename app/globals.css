@@ -1,26 +1,72 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  /* Cores Fixas Wolf (Mesmo no Light/Dark) */
+  --color-wolf-bg: #0a0f1d;
+  --color-wolf-card: #111827;
+  --color-wolf-border: #1e293b;
+  
+  /* Fontes */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  
+  /* Animações customizadas podem ser adicionadas aqui se necessário */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* --- ESTILOS TÁTEIS E REATIVOS --- */
+@layer components {
+  /* Classe Base para Transições */
+  .wolf-transition {
+    @apply transition-all duration-300 ease-in-out;
+  }
+
+  /* --- BOTÕES (REATIVOS AO TOQUE/CLIQUE) --- */
+  .btn-wolf {
+    @apply flex items-center justify-center gap-2 font-black italic uppercase tracking-widest 
+           wolf-transition active:scale-95 hover:brightness-110 disabled:opacity-20 
+           select-none cursor-pointer;
+  }
+
+  .btn-wolf-primary { @apply btn-wolf bg-blue-600 text-white shadow-lg shadow-blue-600/20 rounded-2xl; }
+  .btn-wolf-success { @apply btn-wolf bg-emerald-600 text-white shadow-lg shadow-emerald-600/20 rounded-2xl; }
+  .btn-wolf-admin   { @apply btn-wolf bg-amber-500 text-black shadow-lg shadow-amber-500/20 rounded-2xl; }
+  .btn-wolf-danger  { @apply btn-wolf bg-rose-600 text-white shadow-lg shadow-rose-600/20 rounded-2xl; }
+  
+  .btn-wolf-icon {
+    @apply flex items-center justify-center p-2.5 rounded-full border-2 border-slate-700 
+           bg-slate-800 text-slate-300 wolf-transition hover:bg-blue-600 
+           hover:text-white hover:scale-110 active:scale-90 shadow-md;
+  }
+
+  /* --- INPUTS --- */
+  .input-wolf {
+    @apply w-full bg-wolf-card border-4 border-slate-800 p-4 rounded-2xl 
+           outline-none font-black italic uppercase text-sm wolf-transition
+           focus:border-amber-500 focus:shadow-[0_0_20px_rgba(245,158,11,0.15)]
+           placeholder:text-slate-600 text-white;
+  }
+
+  /* --- CARDS E LISTAS --- */
+  .card-wolf {
+    @apply bg-wolf-card border-4 border-slate-800 rounded-[2.5rem] shadow-2xl 
+           wolf-transition relative overflow-hidden;
+  }
+
+  .list-item-wolf {
+    @apply p-6 flex items-center justify-between wolf-transition 
+           hover:bg-slate-800/30 border-b-4 border-slate-800 last:border-b-0;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* --- RESET GLOBAL --- */
+@layer base {
+  body {
+    @apply bg-wolf-bg text-white antialiased overflow-x-hidden selection:bg-blue-600/30;
+    font-family: var(--font-geist-sans), sans-serif;
+  }
+
+  /* Scrollbar Wolf */
+  ::-webkit-scrollbar { @apply w-1.5; }
+  ::-webkit-scrollbar-track { @apply bg-wolf-bg; }
+  ::-webkit-scrollbar-thumb { @apply bg-slate-800 rounded-full hover:bg-slate-700 transition-colors; }
 }
