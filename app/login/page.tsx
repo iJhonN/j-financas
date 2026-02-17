@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, Loader2, Mail, Lock, User, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Mail, Lock, User, ShieldCheck, Info } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import BackgroundPaths from '@/components/BackgroundPaths';
@@ -10,7 +10,7 @@ export default function LoginPage() {
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [passwordError, setPasswordError] = useState(''); // Estado para erro de senha
+  const [passwordError, setPasswordError] = useState(''); 
   const [nome, setNome] = useState('');
   const [pin, setPin] = useState(''); 
   const [showPassword, setShowPassword] = useState(false);
@@ -21,7 +21,6 @@ export default function LoginPage() {
   const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
   const ADMIN_PIN = process.env.NEXT_PUBLIC_ADMIN_PIN;
 
-  // Função de validação de senha segura
   const validatePassword = (pass: string) => {
     const hasUpper = /[A-Z]/.test(pass);
     const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(pass);
@@ -45,7 +44,6 @@ export default function LoginPage() {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validação extra antes de tentar cadastrar
     if (authMode === 'signup') {
       const error = validatePassword(password);
       if (error) {
@@ -133,7 +131,7 @@ export default function LoginPage() {
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors" size={18} />
                     <input 
                       type="text" 
-                      placeholder="NOME COMPLETO" 
+                      placeholder="NOME" 
                       value={nome} 
                       onChange={(e) => setNome(e.target.value)} 
                       className="w-full p-4 pl-12 bg-slate-900/50 rounded-2xl border-2 border-slate-700 outline-none focus:border-blue-600 text-white font-black uppercase text-xs" 
@@ -155,6 +153,14 @@ export default function LoginPage() {
                 </div>
                 
                 <div className="relative group">
+                  {/* Informativo de senha segura (Aparece no Signup) */}
+                  {authMode === 'signup' && !password && (
+                    <div className="flex items-center gap-1 mb-1 text-[8px] text-blue-400 font-black uppercase tracking-[0.2em] animate-pulse">
+                      <Info size={10} />
+                      Use 10+ caracteres, 1 Maiúscula e 1 Símbolo
+                    </div>
+                  )}
+
                   <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${passwordError ? 'text-red-500' : 'text-slate-500 group-focus-within:text-blue-500'}`} size={18} />
                   <input 
                     type={showPassword ? "text" : "password"} 
@@ -175,7 +181,6 @@ export default function LoginPage() {
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
 
-                  {/* Mensagem de Erro de Senha */}
                   {authMode === 'signup' && passwordError && (
                     <p className="absolute -bottom-5 left-2 text-[9px] text-red-500 font-black uppercase italic tracking-widest animate-pulse">
                       {passwordError}
@@ -228,7 +233,6 @@ export default function LoginPage() {
           </div>
         </form>
 
-        {/* Créditos */}
         <div className="absolute bottom-8 w-full flex flex-col items-center opacity-30 hover:opacity-100 transition-all duration-700">
           <p className="text-[8px] tracking-[0.4em] uppercase font-black mb-1">
             Engineered by
