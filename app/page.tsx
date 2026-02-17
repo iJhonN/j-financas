@@ -29,20 +29,21 @@ export default function HomePage() {
   const router = useRouter();
   const theme = THEMES[currentTheme];
 
+  // Modais Essenciais da Home
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-  const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [isSaldoModalOpen, setIsSaldoModalOpen] = useState(false);
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
+  
+  // Estados de Dados
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date());
-  
   const [transacoes, setTransacoes] = useState<any[]>([]);
   const [cartoes, setCartoes] = useState<any[]>([]);
   const [filtroCartao, setFiltroCartao] = useState('Todos');
   const [saldoInicial, setSaldoInicial] = useState(0);
 
+  // Estados do Formulário de Lançamento
   const [descricao, setDescricao] = useState('');
   const [valorDisplay, setValorDisplay] = useState('');
   const [metodoPagamento, setMetodoPagamento] = useState('Pix');
@@ -53,16 +54,14 @@ export default function HomePage() {
   const [diaRecorrencia, setDiaRecorrencia] = useState(new Date().getDate());
   const [dataLancamento, setDataLancamento] = useState(new Date().toISOString().split('T')[0]);
 
-  const [novoNome, setNovoNome] = useState("");
-  const [novaSenha, setNovaSenha] = useState('');
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [banco, setBanco] = useState('');
   const [nomeCartao, setNomeCartao] = useState('');
   const [vencimento, setVencimento] = useState('');
   const [saldoDisplay, setSaldoDisplay] = useState('');
 
-  const isAdmin = user?.email === "jhonatha2005@outlook.com";
-
+  // Segurança
+  const isAdmin = user?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
   useEffect(() => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -75,6 +74,7 @@ export default function HomePage() {
     };
     checkUser();
   }, [router]);
+
   const fetchDados = async (userId: string) => {
     try {
       const { data: tData } = await supabase.from('transacoes').select('*').eq('user_id', userId).order('data_ordenacao', { ascending: false });
@@ -93,21 +93,12 @@ export default function HomePage() {
         setIsExpired(diff <= 0);
       }
       setCheckingSubscription(false);
-      if (user?.user_metadata?.full_name) setNovoNome(user.user_metadata.full_name);
     } catch (err) { console.error("Erro Supabase:", err); }
   };
 
   const showAlert = (msg: string, type: any = 'success') => {
     setAlertConfig({ show: true, msg, type });
     setTimeout(() => setAlertConfig(prev => ({ ...prev, show: false })), 4000);
-  };
-
-  const changeTheme = async (newTheme: keyof typeof THEMES) => {
-    try {
-      setCurrentTheme(newTheme);
-      await supabase.from('profiles').update({ theme: newTheme }).eq('id', user.id);
-      showAlert("Estilo Wolf atualizado!");
-    } catch (err) { showAlert("Erro ao salvar tema", "error"); }
   };
 
   const togglePago = async (id: string, currentStatus: boolean) => {
@@ -132,6 +123,26 @@ export default function HomePage() {
     }
   };
 
+  const aplicarMascara = (valor: string) => {
+    let v = valor.replace(/\D/g, '');
+    v = (Number(v) / 100).toFixed(2).replace('.', ',');
+    v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+    return v;
+  };
+
+  const formatarMoeda = (v: number) => Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const transacoesFiltradas = useMemo(() => {
+    return transacoes.filter(t => {
+      const d = new Date(t.data_ordenacao + 'T12:00:00');
+      const matchMonth = d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear();
+      const matchSearch = t.descricao.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchCard = filtroCartao === 'Todos' || t.forma_pagamento.includes(filtroCartao);
+      return matchMonth && matchSearch && matchCard;
+    });
+  }, [transacoes, selectedDate, searchTerm, filtroCartao]);
+
+  const saldoCalculado = saldoInicial + transacoes.filter(t => t.pago).reduce((acc, t) => acc + t.valor, 0);
   const handleSalvarGasto = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isExpired) return showAlert("Acesso expirado!", "error");
@@ -147,7 +158,6 @@ export default function HomePage() {
       const isDebito = tipoPagamento === 'Débito';
       const isCredito = tipoPagamento === 'Crédito';
 
-      // Pix/Débito/Dinheiro = 1 parcela (a menos que seja recorrência de 12 meses)
       const numRepeticoes = recorrente ? 12 : (isCredito ? parcelas : 1);
       const valorParcela = parseFloat((valorComSinal / numRepeticoes).toFixed(2));
       
@@ -155,27 +165,22 @@ export default function HomePage() {
       const hoje = new Date();
 
       for (let i = 0; i < numRepeticoes; i++) {
-        let d = new Date();
+        let d = new Date(dataLancamento + 'T12:00:00');
 
         if (isCredito && !isPix) {
            const cartao = cartoes.find(c => `${c.banco} - ${c.nome_cartao}` === metodoPagamento);
            if (cartao) {
+              d = new Date();
               d.setDate(cartao.vencimento);
               if (hoje.getDate() > cartao.vencimento) d.setMonth(d.getMonth() + 1);
            }
-        } else {
-           d = new Date(dataLancamento + 'T12:00:00');
         }
         
         d.setMonth(d.getMonth() + i);
-        // Aplica o dia da recorrência se a opção estiver marcada
         if (recorrente) d.setDate(diaRecorrencia);
 
-        const sufixo = numRepeticoes > 1 ? ` - PARCELA ${(i + 1).toString().padStart(2, '0')}/${numRepeticoes.toString().padStart(2, '0')}` : "";
-        const prefixoZap = isPix ? "⚡ " : "";
-
         novosLancamentos.push({
-          descricao: `${prefixoZap}${cleanDesc}${sufixo}`,
+          descricao: `${isPix ? "⚡ " : ""}${cleanDesc}${numRepeticoes > 1 ? ` - PARCELA ${(i + 1).toString().padStart(2, '0')}/${numRepeticoes}` : ""}`,
           valor: valorParcela,
           forma_pagamento: metodoPagamento,
           tipo: tipoMovimento,
@@ -183,7 +188,6 @@ export default function HomePage() {
           recorrente: recorrente,
           data_ordenacao: d.toISOString().split('T')[0],
           user_id: user.id,
-          // Pix e Débito (Não recorrente) liquidam na hora. Recorrência liquida conforme a data.
           pago: (isPix || (isDebito && !recorrente) || tipoMovimento === 'receita') && i === 0
         });
       }
@@ -195,42 +199,6 @@ export default function HomePage() {
       setIsModalOpen(false); setDescricao(''); setValorDisplay(''); setParcelas(1); setRecorrente(false); fetchDados(user.id);
     } catch (err) { showAlert("Erro ao salvar", "error"); }
   };
-
-  const aplicarMascara = (valor: string) => {
-    let v = valor.replace(/\D/g, '');
-    v = (Number(v) / 100).toFixed(2).replace('.', ',');
-    v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
-    return v;
-  };
-
-  const formatarMoeda = (v: number) => Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  // Inteligência de Filtros e Cálculos de Saldo
-  const transacoesFiltradas = useMemo(() => {
-    return transacoes.filter(t => {
-      const d = new Date(t.data_ordenacao + 'T12:00:00');
-      const matchMonth = d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear();
-      const matchSearch = t.descricao.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchCard = filtroCartao === 'Todos' || t.forma_pagamento.includes(filtroCartao);
-      return matchMonth && matchSearch && matchCard;
-    });
-  }, [transacoes, selectedDate, searchTerm, filtroCartao]);
-
-  const gastosPorCartao = useMemo(() => {
-    const mapa = new Map();
-    transacoesFiltradas.forEach(t => {
-      if (t.valor < 0 && t.forma_pagamento !== 'Pix') {
-        const atual = mapa.get(t.forma_pagamento) || 0;
-        mapa.set(t.forma_pagamento, atual + Math.abs(t.valor));
-      }
-    });
-    return mapa;
-  }, [transacoesFiltradas]);
-
-  const entradasMensais = transacoesFiltradas.filter(t => t.valor > 0).reduce((acc, t) => acc + t.valor, 0);
-  const saidasMensais = transacoesFiltradas.filter(t => t.valor < 0).reduce((acc, t) => acc + t.valor, 0);
-  
-  // Saldo Real: Saldo Inicial + Tudo que foi marcado como PAGO
-  const saldoCalculado = saldoInicial + transacoes.filter(t => t.pago).reduce((acc, t) => acc + t.valor, 0);
 
   const formatarDadosGrafico = () => {
     return [...transacoesFiltradas].reverse().map(t => {
@@ -245,14 +213,13 @@ export default function HomePage() {
   if (loading || !user) return <div className="min-h-screen flex items-center justify-center bg-[#0a0f1d]"><Loader2 className="h-12 w-12 animate-spin text-blue-600" /></div>;
 
   return (
-    <div className="min-h-screen bg-[#0a0f1d] p-2 md:p-8 text-white font-black antialiased overflow-x-hidden pb-24 italic leading-none">
+    <div className="min-h-screen bg-[#0a0f1d] p-2 md:p-8 text-white font-black antialiased overflow-x-hidden pb-24 italic leading-none uppercase">
       
       {/* Alertas Wolf */}
       {alertConfig.show && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] px-4 w-full max-w-sm animate-in fade-in slide-in-from-top-4 duration-300">
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] px-4 w-full max-w-sm animate-in fade-in slide-in-from-top-4">
           <div className={`flex items-center gap-3 p-4 rounded-2xl border-2 shadow-2xl backdrop-blur-xl ${alertConfig.type === 'error' ? 'bg-rose-950/80 border-rose-500 text-rose-200' : 'bg-emerald-950/80 border-emerald-500 text-emerald-200'}`}>
-            {alertConfig.type === 'error' ? <AlertCircle size={20}/> : <CheckCircle size={20}/>}
-            <p className="text-[10px] uppercase tracking-widest font-black italic">{alertConfig.msg}</p>
+            <p className="text-[10px] uppercase tracking-widest font-black">{alertConfig.msg}</p>
           </div>
         </div>
       )}
@@ -263,72 +230,45 @@ export default function HomePage() {
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="Wolf Logo" className="w-10 h-10 object-contain" />
             <div className="leading-none">
-              <h1 className="text-lg md:text-xl font-black uppercase tracking-tighter px-1">WOLF FINANCE</h1>
+              <h1 className="text-lg md:text-xl font-black tracking-tighter">WOLF FINANCE</h1>
               <div className="flex items-center gap-2 mt-1">
-                <p className={`text-[9px] md:text-[10px] font-black ${theme.text} uppercase`}>Olá, {user?.user_metadata?.full_name?.split(' ')[0]}</p>
-                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-500/50 text-amber-500 text-[7px] font-black uppercase">
-                  <Clock size={8} /> {checkingSubscription ? "..." : diasRestantes} DIAS
+                <p className={`text-[9px] font-black ${theme.text}`}>OLÁ, {user?.user_metadata?.full_name?.split(' ')[0]}</p>
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-500/50 text-amber-500 text-[7px] font-black">
+                  <Clock size={8} /> {diasRestantes} DIAS
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="relative">
-            <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="bg-slate-800 text-slate-300 p-2.5 rounded-full border border-slate-700 hover:bg-blue-600 transition-all">
-              <UserCircle size={20} />
-            </button>
-
-            {isProfileMenuOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-[#111827] border-2 border-slate-800 rounded-[2rem] shadow-2xl z-[500] overflow-hidden animate-in fade-in slide-in-from-top-2">
-                {/* BOTÃO ADMIN - SÓ PARA JHONATHA */}
-                {isAdmin && (
-                  <button 
-                    onClick={() => router.push('/admin')} 
-                    className="w-full flex items-center gap-3 p-4 hover:bg-amber-500/10 text-amber-500 border-b border-slate-800/50 uppercase text-[10px] font-black transition-colors"
-                  >
-                    <ShieldCheck size={18} /> Painel Administrativo
-                  </button>
-                )}
-
-                <button 
-                  onClick={() => { setIsProfileMenuOpen(false); setIsConfigModalOpen(true); }} 
-                  className="w-full flex items-center gap-3 p-4 hover:bg-slate-800 border-b border-slate-800/50 uppercase text-[10px] font-black transition-colors"
-                >
-                  <Settings size={18} /> Ajustes de Perfil
-                </button>
-                
-                <button 
-                  onClick={async () => { await supabase.auth.signOut(); router.push('/login'); }} 
-                  className="w-full flex items-center gap-3 p-4 hover:bg-rose-900/20 text-rose-500 uppercase text-[10px] font-black transition-colors"
-                >
-                  <LogOut size={18} /> Sair do Sistema
-                </button>
-              </div>
-            )}
-          </div>
+          {/* BOTÃO QUE LEVA PARA A PÁGINA DE PERFIL */}
+          <button 
+            onClick={() => router.push('/perfil')} 
+            className="bg-slate-800 text-slate-300 p-2.5 rounded-full border border-slate-700 hover:bg-blue-600 hover:text-white transition-all shadow-lg active:scale-95"
+          >
+            <UserCircle size={20} />
+          </button>
         </div>
 
         <div className="flex gap-2">
-          <button onClick={() => setIsSaldoModalOpen(true)} className="flex-1 p-3 rounded-2xl border border-emerald-800/50 text-[10px] uppercase flex items-center justify-center gap-2 bg-emerald-900/20 text-emerald-400 active:scale-95 transition-all font-black">
+          <button onClick={() => setIsSaldoModalOpen(true)} className="flex-1 p-3 rounded-2xl border border-emerald-800/50 text-[10px] flex items-center justify-center gap-2 bg-emerald-900/20 text-emerald-400 active:scale-95 transition-all font-black">
             <Coins size={14} /> Saldo
           </button>
-          <button onClick={() => { setEditingCardId(null); setIsCardModalOpen(true); }} className="flex-1 p-3 rounded-2xl border border-slate-700 text-[10px] uppercase flex items-center justify-center gap-2 bg-slate-800/50 text-slate-300 active:scale-95 transition-all font-black">
+          <button onClick={() => { setEditingCardId(null); setIsCardModalOpen(true); }} className="flex-1 p-3 rounded-2xl border border-slate-700 text-[10px] flex items-center justify-center gap-2 bg-slate-800/50 text-slate-300 active:scale-95 transition-all font-black">
             <CreditCard size={14} /> Cartão
           </button>
-          <button onClick={() => setIsModalOpen(true)} className={`w-full md:w-auto p-3.5 rounded-2xl shadow-lg text-[10px] uppercase flex items-center justify-center gap-2 ${theme.primary} text-white active:scale-95 transition-all font-black`}>
+          <button onClick={() => setIsModalOpen(true)} className={`w-full md:w-auto p-3.5 rounded-2xl shadow-lg text-[10px] flex items-center justify-center gap-2 ${theme.primary} text-white active:scale-95 transition-all font-black`}>
             <Plus size={18} /> Novo
           </button>
         </div>
       </header>
-
       {/* Cards de Dashboard */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6">
         <Card title="Saldo Pago" value={`R$ ${formatarMoeda(saldoCalculado)}`} icon={<Banknote size={20}/>} color={`bg-[#111827] border-b-8 ${theme.border}`} />
-        <Card title="Gasto Mês" value={`R$ ${formatarMoeda(saidasMensais)}`} icon={<CreditCard size={20}/>} color="bg-[#111827] border-b-8 border-rose-600" onClick={() => router.push('/detalhes-gastos')} />
-        <Card title="Entrada Mês" value={`R$ ${formatarMoeda(entradasMensais)}`} icon={<TrendingUp size={20}/>} color="bg-[#111827] border-b-8 border-emerald-600" />
+        <Card title="Gasto Mês" value={`R$ ${formatarMoeda(transacoesFiltradas.filter(t=>t.valor<0).reduce((a,b)=>a+b.valor,0))}`} icon={<CreditCard size={20}/>} color="bg-[#111827] border-b-8 border-rose-600" onClick={() => router.push('/detalhes-gastos')} />
+        <Card title="Entrada Mês" value={`R$ ${formatarMoeda(transacoesFiltradas.filter(t=>t.valor>0).reduce((a,b)=>a+b.valor,0))}`} icon={<TrendingUp size={20}/>} color="bg-[#111827] border-b-8 border-emerald-600" />
         
         <div className="bg-[#111827] p-4 rounded-[1.5rem] border-b-8 border-amber-500 flex flex-col justify-between h-32 relative shadow-2xl">
-           <div className="flex items-center justify-between uppercase text-[9px] border-b border-white/10 pb-2">
+           <div className="flex items-center justify-between uppercase text-[9px] border-b border-white/10 pb-2 font-black">
               <button onClick={() => setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth() - 1)))}><ChevronLeft size={16}/></button>
               <span>{selectedDate.toLocaleString('pt-BR', { month: 'short', year: 'numeric' })}</span>
               <button onClick={() => setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth() + 1)))}><ChevronRight size={16}/></button>
@@ -356,39 +296,33 @@ export default function HomePage() {
           </AreaChart>
         </ResponsiveContainer>
       </div>
+
+      {/* Listas Inferiores */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* LISTA DE CARTÕES */}
         <div className="lg:col-span-2 bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 shadow-2xl">
           <h2 className="text-white font-black mb-6 uppercase text-[10px] tracking-widest px-1">Meus Cartões</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {cartoes.map(c => {
-              const idCard = `${c.banco} - ${c.nome_cartao}`;
-              const faturaMes = gastosPorCartao.get(idCard) || 0;
-              return (
-                <div key={c.id} className="p-4 border-2 border-slate-800 rounded-2xl flex justify-between items-center bg-slate-950/50 hover:border-blue-500 transition-all">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center overflow-hidden border border-slate-700">
-                      <img src={c.logo_url} className="w-full h-full object-contain" onError={(e: any) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex'; }} />
-                      <div className="hidden w-full h-full items-center justify-center text-[10px] text-slate-500 font-black">{c.banco.charAt(0)}</div>
-                    </div>
-                    <div className="leading-tight">
-                      <p className="text-[8px] font-black text-slate-500 uppercase">{c.banco}</p>
-                      <p className="font-black text-xs uppercase">{c.nome_cartao}</p>
-                      <p className={`text-[9px] font-black uppercase mt-1 ${faturaMes > 0 ? 'text-rose-500' : 'text-slate-600'}`}>Fatura: R$ {formatarMoeda(faturaMes)}</p>
-                    </div>
+            {cartoes.map(c => (
+              <div key={c.id} className="p-4 border-2 border-slate-800 rounded-2xl flex justify-between items-center bg-slate-950/50 hover:border-blue-500 transition-all">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center overflow-hidden border border-slate-700">
+                    <img src={c.logo_url} className="w-full h-full object-contain" onError={(e: any) => e.currentTarget.style.display = 'none'} />
                   </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => { setEditingCardId(c.id); setBanco(c.banco); setNomeCartao(c.nome_cartao); setVencimento(c.vencimento.toString()); setIsCardModalOpen(true); }} className="text-slate-600 hover:text-white"><Pencil size={16}/></button>
-                    <button onClick={async () => { if(confirm("Apagar cartão?")) { await supabase.from('cartoes').delete().eq('id', c.id); fetchDados(user.id); } }} className="text-slate-600 hover:text-rose-500"><Trash2 size={16}/></button>
+                  <div className="leading-tight">
+                    <p className="text-[8px] font-black text-slate-500 uppercase">{c.banco}</p>
+                    <p className="font-black text-xs uppercase">{c.nome_cartao}</p>
                   </div>
                 </div>
-              );
-            })}
+                <div className="flex gap-2">
+                  <button onClick={() => { setEditingCardId(c.id); setBanco(c.banco); setNomeCartao(c.nome_cartao); setVencimento(c.vencimento.toString()); setIsCardModalOpen(true); }} className="text-slate-600 hover:text-white"><Pencil size={16}/></button>
+                  <button onClick={async () => { if(confirm("Apagar cartão?")) { await supabase.from('cartoes').delete().eq('id', c.id); fetchDados(user.id); } }} className="text-slate-600 hover:text-rose-500"><Trash2 size={16}/></button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* ATIVIDADE RECENTE */}
-        <div className="bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 h-full overflow-hidden flex flex-col shadow-2xl min-h-[500px]">
+        <div className="bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 flex flex-col shadow-2xl min-h-[500px]">
           <h2 className="text-white font-black mb-4 uppercase text-[10px] tracking-widest">Atividade</h2>
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
@@ -399,8 +333,8 @@ export default function HomePage() {
               <div key={t.id} className={`flex justify-between items-center p-4 rounded-2xl border ${t.pago ? 'bg-slate-800/40 border-slate-800' : 'bg-rose-900/10 border-rose-900/30'}`}>
                 <div className="flex items-center gap-3">
                   <button onClick={() => togglePago(t.id, t.pago)} className={`p-1.5 rounded-full ${t.pago ? 'text-emerald-500 bg-emerald-500/10' : 'text-slate-500 bg-slate-800'}`}>{t.pago ? <CheckCircle size={18}/> : <Circle size={18}/>}</button>
-                  <div className="leading-tight">
-                    <p className="text-[10px] uppercase truncate max-w-[100px] font-black">{t.descricao}</p>
+                  <div className="leading-tight truncate max-w-[120px]">
+                    <p className="text-[10px] uppercase font-black">{t.descricao}</p>
                     <p className={`text-[7px] uppercase font-black ${theme.text}`}>{t.forma_pagamento}</p>
                   </div>
                 </div>
@@ -413,7 +347,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* MODAL NOVO LANÇAMENTO ATUALIZADO */}
+      {/* MODAL NOVO LANÇAMENTO */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000]">
           <form onSubmit={handleSalvarGasto} className="bg-[#111827] w-full max-w-md rounded-[3rem] p-6 border-4 border-slate-800 shadow-2xl">
@@ -423,106 +357,59 @@ export default function HomePage() {
                 <button type="button" onClick={() => setTipoMovimento('despesa')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase font-black ${tipoMovimento === 'despesa' ? 'bg-rose-600' : 'text-slate-500'}`}>Despesa</button>
                 <button type="button" onClick={() => setTipoMovimento('receita')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase font-black ${tipoMovimento === 'receita' ? 'bg-emerald-600' : 'text-slate-500'}`}>Receita</button>
               </div>
-
               <input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="DESCRIÇÃO" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-sm font-black uppercase outline-none" required />
               <input type="text" value={valorDisplay} onChange={(e) => setValorDisplay(aplicarMascara(e.target.value))} placeholder="R$ 0,00" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-lg font-black text-center outline-none" required />
-
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <label className="text-[7px] font-black uppercase opacity-50 ml-2">Forma</label>
-                  <select value={metodoPagamento} onChange={(e) => { 
-                    setMetodoPagamento(e.target.value); 
-                    setTipoPagamento(e.target.value === 'Pix' ? 'Dinheiro' : 'Crédito'); 
-                  }} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] outline-none uppercase font-black">
+                  <select value={metodoPagamento} onChange={(e) => { setMetodoPagamento(e.target.value); setTipoPagamento(e.target.value === 'Pix' ? 'Dinheiro' : 'Crédito'); }} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] outline-none font-black uppercase">
                     <option value="Pix">Pix / Dinheiro</option>
                     {cartoes.map(c => (<option key={c.id} value={`${c.banco} - ${c.nome_cartao}`}>{c.banco} - {c.nome_cartao}</option>))}
                   </select>
                 </div>
-
                 <div className="space-y-1">
                   <label className="text-[7px] font-black uppercase opacity-50 ml-2">Modalidade</label>
-                  <select value={tipoPagamento} onChange={(e) => setTipoPagamento(e.target.value as any)} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] outline-none uppercase font-black" disabled={metodoPagamento === 'Pix'}>
+                  <select value={tipoPagamento} onChange={(e) => setTipoPagamento(e.target.value as any)} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] outline-none font-black uppercase" disabled={metodoPagamento === 'Pix'}>
                     {metodoPagamento === 'Pix' ? <option value="Dinheiro">Dinheiro (À Vista)</option> : <><option value="Crédito">Crédito</option><option value="Débito">Débito</option></>}
                   </select>
                 </div>
               </div>
-
               <div className="grid grid-cols-2 gap-3">
                 {tipoPagamento === 'Crédito' && metodoPagamento !== 'Pix' ? (
                   <div className="relative">
-                    <label className="absolute -top-2 left-3 bg-[#111827] px-1 text-[7px] font-black uppercase text-blue-500 z-10">Parcelas</label>
-                    <div className="flex items-center bg-slate-800 rounded-xl border-2 border-slate-700 focus-within:border-blue-500 transition-all">
+                    <label className="absolute -top-2 left-3 bg-[#111827] px-1 text-[7px] font-black text-blue-500 z-10 uppercase">Parcelas</label>
+                    <div className="flex items-center bg-slate-800 rounded-xl border-2 border-slate-700">
                       <input type="number" min="1" max="48" value={parcelas} onChange={(e) => setParcelas(Number(e.target.value))} className="w-full p-4 bg-transparent text-[10px] font-black text-center outline-none" />
                       <span className="pr-4 text-[10px] font-black text-slate-500 italic">X</span>
                     </div>
                   </div>
                 ) : (
-                  <div className="relative w-full">
-                    <div className="w-full p-4 bg-slate-900/50 rounded-xl border border-slate-800 text-[8px] flex items-center justify-center text-emerald-500 font-black uppercase italic">
-                       {metodoPagamento === 'Pix' && <Zap size={10} className="mr-1" />} À Vista
-                    </div>
-                  </div>
+                  <div className="w-full p-4 bg-slate-900/50 rounded-xl border border-slate-800 text-[8px] flex items-center justify-center text-emerald-500 font-black uppercase italic"><Zap size={10} className="mr-1" /> À Vista</div>
                 )}
                 {tipoPagamento !== 'Crédito' && (
                   <div className="relative">
-                    <label className="absolute -top-2 left-3 bg-[#111827] px-1 text-[7px] font-black uppercase text-slate-500 z-10">Data</label>
+                    <label className="absolute -top-2 left-3 bg-[#111827] px-1 text-[7px] font-black text-slate-500 z-10 uppercase">Data</label>
                     <input type="date" value={dataLancamento} onChange={(e) => setDataLancamento(e.target.value)} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] font-black text-center outline-none" required />
                   </div>
                 )}
               </div>
-
-              <div className={`p-3 rounded-2xl border-2 transition-all ${recorrente ? 'bg-emerald-900/20 border-emerald-600' : 'bg-slate-800/40 border-slate-800'}`}>
-                <div className="flex justify-between items-center mb-2" onClick={() => setRecorrente(!recorrente)}>
-                  <div className="leading-tight"><p className="text-[9px] uppercase font-black">Recorrente?</p><p className="text-[7px] text-slate-500 uppercase">Mensal por 1 ano</p></div>
-                  <button type="button" className={`w-10 h-5 rounded-full relative transition-all ${recorrente ? 'bg-emerald-600' : 'bg-slate-700'}`}><div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${recorrente ? 'left-6' : 'left-1'}`} /></button>
-                </div>
-                {recorrente && (
-                  <div className="flex items-center gap-3 mt-3 p-2 bg-slate-900/50 rounded-xl border border-slate-700">
-                    <CalendarDays size={14} className="text-emerald-500" />
-                    <label className="text-[8px] font-black uppercase">Dia do mês:</label>
-                    <input type="number" min="1" max="31" value={diaRecorrencia} onChange={(e) => setDiaRecorrencia(Number(e.target.value))} className="w-12 bg-transparent text-center font-black text-xs outline-none text-emerald-500" />
-                  </div>
-                )}
-              </div>
-
-              <button type="submit" className={`w-full ${theme.primary} py-5 rounded-[2rem] shadow-xl uppercase text-[10px] font-black active:scale-95 transition-all`}>Confirmar Lançamento</button>
+              <button type="submit" className={`w-full ${theme.primary} py-5 rounded-[2rem] shadow-xl text-[10px] font-black active:scale-95 transition-all uppercase`}>Confirmar Lançamento</button>
             </div>
           </form>
         </div>
       )}
 
-      {/* MODAL SALDO COM BOTÃO CANCELAR */}
+      {/* MODAL SALDO */}
       {isSaldoModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[6000]">
-          <div className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl relative animate-in zoom-in duration-300">
+          <div className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl relative">
             <button onClick={() => setIsSaldoModalOpen(false)} className="absolute top-6 right-6 p-2 bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors"><X size={20}/></button>
-            <h2 className="text-xl mb-8 text-emerald-500 text-center uppercase font-black italic tracking-tighter">Saldo Bancário</h2>
+            <h2 className="text-xl mb-8 text-emerald-500 text-center font-black italic uppercase">Saldo Bancário</h2>
             <div className="relative mb-6">
-              <label className="absolute -top-2 left-3 bg-[#111827] px-1 text-[7px] font-black uppercase text-emerald-500 z-10">Valor em conta</label>
-              <input type="text" value={saldoDisplay} onChange={(e) => setSaldoDisplay(aplicarMascara(e.target.value))} placeholder="R$ 0,00" className="w-full p-5 bg-slate-800 rounded-2xl border-2 border-slate-700 text-emerald-500 text-xl outline-none font-black text-center focus:border-emerald-500 transition-all" />
+              <label className="absolute -top-2 left-3 bg-[#111827] px-1 text-[7px] font-black text-emerald-500 z-10 uppercase font-black">Valor em conta</label>
+              <input type="text" value={saldoDisplay} onChange={(e) => setSaldoDisplay(aplicarMascara(e.target.value))} placeholder="R$ 0,00" className="w-full p-5 bg-slate-800 rounded-2xl border-2 border-slate-700 text-emerald-500 text-xl font-black text-center outline-none" />
             </div>
-            <div className="space-y-3">
-              <button onClick={async () => { const v = Number(saldoDisplay.replace(/\./g, '').replace(',', '.')); await supabase.from('profiles').update({ saldo_inicial: v }).eq('id', user.id); setSaldoInicial(v); setIsSaldoModalOpen(false); setSaldoDisplay(''); fetchDados(user.id); showAlert("Saldo ajustado!"); }} className="w-full bg-emerald-600 py-5 rounded-[2rem] uppercase text-[10px] font-black active:scale-95 transition-all shadow-lg shadow-emerald-900/20">Confirmar Novo Saldo</button>
-              <button onClick={() => { setIsSaldoModalOpen(false); setSaldoDisplay(''); }} className="w-full py-3 text-slate-500 uppercase text-[9px] font-black hover:text-slate-300 transition-colors">Cancelar Alteração</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL CONFIGURAÇÕES */}
-      {isConfigModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[6000]">
-          <div className="bg-[#111827] w-full max-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl">
-            <h2 className="text-xl uppercase mb-8 font-black italic">Ajustes</h2>
-            <div className="mb-8">
-              <p className="text-[8px] text-slate-500 uppercase mb-4 tracking-widest"><Palette size={12} className="inline mr-2"/> Estilo Visual</p>
-              <div className="flex justify-between">{Object.keys(THEMES).map((tKey) => <button key={tKey} onClick={() => changeTheme(tKey as any)} className={`w-10 h-10 rounded-full border-4 transition-all ${currentTheme === tKey ? 'border-white scale-110' : 'border-transparent opacity-40'} ${THEMES[tKey as keyof typeof THEMES].primary}`} />)}</div>
-            </div>
-            <div className="space-y-4">
-              <input value={novoNome} onChange={(e) => setNovoNome(e.target.value)} placeholder="NOME" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none text-white text-sm font-black uppercase" />
-              <button onClick={async () => { const { error } = await supabase.auth.updateUser({ data: { full_name: novoNome } }); if (!error) { showAlert("Perfil salvo!"); setIsConfigModalOpen(false); } }} className={`w-full ${theme.primary} py-5 rounded-[2rem] uppercase text-[10px] font-black active:scale-95 transition-all`}>Salvar Perfil</button>
-              <button onClick={() => setIsConfigModalOpen(false)} className="w-full text-slate-500 text-[8px] uppercase font-black">Fechar</button>
-            </div>
+            <button onClick={async () => { const v = Number(saldoDisplay.replace(/\./g, '').replace(',', '.')); await supabase.from('profiles').update({ saldo_inicial: v }).eq('id', user.id); setSaldoInicial(v); setIsSaldoModalOpen(false); setSaldoDisplay(''); fetchDados(user.id); showAlert("Saldo ajustado!"); }} className="w-full bg-emerald-600 py-5 rounded-[2rem] text-[10px] font-black active:scale-95 transition-all shadow-lg uppercase">Confirmar Novo Saldo</button>
           </div>
         </div>
       )}
@@ -530,15 +417,14 @@ export default function HomePage() {
       {/* MODAL CARTÃO */}
       {isCardModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[6000]">
-          <form onSubmit={handleSalvarCartao} className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-8 border-4 border-slate-800 shadow-2xl relative animate-in zoom-in duration-300">
+          <form onSubmit={handleSalvarCartao} className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-8 border-4 border-slate-800 shadow-2xl relative">
             <button type="button" onClick={() => setIsCardModalOpen(false)} className="absolute top-6 right-6 p-2 bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors"><X size={20}/></button>
-            <h2 className="text-xl mb-6 text-center uppercase tracking-widest font-black italic">{editingCardId ? 'Editar' : 'Novo'} Cartão</h2>
+            <h2 className="text-xl mb-6 text-center font-black italic uppercase">Salvar Cartão</h2>
             <div className="space-y-4">
               <input value={banco} onChange={(e) => setBanco(e.target.value.toUpperCase())} placeholder="BANCO (EX: NUBANK)" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none text-sm font-black uppercase" required />
               <input value={nomeCartao} onChange={(e) => setNomeCartao(e.target.value.toUpperCase())} placeholder="NOME NO APP" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none text-sm font-black uppercase" required />
-              <input type="number" min="1" max="31" value={vencimento} onChange={(e) => setVencimento(e.target.value)} placeholder="DIA VENCIMENTO" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-sm font-black text-center outline-none" required />
-              <button type="submit" className={`w-full ${theme.primary} py-4 rounded-[2rem] uppercase text-[10px] font-black active:scale-95 transition-all`}>Salvar Cartão</button>
-              <button type="button" onClick={() => setIsCardModalOpen(false)} className="w-full text-slate-500 py-2 uppercase text-[9px] font-black hover:text-slate-300 transition-colors">Cancelar</button>
+              <input type="number" min="1" max="31" value={vencimento} onChange={(e) => setVencimento(e.target.value)} placeholder="DIA VENCIMENTO" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-sm font-black text-center uppercase" required />
+              <button type="submit" className={`w-full ${theme.primary} py-4 rounded-[2rem] text-[10px] font-black active:scale-95 transition-all uppercase`}>Salvar Cartão</button>
             </div>
           </form>
         </div>
@@ -556,10 +442,10 @@ function Card({ title, value, icon, color, onClick }: any) {
   return (
     <div onClick={onClick} className={`${color} ${onClick ? 'cursor-pointer hover:scale-[1.03] active:scale-95 transition-all' : ''} p-4 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl flex flex-col justify-between h-32 md:h-36 text-white text-left font-black italic`}>
       <div className="flex justify-between items-start w-full tracking-widest">
-        <span className="text-white/20 text-[7px] md:text-[10px] uppercase">{title}</span>
+        <span className="text-white/20 text-[7px] md:text-[10px] uppercase font-black">{title}</span>
         <div className="p-1.5 md:p-3 bg-white/5 rounded-xl backdrop-blur-md opacity-50">{icon}</div>
       </div>
-      <div className="text-sm md:text-2xl font-black truncate uppercase px-1 leading-tight">{value}</div>
+      <div className="text-sm md:text-2xl font-black truncate uppercase px-1 leading-tight tracking-tighter">{value}</div>
     </div>
   );
 }
