@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { 
   ArrowLeft, ShieldCheck, Loader2, Mail, User as UserIcon, 
   Search, CalendarPlus, CheckCircle2, AlertCircle, ChevronLeft, ChevronRight,
-  Zap, RefreshCw
+  Zap, RefreshCw, Edit3, Save, X
 } from 'lucide-react';
 
 export default function AdminPage() {
@@ -17,9 +17,12 @@ export default function AdminPage() {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [customDays, setCustomDays] = useState<{ [key: string]: number }>({});
-  const [resettingId, setResettingId] = useState<string | null>(null);
+  
+  // Estado para edição direta de data
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDate, setEditDate] = useState('');
+  
   const router = useRouter();
-
   const ITEMS_PER_PAGE = 10;
 
   const fetchUsers = async (search = '', page = 0) => {
@@ -61,9 +64,7 @@ export default function AdminPage() {
   }, [searchTerm]);
 
   useEffect(() => {
-    if (!searchTerm) {
-      fetchUsers('', currentPage);
-    }
+    if (!searchTerm) fetchUsers('', currentPage);
   }, [currentPage]);
 
   useEffect(() => {
@@ -72,15 +73,15 @@ export default function AdminPage() {
       const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL?.trim().toLowerCase();
       if (!session || session.user.email?.trim().toLowerCase() !== adminEmail) {
         router.push('/');
-        return;
       }
     };
     checkAdmin();
   }, [router]);
 
+  // Função para adicionar dias (o que você já tinha)
   const handleAddCustomAccess = async (userId: string, currentExpiresAt: string | null) => {
     const dias = customDays[userId] || 0;
-    if (dias <= 0) return;
+    if (dias === 0) return;
 
     const hoje = new Date();
     let dataBase = currentExpiresAt ? new Date(currentExpiresAt) : hoje;
@@ -100,7 +101,21 @@ export default function AdminPage() {
     }
   };
 
-  // NOVA FUNÇÃO: Reseta o tour para o usuário atual (Admin) ou para mim mesmo
+  // NOVA FUNÇÃO: Salvar data editada manualmente
+  const handleUpdateDateManual = async (userId: string) => {
+    if (!editDate) return;
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ expires_at: new Date(editDate).toISOString() })
+      .eq('id', userId);
+
+    if (!error) {
+      setEditingId(null);
+      fetchUsers(searchTerm, currentPage);
+    }
+  };
+
   const handleResetTourLocal = () => {
     localStorage.removeItem('wolf_tour_complete');
     alert("TOUR RESETADO PARA SUA CONTA ADM! VOLTE À HOME.");
@@ -115,7 +130,7 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0f1d] text-white p-4 md:p-8 font-black italic antialiased leading-none">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         
         {/* Header Admin */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
@@ -125,7 +140,7 @@ export default function AdminPage() {
             </button>
             <div className="flex items-center gap-3 text-nowrap">
               <ShieldCheck size={32} className="text-amber-500" />
-              <h1 className="text-2xl uppercase tracking-tighter italic">Wolf <span className="text-amber-500">Panel</span></h1>
+              <h1 className="text-2xl uppercase tracking-tighter italic text-white">Wolf <span className="text-amber-500">Panel</span></h1>
             </div>
           </div>
 
@@ -140,12 +155,7 @@ export default function AdminPage() {
                 className="w-full bg-[#111827] border-4 border-slate-800 rounded-2xl py-3 pl-12 pr-4 text-xs uppercase outline-none focus:border-amber-500 transition-all font-black"
               />
             </div>
-            
-            {/* BOTÃO DE TESTE RÁPIDO DO TOUR */}
-            <button 
-              onClick={handleResetTourLocal}
-              className="bg-blue-600 hover:bg-blue-500 text-white p-4 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg"
-            >
+            <button onClick={handleResetTourLocal} className="bg-blue-600 hover:bg-blue-500 text-white p-4 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg">
               <Zap size={20} />
               <span className="text-[10px] uppercase font-black">Testar Tour</span>
             </button>
@@ -155,39 +165,16 @@ export default function AdminPage() {
         {/* Lista de Usuários */}
         <div className="bg-[#111827] rounded-[2.5rem] border-4 border-slate-800 shadow-2xl overflow-hidden">
           <div className="p-6 border-b-4 border-slate-800 bg-slate-800/50 flex justify-between items-center">
-            <h2 className="uppercase tracking-widest text-sm text-slate-300 font-black italic">
-              {searchTerm ? 'Resultados da Busca' : 'Membros da Alcateia'}
-            </h2>
+            <h2 className="uppercase tracking-widest text-sm text-slate-300 font-black italic">Membros da Alcateia</h2>
             <div className="flex items-center gap-4 font-black italic">
-              {!searchTerm && (
-                <div className="flex items-center gap-2">
-                  <button 
-                    disabled={currentPage === 0}
-                    onClick={() => setCurrentPage(prev => prev - 1)}
-                    className="p-1 disabled:opacity-20 hover:text-amber-500 transition-colors"
-                  >
-                    <ChevronLeft size={20} />
-                  </button>
-                  <span className="text-[10px] font-black uppercase">Pág {currentPage + 1}</span>
-                  <button 
-                    disabled={(currentPage + 1) * ITEMS_PER_PAGE >= totalCount}
-                    onClick={() => setCurrentPage(prev => prev + 1)}
-                    className="p-1 disabled:opacity-20 hover:text-amber-500 transition-colors"
-                  >
-                    <ChevronRight size={20} />
-                  </button>
-                </div>
-              )}
-              <span className="text-[10px] bg-amber-500 text-black px-3 py-1 rounded-full font-black italic">
-                {totalCount} TOTAL
-              </span>
+              <span className="text-[10px] bg-amber-500 text-black px-3 py-1 rounded-full font-black italic">{totalCount} TOTAL</span>
             </div>
           </div>
 
           <div className="divide-y-4 divide-slate-800">
             {usersList.map((u) => {
               const isExpired = !u.expires_at || new Date(u.expires_at) < new Date();
-              const expireDate = u.expires_at ? new Date(u.expires_at).toLocaleDateString('pt-BR') : 'SEM ACESSO';
+              const expireDateDisplay = u.expires_at ? new Date(u.expires_at).toLocaleDateString('pt-BR') : 'SEM ACESSO';
 
               return (
                 <div key={u.id} className="p-6 flex flex-col xl:flex-row xl:items-center justify-between gap-6 hover:bg-slate-800/30 transition-all font-black italic">
@@ -196,28 +183,55 @@ export default function AdminPage() {
                       <UserIcon size={28} />
                     </div>
                     <div>
-                      <p className="uppercase text-sm leading-none font-black">{u.full_name || 'Membro'}</p>
-                      <div className="flex items-center gap-1 text-slate-500 text-[9px] mt-1 uppercase font-black truncate max-w-[180px]">
+                      <p className="uppercase text-sm leading-none font-black text-white">{u.full_name || 'Membro'}</p>
+                      <div className="flex items-center gap-1 text-slate-500 text-[9px] mt-1 uppercase font-black">
                         <Mail size={10} /> {u.email}
                       </div>
                     </div>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-4">
-                    {/* Status de Vencimento */}
-                    <div className={`flex items-center gap-3 px-4 py-2 rounded-2xl border-2 ${isExpired ? 'border-red-500/20 bg-red-500/10' : 'border-emerald-500/20 bg-emerald-500/10'}`}>
-                      {isExpired ? <AlertCircle size={16} className="text-red-500" /> : <CheckCircle2 size={16} className="text-emerald-500" />}
-                      <div>
-                        <p className={`text-[8px] uppercase font-black ${isExpired ? 'text-red-400' : 'text-emerald-400'}`}>Expiração</p>
-                        <p className={`text-xs font-black ${isExpired ? 'text-red-500' : 'text-emerald-500'}`}>{expireDate}</p>
-                      </div>
+                    
+                    {/* ÁREA DE EXPIRAÇÃO EDITÁVEL */}
+                    <div className={`flex items-center gap-3 px-4 py-2 rounded-2xl border-2 transition-all ${isExpired ? 'border-red-500/20 bg-red-500/10' : 'border-emerald-500/20 bg-emerald-500/10'}`}>
+                      {editingId === u.id ? (
+                        <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-200">
+                          <input 
+                            type="date" 
+                            className="bg-slate-900 border border-slate-700 rounded-lg text-[10px] p-1 outline-none text-white font-black"
+                            value={editDate}
+                            onChange={(e) => setEditDate(e.target.value)}
+                          />
+                          <button onClick={() => handleUpdateDateManual(u.id)} className="text-emerald-500 p-1 hover:scale-110 transition-transform"><Save size={16}/></button>
+                          <button onClick={() => setEditingId(null)} className="text-red-500 p-1 hover:scale-110 transition-transform"><X size={16}/></button>
+                        </div>
+                      ) : (
+                        <>
+                          {isExpired ? <AlertCircle size={16} className="text-red-500" /> : <CheckCircle2 size={16} className="text-emerald-500" />}
+                          <div className="flex items-center gap-3">
+                            <div>
+                              <p className={`text-[8px] uppercase font-black ${isExpired ? 'text-red-400' : 'text-emerald-400'}`}>Expiração</p>
+                              <p className={`text-xs font-black ${isExpired ? 'text-red-500' : 'text-emerald-500'}`}>{expireDateDisplay}</p>
+                            </div>
+                            <button 
+                              onClick={() => {
+                                setEditingId(u.id);
+                                setEditDate(u.expires_at ? new Date(u.expires_at).toISOString().split('T')[0] : '');
+                              }}
+                              className="text-slate-500 hover:text-amber-500 transition-colors"
+                            >
+                              <Edit3 size={14} />
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
 
-                    {/* Gestão de Dias */}
+                    {/* Gestão de Dias (Rápida) */}
                     <div className="flex items-center gap-2 bg-slate-800/50 p-1.5 rounded-2xl border-2 border-slate-700">
                       <input 
                         type="number"
-                        placeholder="0"
+                        placeholder="DIAS"
                         value={customDays[u.id] || ''}
                         onChange={(e) => setCustomDays({ ...customDays, [u.id]: parseInt(e.target.value) })}
                         className="w-14 bg-transparent text-center outline-none font-black text-amber-500 text-sm"
@@ -227,21 +241,11 @@ export default function AdminPage() {
                         className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-xl transition-all active:scale-90 flex items-center gap-2 shadow-lg"
                       >
                         <CalendarPlus size={16} />
-                        <span className="text-[9px] uppercase font-black pr-1 italic">ADD DIAS</span>
+                        <span className="text-[9px] uppercase font-black pr-1 italic">ADD</span>
                       </button>
                     </div>
 
-                    {/* ACÕES DE SISTEMA (RESETAR TOUR) */}
-                    <button 
-                      onClick={() => {
-                        // Como o tour_complete fica no localStorage do usuário final,
-                        // para o Admin resetar o de OUTRO usuário, precisaríamos de uma flag no Banco.
-                        // Aqui o botão limpa o SEU tour para teste rápido.
-                        handleResetTourLocal();
-                      }}
-                      className="p-3 bg-slate-800 rounded-xl text-slate-500 hover:text-blue-400 border-2 border-slate-700 hover:border-blue-500 transition-all active:scale-90 shadow-md group"
-                      title="Resetar Tutorial"
-                    >
+                    <button onClick={handleResetTourLocal} className="p-3 bg-slate-800 rounded-xl text-slate-500 hover:text-blue-400 border-2 border-slate-700 hover:border-blue-500 transition-all active:scale-90 shadow-md group">
                       <RefreshCw size={18} className="group-hover:rotate-180 transition-transform duration-500" />
                     </button>
                   </div>
