@@ -79,7 +79,6 @@ export default function HomePage() {
     };
     checkUser();
   }, [router]);
-
   const fetchDados = async (userId: string) => {
     try {
       const { data: tData } = await supabase.from('transacoes').select('*').eq('user_id', userId).order('data_ordenacao', { ascending: false });
@@ -101,6 +100,7 @@ export default function HomePage() {
       if (user?.user_metadata?.full_name) setNovoNome(user.user_metadata.full_name);
     } catch (err) { console.error("Erro Supabase:", err); }
   };
+
   const showAlert = (msg: string, type: any = 'success') => {
     setAlertConfig({ show: true, msg, type });
     setTimeout(() => setAlertConfig(prev => ({ ...prev, show: false })), 4000);
@@ -146,7 +146,6 @@ export default function HomePage() {
               if (hoje.getDate() > cartao.vencimento) d.setMonth(d.getMonth() + 1);
            }
         }
-        
         d.setMonth(d.getMonth() + i);
         if (recorrente) d.setDate(diaRecorrencia);
 
@@ -174,8 +173,6 @@ export default function HomePage() {
     e.preventDefault();
     const cleanBanco = sanitize(banco).toUpperCase();
     const cleanNomeC = sanitize(nomeCartao).toUpperCase();
-    
-    // NOVO: Aponta para sua pasta public/logos/nomebanco.svg
     const fileName = cleanBanco.toLowerCase().trim().replace(/\s+/g, '');
     const logoUrl = `/logos/${fileName}.svg`;
 
@@ -183,12 +180,7 @@ export default function HomePage() {
     if (editingCardId) res = await supabase.from('cartoes').update({ banco: cleanBanco, nome_cartao: cleanNomeC, vencimento: Number(vencimento), logo_url: logoUrl }).eq('id', editingCardId);
     else res = await supabase.from('cartoes').insert([{ banco: cleanBanco, nome_cartao: cleanNomeC, vencimento: Number(vencimento), logo_url: logoUrl, user_id: user.id }]);
     
-    if (!res.error) { 
-      fetchDados(user.id); 
-      setIsCardModalOpen(false); 
-      setBanco(''); setNomeCartao(''); setVencimento(''); setEditingCardId(null); 
-      showAlert("Cartão salvo!"); 
-    }
+    if (!res.error) { fetchDados(user.id); setIsCardModalOpen(false); setBanco(''); setNomeCartao(''); setVencimento(''); setEditingCardId(null); showAlert("Cartão salvo!"); }
   };
 
   const aplicarMascara = (valor: string) => {
@@ -281,8 +273,18 @@ export default function HomePage() {
       {/* Cards de Dashboard */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6">
         <Card title="Saldo Pago" value={`R$ ${formatarMoeda(saldoCalculado)}`} icon={<Banknote size={20}/>} color={`bg-[#111827] border-b-8 ${theme.border}`} />
-        <Card title="Gasto Mês" value={`R$ ${formatarMoeda(saidasMensais)}`} icon={<CreditCard size={20}/>} color="bg-[#111827] border-b-8 border-rose-600" />
+        
+        {/* Card Gasto Mês com Redirecionamento */}
+        <Card 
+          title="Gasto Mês" 
+          value={`R$ ${formatarMoeda(saidasMensais)}`} 
+          icon={<CreditCard size={20}/>} 
+          color="bg-[#111827] border-b-8 border-rose-600" 
+          onClick={() => router.push('/detalhes-gastos')}
+        />
+
         <Card title="Entrada Mês" value={`R$ ${formatarMoeda(entradasMensais)}`} icon={<TrendingUp size={20}/>} color="bg-[#111827] border-b-8 border-emerald-600" />
+        
         <div className="bg-[#111827] p-4 rounded-[1.5rem] border-b-8 border-amber-500 flex flex-col justify-between h-32 relative">
            <div className="flex items-center justify-between uppercase text-[9px] border-b border-white/10 pb-2">
               <button onClick={() => setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth() - 1)))}><ChevronLeft size={16}/></button>
@@ -308,7 +310,7 @@ export default function HomePage() {
             <ResponsiveContainer width="100%" height="100%"><AreaChart data={formatarDadosGrafico()}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" /><XAxis dataKey="data" stroke="#475569" fontSize={10} tickLine={false} axisLine={false} tickMargin={10} /><Tooltip contentStyle={{backgroundColor: '#0f172a', border: 'none', borderRadius: '15px', fontWeight: '900', color: '#fff'}} formatter={(val: any) => [`R$ ${Number(val).toFixed(2)}`, 'Valor']}/><Area type="monotone" dataKey="valor" stroke={theme.chart} fill={theme.chart} fillOpacity={0.1} strokeWidth={4} /></AreaChart></ResponsiveContainer>
           </div>
 
-          {/* LISTA DE CARTÕES COM SVGs LOCAIS E FATURA */}
+          {/* LISTA DE CARTÕES */}
           <div className="bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 shadow-2xl">
             <h2 className="text-white font-black mb-6 uppercase text-[10px] tracking-widest px-1">Meus Cartões</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -319,11 +321,7 @@ export default function HomePage() {
                   <div key={c.id} className="p-4 border-2 border-slate-800 rounded-2xl flex justify-between items-center bg-slate-950/50 hover:border-blue-500 transition-all">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center overflow-hidden border border-slate-700">
-                        <img 
-                          src={c.logo_url} 
-                          className="w-full h-full object-contain" 
-                          onError={(e: any) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex'; }} 
-                        />
+                        <img src={c.logo_url} className="w-full h-full object-contain" onError={(e: any) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'flex'; }} />
                         <div className="hidden w-full h-full items-center justify-center text-[10px] text-slate-500 uppercase font-black">{c.banco.charAt(0)}</div>
                       </div>
                       <div className="leading-tight">
@@ -448,9 +446,13 @@ export default function HomePage() {
   );
 }
 
-function Card({ title, value, icon, color }: any) {
+// Componente Card Atualizado para suportar o onClick
+function Card({ title, value, icon, color, onClick }: any) {
   return (
-    <div className={`${color} p-4 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl flex flex-col justify-between h-32 md:h-36 text-white text-left font-black italic`}>
+    <div 
+      onClick={onClick}
+      className={`${color} ${onClick ? 'cursor-pointer hover:scale-[1.02] active:scale-95' : ''} p-4 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl flex flex-col justify-between h-32 md:h-36 text-white text-left font-black italic transition-all`}
+    >
       <div className="flex justify-between items-start w-full">
         <span className="text-white/20 text-[7px] md:text-[10px] uppercase tracking-widest">{title}</span>
         <div className="p-1.5 md:p-3 bg-white/5 rounded-xl backdrop-blur-md opacity-50">{icon}</div>
