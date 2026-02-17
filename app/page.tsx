@@ -6,7 +6,8 @@ import {
   TrendingUp, Trash2, CreditCard, Banknote, Plus, X, Coins, Pencil, LogOut, 
   UserCircle, ShieldCheck, Loader2, ChevronDown, Settings, Zap,
   AlertCircle, CheckCircle, Clock, Lock, RefreshCcw, Palette, Search, ChevronLeft, ChevronRight, Circle,
-  ArrowUpCircle, ArrowDownCircle, CalendarDays
+  ArrowUpCircle, ArrowDownCircle, CalendarDays,
+  HelpCircle // <--- Adicione este aqui
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { supabase } from '@/lib/supabase';
@@ -225,41 +226,42 @@ export default function HomePage() {
       )}
 
       {/* Header Wolf Finance */}
-      <header className="flex flex-col gap-4 mb-6 bg-[#111827] p-4 md:p-6 rounded-[2rem] border border-slate-800 shadow-2xl">
-        <div className="flex justify-between items-center w-full">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Wolf Logo" className="w-10 h-10 object-contain" />
-            <div className="leading-none">
-              <h1 className="text-lg md:text-xl font-black tracking-tighter">WOLF FINANCE</h1>
-              <div className="flex items-center gap-2 mt-1">
-                <p className={`text-[9px] font-black ${theme.text}`}>OLÁ, {user?.user_metadata?.full_name?.split(' ')[0]}</p>
-                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-500/50 text-amber-500 text-[7px] font-black">
-                  <Clock size={8} /> {diasRestantes} DIAS
-                </div>
-              </div>
-            </div>
+{/* Header Wolf Finance */}
+<header className="flex flex-col gap-4 mb-6 bg-[#111827] p-4 md:p-6 rounded-[2rem] border border-slate-800 shadow-2xl">
+  <div className="flex justify-between items-center w-full">
+    <div className="flex items-center gap-3">
+      <img src="/logo.png" alt="Wolf Logo" className="w-10 h-10 object-contain" />
+      <div className="leading-none">
+        <h1 className="text-lg md:text-xl font-black tracking-tighter">WOLF FINANCE</h1>
+        <div className="flex items-center gap-2 mt-1">
+          <p className={`text-[9px] font-black ${theme.text}`}>OLÁ, {user?.user_metadata?.full_name?.split(' ')[0]}</p>
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-500/50 text-amber-500 text-[7px] font-black">
+            <Clock size={8} /> {diasRestantes} DIAS
           </div>
-
-          {/* BOTÃO QUE LEVA PARA A PÁGINA DE PERFIL */}
-          <button 
-            onClick={() => router.push('/perfil')} 
-            className="bg-slate-800 text-slate-300 p-2.5 rounded-full border border-slate-700 hover:bg-blue-600 hover:text-white transition-all shadow-lg active:scale-95"
-          >
-            <UserCircle size={20} />
-          </button>
         </div>
+      </div>
+    </div>
 
-        <div className="flex gap-2">
-          <button onClick={() => setIsSaldoModalOpen(true)} className="flex-1 p-3 rounded-2xl border border-emerald-800/50 text-[10px] flex items-center justify-center gap-2 bg-emerald-900/20 text-emerald-400 active:scale-95 transition-all font-black">
-            <Coins size={14} /> Saldo
-          </button>
-          <button onClick={() => { setEditingCardId(null); setIsCardModalOpen(true); }} className="flex-1 p-3 rounded-2xl border border-slate-700 text-[10px] flex items-center justify-center gap-2 bg-slate-800/50 text-slate-300 active:scale-95 transition-all font-black">
-            <CreditCard size={14} /> Cartão
-          </button>
-          <button onClick={() => setIsModalOpen(true)} className={`w-full md:w-auto p-3.5 rounded-2xl shadow-lg text-[10px] flex items-center justify-center gap-2 ${theme.primary} text-white active:scale-95 transition-all font-black`}>
-            <Plus size={18} /> Novo
-          </button>
-        </div>
+    {/* --- BLOCO DE BOTÕES DE AÇÃO --- */}
+    <div className="flex items-center gap-2">
+      {/* NOVO BOTÃO DE TUTORIAL */}
+      <button 
+        onClick={() => router.push('/tutorial')} 
+        className="bg-slate-800 text-blue-400 p-2.5 rounded-full border border-blue-500/30 hover:bg-blue-600 hover:text-white transition-all shadow-lg active:scale-95"
+      >
+        <HelpCircle size={20} />
+      </button>
+
+      {/* BOTÃO DE PERFIL (JÁ EXISTENTE) */}
+      <button 
+        onClick={() => router.push('/perfil')} 
+        className="bg-slate-800 text-slate-300 p-2.5 rounded-full border border-slate-700 hover:bg-blue-600 hover:text-white transition-all shadow-lg active:scale-95"
+      >
+        <UserCircle size={20} />
+      </button>
+    </div>
+  </div>
+  {/* ... restante do header (botões de Saldo, Cartão, Novo) */}
       </header>
       {/* Cards de Dashboard */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6">
