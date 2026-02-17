@@ -321,7 +321,7 @@ export default function HomePage() {
           </AreaChart>
         </ResponsiveContainer>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         {/* LISTA DE CARTÕES */}
         <div className="lg:col-span-2 bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 shadow-2xl">
           <h2 className="text-white font-black mb-6 uppercase text-[10px] tracking-widest px-1">Meus Cartões</h2>
@@ -382,7 +382,7 @@ export default function HomePage() {
       {isModalOpen && (
         <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000]">
           <form onSubmit={handleSalvarGasto} className="bg-[#111827] w-full max-w-md rounded-[3rem] p-6 border-4 border-slate-800 shadow-2xl">
-            <div className="flex justify-between items-center mb-6"><h2 className="text-xl uppercase font-black italic">Novo Lançamento</h2><button type="button" onClick={() => setIsModalOpen(false)} className="bg-slate-800 p-2 rounded-full"><X size={20}/></button></div>
+            <div className="flex justify-between items-center mb-6"><h2 className="text-xl uppercase font-black italic">Novo Lançamento</h2><button type="button" onClick={() => setIsModalOpen(false)} className="bg-slate-800 p-2 rounded-full hover:bg-rose-600 transition-all"><X size={20}/></button></div>
             <div className="space-y-4">
               <div className="flex gap-2 p-1 bg-slate-800 rounded-2xl">
                 <button type="button" onClick={() => setTipoMovimento('despesa')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase font-black ${tipoMovimento === 'despesa' ? 'bg-rose-600' : 'text-slate-500'}`}>Despesa</button>
@@ -407,14 +407,7 @@ export default function HomePage() {
                 <div className="space-y-1">
                   <label className="text-[7px] font-black uppercase opacity-50 ml-2">Modalidade</label>
                   <select value={tipoPagamento} onChange={(e) => setTipoPagamento(e.target.value as any)} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] outline-none uppercase font-black" disabled={metodoPagamento === 'Pix'}>
-                    {metodoPagamento === 'Pix' ? (
-                      <option value="Dinheiro">Dinheiro (À Vista)</option>
-                    ) : (
-                      <>
-                        <option value="Crédito">Crédito</option>
-                        <option value="Débito">Débito</option>
-                      </>
-                    )}
+                    {metodoPagamento === 'Pix' ? <option value="Dinheiro">Dinheiro (À Vista)</option> : <><option value="Crédito">Crédito</option><option value="Débito">Débito</option></>}
                   </select>
                 </div>
               </div>
@@ -463,18 +456,32 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* MODAIS DE APOIO */}
+      {/* MODAL SALDO COM BOTÃO CANCELAR */}
+      {isSaldoModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[6000]">
+          <div className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl relative animate-in zoom-in duration-300">
+            <button onClick={() => setIsSaldoModalOpen(false)} className="absolute top-6 right-6 p-2 bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors"><X size={20}/></button>
+            <h2 className="text-xl mb-8 text-emerald-500 text-center uppercase font-black italic tracking-tighter">Saldo Bancário</h2>
+            <div className="relative mb-6">
+              <label className="absolute -top-2 left-3 bg-[#111827] px-1 text-[7px] font-black uppercase text-emerald-500 z-10">Valor em conta</label>
+              <input type="text" value={saldoDisplay} onChange={(e) => setSaldoDisplay(aplicarMascara(e.target.value))} placeholder="R$ 0,00" className="w-full p-5 bg-slate-800 rounded-2xl border-2 border-slate-700 text-emerald-500 text-xl outline-none font-black text-center focus:border-emerald-500 transition-all" />
+            </div>
+            <div className="space-y-3">
+              <button onClick={async () => { const v = Number(saldoDisplay.replace(/\./g, '').replace(',', '.')); await supabase.from('profiles').update({ saldo_inicial: v }).eq('id', user.id); setSaldoInicial(v); setIsSaldoModalOpen(false); setSaldoDisplay(''); fetchDados(user.id); showAlert("Saldo ajustado!"); }} className="w-full bg-emerald-600 py-5 rounded-[2rem] uppercase text-[10px] font-black active:scale-95 transition-all shadow-lg shadow-emerald-900/20">Confirmar Novo Saldo</button>
+              <button onClick={() => { setIsSaldoModalOpen(false); setSaldoDisplay(''); }} className="w-full py-3 text-slate-500 uppercase text-[9px] font-black hover:text-slate-300 transition-colors">Cancelar Alteração</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CONFIGURAÇÕES */}
       {isConfigModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[6000]">
           <div className="bg-[#111827] w-full max-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl">
             <h2 className="text-xl uppercase mb-8 font-black italic">Ajustes</h2>
             <div className="mb-8">
               <p className="text-[8px] text-slate-500 uppercase mb-4 tracking-widest"><Palette size={12} className="inline mr-2"/> Estilo Visual</p>
-              <div className="flex justify-between">
-                {Object.keys(THEMES).map((tKey) => (
-                  <button key={tKey} onClick={() => changeTheme(tKey as any)} className={`w-10 h-10 rounded-full border-4 transition-all ${currentTheme === tKey ? 'border-white scale-110' : 'border-transparent opacity-40'} ${THEMES[tKey as keyof typeof THEMES].primary}`} />
-                ))}
-              </div>
+              <div className="flex justify-between">{Object.keys(THEMES).map((tKey) => <button key={tKey} onClick={() => changeTheme(tKey as any)} className={`w-10 h-10 rounded-full border-4 transition-all ${currentTheme === tKey ? 'border-white scale-110' : 'border-transparent opacity-40'} ${THEMES[tKey as keyof typeof THEMES].primary}`} />)}</div>
             </div>
             <div className="space-y-4">
               <input value={novoNome} onChange={(e) => setNovoNome(e.target.value)} placeholder="NOME" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none text-white text-sm font-black uppercase" />
@@ -485,30 +492,18 @@ export default function HomePage() {
         </div>
       )}
 
-      {isSaldoModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[6000]">
-          <div className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl">
-            <h2 className="text-xl mb-8 text-emerald-500 text-center uppercase font-black italic tracking-tighter">Saldo Bancário</h2>
-            <input type="text" value={saldoDisplay} onChange={(e) => setSaldoDisplay(aplicarMascara(e.target.value))} placeholder="R$ 0,00" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-emerald-500 text-xl outline-none font-black text-center mb-6" />
-            <button onClick={async () => { 
-              const v = Number(saldoDisplay.replace(/\./g, '').replace(',', '.'));
-              await supabase.from('profiles').update({ saldo_inicial: v }).eq('id', user.id);
-              setSaldoInicial(v); setIsSaldoModalOpen(false); setSaldoDisplay(''); fetchDados(user.id); showAlert("Saldo ajustado!");
-            }} className="w-full bg-emerald-600 py-5 rounded-[2rem] uppercase text-[10px] font-black active:scale-95 transition-all">Confirmar Novo Saldo</button>
-          </div>
-        </div>
-      )}
-
+      {/* MODAL CARTÃO */}
       {isCardModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[6000]">
-          <form onSubmit={handleSalvarCartao} className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-8 border-4 border-slate-800 shadow-2xl">
+          <form onSubmit={handleSalvarCartao} className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-8 border-4 border-slate-800 shadow-2xl relative animate-in zoom-in duration-300">
+            <button type="button" onClick={() => setIsCardModalOpen(false)} className="absolute top-6 right-6 p-2 bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors"><X size={20}/></button>
             <h2 className="text-xl mb-6 text-center uppercase tracking-widest font-black italic">{editingCardId ? 'Editar' : 'Novo'} Cartão</h2>
             <div className="space-y-4">
               <input value={banco} onChange={(e) => setBanco(e.target.value.toUpperCase())} placeholder="BANCO (EX: NUBANK)" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none text-sm font-black uppercase" required />
               <input value={nomeCartao} onChange={(e) => setNomeCartao(e.target.value.toUpperCase())} placeholder="NOME NO APP" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none text-sm font-black uppercase" required />
               <input type="number" min="1" max="31" value={vencimento} onChange={(e) => setVencimento(e.target.value)} placeholder="DIA VENCIMENTO" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-sm font-black text-center outline-none" required />
               <button type="submit" className={`w-full ${theme.primary} py-4 rounded-[2rem] uppercase text-[10px] font-black active:scale-95 transition-all`}>Salvar Cartão</button>
-              <button type="button" onClick={() => setIsCardModalOpen(false)} className="w-full text-slate-500 py-2 uppercase text-[9px] font-black">Cancelar</button>
+              <button type="button" onClick={() => setIsCardModalOpen(false)} className="w-full text-slate-500 py-2 uppercase text-[9px] font-black hover:text-slate-300 transition-colors">Cancelar</button>
             </div>
           </form>
         </div>
@@ -532,4 +527,4 @@ function Card({ title, value, icon, color, onClick }: any) {
       <div className="text-sm md:text-2xl font-black truncate uppercase px-1 leading-tight">{value}</div>
     </div>
   );
-}
+}   
