@@ -229,7 +229,7 @@ export default function HomePage() {
   const entradasMensais = transacoesFiltradas.filter(t => t.valor > 0).reduce((acc, t) => acc + t.valor, 0);
   const saidasMensais = transacoesFiltradas.filter(t => t.valor < 0).reduce((acc, t) => acc + t.valor, 0);
   
-  // Saldo Real: Saldo Inicial + Transações Liquidadas (Pago = true)
+  // Saldo Real: Saldo Inicial + Tudo que foi marcado como PAGO
   const saldoCalculado = saldoInicial + transacoes.filter(t => t.pago).reduce((acc, t) => acc + t.valor, 0);
 
   const formatarDadosGrafico = () => {
@@ -247,7 +247,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#0a0f1d] p-2 md:p-8 text-white font-black antialiased overflow-x-hidden pb-24 italic leading-none">
       
-      {/* Alertas */}
+      {/* Alertas Wolf */}
       {alertConfig.show && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] px-4 w-full max-w-sm animate-in fade-in slide-in-from-top-4 duration-300">
           <div className={`flex items-center gap-3 p-4 rounded-2xl border-2 shadow-2xl backdrop-blur-xl ${alertConfig.type === 'error' ? 'bg-rose-950/80 border-rose-500 text-rose-200' : 'bg-emerald-950/80 border-emerald-500 text-emerald-200'}`}>
@@ -257,7 +257,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Header */}
+      {/* Header Wolf Finance */}
       <header className="flex flex-col gap-4 mb-6 bg-[#111827] p-4 md:p-6 rounded-[2rem] border border-slate-800 shadow-2xl">
         <div className="flex justify-between items-center w-full">
           <div className="flex items-center gap-3">
@@ -272,26 +272,61 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-          <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="bg-slate-800 p-2.5 rounded-full border border-slate-700 hover:bg-blue-600 transition-all"><UserCircle size={20} /></button>
-          {isProfileMenuOpen && (
-            <div className="absolute right-0 mt-2 w-64 bg-[#111827] border-2 border-slate-800 rounded-[2rem] shadow-2xl z-[500] overflow-hidden animate-in fade-in slide-in-from-top-2">
-              <button onClick={() => { setIsProfileMenuOpen(false); setIsConfigModalOpen(true); }} className="w-full flex items-center gap-3 p-4 hover:bg-slate-800 border-b border-slate-800/50 uppercase text-[10px] font-black"><Settings size={18} /> Ajustes</button>
-              <button onClick={async () => { await supabase.auth.signOut(); router.push('/login'); }} className="w-full flex items-center gap-3 p-4 hover:bg-rose-900/20 text-rose-500 uppercase text-[10px] font-black"><LogOut size={18} /> Sair</button>
-            </div>
-          )}
+
+          <div className="relative">
+            <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="bg-slate-800 text-slate-300 p-2.5 rounded-full border border-slate-700 hover:bg-blue-600 transition-all">
+              <UserCircle size={20} />
+            </button>
+
+            {isProfileMenuOpen && (
+              <div className="absolute right-0 mt-2 w-64 bg-[#111827] border-2 border-slate-800 rounded-[2rem] shadow-2xl z-[500] overflow-hidden animate-in fade-in slide-in-from-top-2">
+                {/* BOTÃO ADMIN - SÓ PARA JHONATHA */}
+                {isAdmin && (
+                  <button 
+                    onClick={() => router.push('/admin')} 
+                    className="w-full flex items-center gap-3 p-4 hover:bg-amber-500/10 text-amber-500 border-b border-slate-800/50 uppercase text-[10px] font-black transition-colors"
+                  >
+                    <ShieldCheck size={18} /> Painel Administrativo
+                  </button>
+                )}
+
+                <button 
+                  onClick={() => { setIsProfileMenuOpen(false); setIsConfigModalOpen(true); }} 
+                  className="w-full flex items-center gap-3 p-4 hover:bg-slate-800 border-b border-slate-800/50 uppercase text-[10px] font-black transition-colors"
+                >
+                  <Settings size={18} /> Ajustes de Perfil
+                </button>
+                
+                <button 
+                  onClick={async () => { await supabase.auth.signOut(); router.push('/login'); }} 
+                  className="w-full flex items-center gap-3 p-4 hover:bg-rose-900/20 text-rose-500 uppercase text-[10px] font-black transition-colors"
+                >
+                  <LogOut size={18} /> Sair do Sistema
+                </button>
+              </div>
+            )}
+          </div>
         </div>
+
         <div className="flex gap-2">
-          <button onClick={() => setIsSaldoModalOpen(true)} className="flex-1 p-3 rounded-2xl border border-emerald-800/50 text-[10px] uppercase flex items-center justify-center gap-2 bg-emerald-900/20 text-emerald-400 active:scale-95 transition-all font-black"><Coins size={14} /> Saldo</button>
-          <button onClick={() => { setEditingCardId(null); setIsCardModalOpen(true); }} className="flex-1 p-3 rounded-2xl border border-slate-700 text-[10px] uppercase flex items-center justify-center gap-2 bg-slate-800/50 text-slate-300 active:scale-95 transition-all font-black"><CreditCard size={14} /> Cartão</button>
-          <button onClick={() => setIsModalOpen(true)} className={`w-full md:w-auto p-3.5 rounded-2xl shadow-lg text-[10px] uppercase flex items-center justify-center gap-2 ${theme.primary} text-white active:scale-95 transition-all font-black`}><Plus size={18} /> Novo</button>
+          <button onClick={() => setIsSaldoModalOpen(true)} className="flex-1 p-3 rounded-2xl border border-emerald-800/50 text-[10px] uppercase flex items-center justify-center gap-2 bg-emerald-900/20 text-emerald-400 active:scale-95 transition-all font-black">
+            <Coins size={14} /> Saldo
+          </button>
+          <button onClick={() => { setEditingCardId(null); setIsCardModalOpen(true); }} className="flex-1 p-3 rounded-2xl border border-slate-700 text-[10px] uppercase flex items-center justify-center gap-2 bg-slate-800/50 text-slate-300 active:scale-95 transition-all font-black">
+            <CreditCard size={14} /> Cartão
+          </button>
+          <button onClick={() => setIsModalOpen(true)} className={`w-full md:w-auto p-3.5 rounded-2xl shadow-lg text-[10px] uppercase flex items-center justify-center gap-2 ${theme.primary} text-white active:scale-95 transition-all font-black`}>
+            <Plus size={18} /> Novo
+          </button>
         </div>
       </header>
 
-      {/* Cards de Resumo */}
+      {/* Cards de Dashboard */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6">
         <Card title="Saldo Pago" value={`R$ ${formatarMoeda(saldoCalculado)}`} icon={<Banknote size={20}/>} color={`bg-[#111827] border-b-8 ${theme.border}`} />
         <Card title="Gasto Mês" value={`R$ ${formatarMoeda(saidasMensais)}`} icon={<CreditCard size={20}/>} color="bg-[#111827] border-b-8 border-rose-600" onClick={() => router.push('/detalhes-gastos')} />
         <Card title="Entrada Mês" value={`R$ ${formatarMoeda(entradasMensais)}`} icon={<TrendingUp size={20}/>} color="bg-[#111827] border-b-8 border-emerald-600" />
+        
         <div className="bg-[#111827] p-4 rounded-[1.5rem] border-b-8 border-amber-500 flex flex-col justify-between h-32 relative shadow-2xl">
            <div className="flex items-center justify-between uppercase text-[9px] border-b border-white/10 pb-2">
               <button onClick={() => setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth() - 1)))}><ChevronLeft size={16}/></button>
@@ -310,7 +345,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Gráfico */}
+      {/* Gráfico de Performance */}
       <div className="bg-[#111827] p-6 rounded-[2.5rem] border border-slate-800 shadow-2xl h-80 overflow-hidden mb-6">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={formatarDadosGrafico()}>
@@ -321,7 +356,7 @@ export default function HomePage() {
           </AreaChart>
         </ResponsiveContainer>
       </div>
-   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         {/* LISTA DE CARTÕES */}
         <div className="lg:col-span-2 bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 shadow-2xl">
           <h2 className="text-white font-black mb-6 uppercase text-[10px] tracking-widest px-1">Meus Cartões</h2>
@@ -527,4 +562,4 @@ function Card({ title, value, icon, color, onClick }: any) {
       <div className="text-sm md:text-2xl font-black truncate uppercase px-1 leading-tight">{value}</div>
     </div>
   );
-}   
+}
