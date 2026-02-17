@@ -28,7 +28,7 @@ export default function ManualWolf() {
           </div>
           <HelpCircle size={32} className="text-blue-500 animate-pulse" />
         </div>
-        <p className="text-[10px] text-blue-400 tracking-[0.2em]">DOMINE A GESTÃO DA GR AUTO PEÇAS</p>
+        <p className="text-[10px] text-blue-400 tracking-[0.2em]">DOMINE A GESTÃO</p>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

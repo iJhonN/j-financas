@@ -1,22 +1,20 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  TrendingUp, Trash2, CreditCard, Banknote, Plus, X, Coins, Pencil, LogOut, 
-  UserCircle, ShieldCheck, Loader2, ChevronDown, Settings, Zap,
-  AlertCircle, CheckCircle, Clock, Lock, RefreshCcw, Palette, Search, ChevronLeft, ChevronRight, Circle,
-  ArrowUpCircle, ArrowDownCircle, CalendarDays,
-  HelpCircle // <--- Adicione este aqui
+  TrendingUp, Trash2, CreditCard, Banknote, Plus, X, Coins, Pencil, 
+  UserCircle, Loader2, ChevronDown, Zap, CheckCircle, Clock, Search, 
+  ChevronLeft, ChevronRight, Circle, HelpCircle
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { supabase } from '@/lib/supabase';
 
 const THEMES = {
-  blue: { primary: 'bg-blue-600', text: 'text-blue-400', border: 'border-blue-600', hover: 'hover:bg-blue-700', shadow: 'shadow-blue-500/20', chart: '#3b82f6' },
-  emerald: { primary: 'bg-emerald-600', text: 'text-emerald-400', border: 'border-emerald-600', hover: 'hover:bg-emerald-700', shadow: 'shadow-emerald-500/20', chart: '#10b981' },
-  purple: { primary: 'bg-violet-600', text: 'text-violet-400', border: 'border-violet-600', hover: 'hover:bg-violet-700', shadow: 'shadow-violet-500/20', chart: '#8b5cf6' },
-  sunset: { primary: 'bg-rose-600', text: 'text-rose-400', border: 'border-rose-600', hover: 'hover:bg-rose-700', shadow: 'shadow-rose-500/20', chart: '#e11d48' }
+  blue: { primary: 'bg-blue-600', text: 'text-blue-400', border: 'border-blue-600', hover: 'hover:bg-blue-700', chart: '#3b82f6' },
+  emerald: { primary: 'bg-emerald-600', text: 'text-emerald-400', border: 'border-emerald-600', hover: 'hover:bg-emerald-700', chart: '#10b981' },
+  purple: { primary: 'bg-violet-600', text: 'text-violet-400', border: 'border-violet-600', hover: 'hover:bg-violet-700', chart: '#8b5cf6' },
+  sunset: { primary: 'bg-rose-600', text: 'text-rose-400', border: 'border-rose-600', hover: 'hover:bg-rose-700', chart: '#e11d48' }
 };
 
 export default function HomePage() {
@@ -26,17 +24,17 @@ export default function HomePage() {
   const [alertConfig, setAlertConfig] = useState({ show: false, msg: '', type: 'success' });
   const [diasRestantes, setDiasRestantes] = useState(0);
   const [isExpired, setIsExpired] = useState(false);
-  const [checkingSubscription, setCheckingSubscription] = useState(true);
   const router = useRouter();
   const theme = THEMES[currentTheme];
 
-  // Modais Essenciais da Home
+  // Tour State
+  const [tourStep, setTourStep] = useState(0);
+
+  // Modais e Dados
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaldoModalOpen, setIsSaldoModalOpen] = useState(false);
   const [isCardModalOpen, setIsCardModalOpen] = useState(false);
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
-  
-  // Estados de Dados
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [transacoes, setTransacoes] = useState<any[]>([]);
@@ -44,7 +42,7 @@ export default function HomePage() {
   const [filtroCartao, setFiltroCartao] = useState('Todos');
   const [saldoInicial, setSaldoInicial] = useState(0);
 
-  // Estados do Formulário de Lançamento
+  // Estados do Formulário
   const [descricao, setDescricao] = useState('');
   const [valorDisplay, setValorDisplay] = useState('');
   const [metodoPagamento, setMetodoPagamento] = useState('Pix');
@@ -54,15 +52,12 @@ export default function HomePage() {
   const [recorrente, setRecorrente] = useState(false);
   const [diaRecorrencia, setDiaRecorrencia] = useState(new Date().getDate());
   const [dataLancamento, setDataLancamento] = useState(new Date().toISOString().split('T')[0]);
-
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [banco, setBanco] = useState('');
   const [nomeCartao, setNomeCartao] = useState('');
   const [vencimento, setVencimento] = useState('');
   const [saldoDisplay, setSaldoDisplay] = useState('');
 
-  // Segurança
-  const isAdmin = user?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
   useEffect(() => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -70,6 +65,8 @@ export default function HomePage() {
       else {
         setUser(session.user);
         await fetchDados(session.user.id);
+        const hasFinishedTour = localStorage.getItem('wolf_tour_complete');
+        if (!hasFinishedTour) setTimeout(() => setTourStep(1), 1500);
       }
       setLoading(false);
     };
@@ -80,10 +77,8 @@ export default function HomePage() {
     try {
       const { data: tData } = await supabase.from('transacoes').select('*').eq('user_id', userId).order('data_ordenacao', { ascending: false });
       if (tData) setTransacoes(tData.map(t => ({ ...t, valor: Number(t.valor), pago: t.pago ?? false })));
-      
       const { data: cData } = await supabase.from('cartoes').select('*').eq('user_id', userId);
       if (cData) setCartoes(cData);
-
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
       if (profile) {
         setSaldoInicial(Number(profile.saldo_inicial) || 0);
@@ -93,9 +88,11 @@ export default function HomePage() {
         setDiasRestantes(diff > 0 ? diff : 0);
         setIsExpired(diff <= 0);
       }
-      setCheckingSubscription(false);
-    } catch (err) { console.error("Erro Supabase:", err); }
+    } catch (err) { console.error(err); }
   };
+
+  const nextTour = () => setTourStep(prev => prev + 1);
+  const endTour = () => { setTourStep(0); localStorage.setItem('wolf_tour_complete', 'true'); };
 
   const showAlert = (msg: string, type: any = 'success') => {
     setAlertConfig({ show: true, msg, type });
@@ -112,16 +109,11 @@ export default function HomePage() {
     e.preventDefault();
     const cleanBanco = banco.toUpperCase();
     const cleanNomeC = nomeCartao.toUpperCase();
-    const fileName = cleanBanco.toLowerCase().trim().replace(/\s+/g, '');
-    const logoUrl = `/logos/${fileName}.svg`;
-
+    const logoUrl = `/logos/${cleanBanco.toLowerCase().trim().replace(/\s+/g, '')}.svg`;
     let res;
     if (editingCardId) res = await supabase.from('cartoes').update({ banco: cleanBanco, nome_cartao: cleanNomeC, vencimento: Number(vencimento), logo_url: logoUrl }).eq('id', editingCardId);
     else res = await supabase.from('cartoes').insert([{ banco: cleanBanco, nome_cartao: cleanNomeC, vencimento: Number(vencimento), logo_url: logoUrl, user_id: user.id }]);
-    
-    if (!res.error) {
-      fetchDados(user.id); setIsCardModalOpen(false); setBanco(''); setNomeCartao(''); setVencimento(''); setEditingCardId(null); showAlert("Cartão Wolf salvo!");
-    }
+    if (!res.error) { fetchDados(user.id); setIsCardModalOpen(false); setBanco(''); setNomeCartao(''); setVencimento(''); setEditingCardId(null); showAlert("Cartão Wolf salvo!"); }
   };
 
   const aplicarMascara = (valor: string) => {
@@ -144,58 +136,38 @@ export default function HomePage() {
   }, [transacoes, selectedDate, searchTerm, filtroCartao]);
 
   const saldoCalculado = saldoInicial + transacoes.filter(t => t.pago).reduce((acc, t) => acc + t.valor, 0);
+
   const handleSalvarGasto = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isExpired) return showAlert("Acesso expirado!", "error");
-    
-    const cleanDesc = descricao.replace(/<[^>]*>?/gm, '').trim().toUpperCase();
+    const cleanDesc = descricao.trim().toUpperCase();
     const vTotal = Number(valorDisplay.replace(/\./g, '').replace(',', '.'));
-    
     if (!cleanDesc || vTotal <= 0) return showAlert("Dados inválidos", "error");
-
     try {
       const valorComSinal = tipoMovimento === 'receita' ? Math.abs(vTotal) : -Math.abs(vTotal);
       const isPix = metodoPagamento === 'Pix';
-      const isDebito = tipoPagamento === 'Débito';
-      const isCredito = tipoPagamento === 'Crédito';
-
-      const numRepeticoes = recorrente ? 12 : (isCredito ? parcelas : 1);
+      const numRepeticoes = recorrente ? 12 : (tipoPagamento === 'Crédito' ? parcelas : 1);
       const valorParcela = parseFloat((valorComSinal / numRepeticoes).toFixed(2));
-      
       const novosLancamentos = [];
       const hoje = new Date();
-
       for (let i = 0; i < numRepeticoes; i++) {
         let d = new Date(dataLancamento + 'T12:00:00');
-
-        if (isCredito && !isPix) {
+        if (tipoPagamento === 'Crédito' && !isPix) {
            const cartao = cartoes.find(c => `${c.banco} - ${c.nome_cartao}` === metodoPagamento);
-           if (cartao) {
-              d = new Date();
-              d.setDate(cartao.vencimento);
-              if (hoje.getDate() > cartao.vencimento) d.setMonth(d.getMonth() + 1);
-           }
+           if (cartao) { d = new Date(); d.setDate(cartao.vencimento); if (hoje.getDate() > cartao.vencimento) d.setMonth(d.getMonth() + 1); }
         }
-        
         d.setMonth(d.getMonth() + i);
         if (recorrente) d.setDate(diaRecorrencia);
-
         novosLancamentos.push({
           descricao: `${isPix ? "⚡ " : ""}${cleanDesc}${numRepeticoes > 1 ? ` - PARCELA ${(i + 1).toString().padStart(2, '0')}/${numRepeticoes}` : ""}`,
-          valor: valorParcela,
-          forma_pagamento: metodoPagamento,
-          tipo: tipoMovimento,
-          tipo_pagamento: isPix ? 'Dinheiro' : tipoPagamento,
-          recorrente: recorrente,
-          data_ordenacao: d.toISOString().split('T')[0],
-          user_id: user.id,
-          pago: (isPix || (isDebito && !recorrente) || tipoMovimento === 'receita') && i === 0
+          valor: valorParcela, forma_pagamento: metodoPagamento, tipo: tipoMovimento,
+          tipo_pagamento: isPix ? 'Dinheiro' : tipoPagamento, recorrente: recorrente,
+          data_ordenacao: d.toISOString().split('T')[0], user_id: user.id,
+          pago: (isPix || (tipoPagamento === 'Débito' && !recorrente) || tipoMovimento === 'receita') && i === 0
         });
       }
-
       const { error } = await supabase.from('transacoes').insert(novosLancamentos);
       if (error) throw error;
-      
       showAlert("Lançamento Wolf realizado!"); 
       setIsModalOpen(false); setDescricao(''); setValorDisplay(''); setParcelas(1); setRecorrente(false); fetchDados(user.id);
     } catch (err) { showAlert("Erro ao salvar", "error"); }
@@ -204,80 +176,123 @@ export default function HomePage() {
   const formatarDadosGrafico = () => {
     return [...transacoesFiltradas].reverse().map(t => {
       const d = new Date(t.data_ordenacao + 'T12:00:00');
-      return { 
-        data: `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`, 
-        valor: parseFloat(Math.abs(t.valor).toFixed(2)) 
-      };
+      return { data: `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`, valor: parseFloat(Math.abs(t.valor).toFixed(2)) };
     });
   };
 
-  if (loading || !user) return <div className="min-h-screen flex items-center justify-center bg-[#0a0f1d]"><Loader2 className="h-12 w-12 animate-spin text-blue-600" /></div>;
+  if (loading || !user) return <div className="min-h-screen flex items-center justify-center bg-[#0a0f1d] text-blue-600"><Loader2 className="animate-spin" size={48} /></div>;
 
   return (
     <div className="min-h-screen bg-[#0a0f1d] p-2 md:p-8 text-white font-black antialiased overflow-x-hidden pb-24 italic leading-none uppercase">
       
-      {/* Alertas Wolf */}
-      {alertConfig.show && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] px-4 w-full max-w-sm animate-in fade-in slide-in-from-top-4">
-          <div className={`flex items-center gap-3 p-4 rounded-2xl border-2 shadow-2xl backdrop-blur-xl ${alertConfig.type === 'error' ? 'bg-rose-950/80 border-rose-500 text-rose-200' : 'bg-emerald-950/80 border-emerald-500 text-emerald-200'}`}>
-            <p className="text-[10px] uppercase tracking-widest font-black">{alertConfig.msg}</p>
+      {/* --- MODAL DO TOUR GUIADO --- */}
+      {tourStep > 0 && (
+        <div className="fixed inset-0 z-[10000] bg-black/70 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="bg-blue-600 p-8 rounded-[3rem] border-4 border-white shadow-2xl max-w-sm w-full animate-in zoom-in duration-300 relative text-center">
+            <div className="flex justify-between items-center mb-6">
+               <span className="text-[10px] bg-white text-blue-600 px-3 py-1 rounded-full font-black italic">PASSO {tourStep} / 4</span>
+               <button onClick={endTour} className="bg-white/10 p-1 rounded-full"><X size={20}/></button>
+            </div>
+            {tourStep === 1 && (
+              <>
+                <h3 className="text-2xl mb-4 tracking-tighter">BEM-VINDO À ALCATEIA!</h3>
+                <p className="text-[11px] normal-case leading-relaxed mb-6 italic text-blue-100">Este é o seu centro de comando. Vamos te mostrar como dominar o Wolf Finance agora.</p>
+                <button onClick={nextTour} className="w-full bg-white text-blue-600 py-4 rounded-2xl text-[12px] font-black">INICIAR TOUR</button>
+              </>
+            )}
+            {tourStep === 2 && (
+              <>
+                <Coins size={48} className="mx-auto mb-4" />
+                <h3 className="text-2xl mb-4 tracking-tighter">AJUSTE SEU SALDO</h3>
+                <p className="text-[11px] normal-case leading-relaxed mb-6 italic text-blue-100">Clique no botão verde "SALDO" para definir quanto dinheiro você tem em conta hoje. Ele é a base de tudo.</p>
+                <button onClick={nextTour} className="w-full bg-white text-blue-600 py-4 rounded-2xl text-[12px] font-black">ENTENDI, PRÓXIMO</button>
+              </>
+            )}
+            {tourStep === 3 && (
+              <>
+                <Plus size={48} className="mx-auto mb-4" />
+                <h3 className="text-2xl mb-4 tracking-tighter">NOVO LANÇAMENTO</h3>
+                <p className="text-[11px] normal-case leading-relaxed mb-6 italic text-blue-100">Aqui você cadastra tudo: despesas, receitas e até compras parceladas. O Wolf calcula as datas para você.</p>
+                <button onClick={nextTour} className="w-full bg-white text-blue-600 py-4 rounded-2xl text-[12px] font-black">ENTENDI, PRÓXIMO</button>
+              </>
+            )}
+            {tourStep === 4 && (
+              <>
+                <CheckCircle size={48} className="mx-auto mb-4" />
+                <h3 className="text-2xl mb-4 tracking-tighter">LIQUIDE AS CONTAS</h3>
+                <p className="text-[11px] normal-case leading-relaxed mb-6 italic text-blue-100">Na lista, clique no círculo para marcar como pago. O saldo real só muda quando você confirma o pagamento!</p>
+                <button onClick={endTour} className="w-full bg-emerald-500 text-white py-4 rounded-2xl text-[12px] font-black shadow-lg">FINALIZAR E USAR</button>
+              </>
+            )}
           </div>
         </div>
       )}
 
-      {/* Header Wolf Finance */}
-{/* Header Wolf Finance */}
-<header className="flex flex-col gap-4 mb-6 bg-[#111827] p-4 md:p-6 rounded-[2rem] border border-slate-800 shadow-2xl">
-  <div className="flex justify-between items-center w-full">
-    <div className="flex items-center gap-3">
-      <img src="/logo.png" alt="Wolf Logo" className="w-10 h-10 object-contain" />
-      <div className="leading-none">
-        <h1 className="text-lg md:text-xl font-black tracking-tighter">WOLF FINANCE</h1>
-        <div className="flex items-center gap-2 mt-1">
-          <p className={`text-[9px] font-black ${theme.text}`}>OLÁ, {user?.user_metadata?.full_name?.split(' ')[0]}</p>
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-500/50 text-amber-500 text-[7px] font-black">
-            <Clock size={8} /> {diasRestantes} DIAS
+      {/* Alertas */}
+      {alertConfig.show && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] px-4 w-full max-w-sm animate-in fade-in slide-in-from-top-4">
+          <div className={`flex items-center gap-3 p-4 rounded-2xl border-2 shadow-2xl backdrop-blur-xl ${alertConfig.type === 'error' ? 'bg-rose-950/80 border-rose-500 text-rose-200' : 'bg-emerald-950/80 border-emerald-500 text-emerald-200'}`}>
+            <p className="text-[10px] tracking-widest font-black uppercase">{alertConfig.msg}</p>
           </div>
         </div>
-      </div>
-    </div>
+      )}
 
-    {/* --- BLOCO DE BOTÕES DE AÇÃO --- */}
-    <div className="flex items-center gap-2">
-      {/* NOVO BOTÃO DE TUTORIAL */}
-      <button 
-        onClick={() => router.push('/tutorial')} 
-        className="bg-slate-800 text-blue-400 p-2.5 rounded-full border border-blue-500/30 hover:bg-blue-600 hover:text-white transition-all shadow-lg active:scale-95"
-      >
-        <HelpCircle size={20} />
-      </button>
+      {/* HEADER PRINCIPAL */}
+      <header className="flex flex-col gap-4 mb-6 bg-[#111827] p-4 md:p-6 rounded-[2rem] border border-slate-800 shadow-2xl">
+        <div className="flex justify-between items-center w-full">
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="Wolf Logo" className="w-10 h-10 object-contain" />
+            <div className="leading-none">
+              <h1 className="text-lg md:text-xl font-black tracking-tighter">WOLF FINANCE</h1>
+              <div className="flex items-center gap-2 mt-1">
+                <p className={`text-[9px] font-black ${theme.text}`}>OLÁ, {user?.user_metadata?.full_name?.split(' ')[0]}</p>
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-500/50 text-amber-500 text-[7px] font-black">
+                  <Clock size={8} /> {diasRestantes} DIAS
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => router.push('/tutorial')} className="bg-slate-800 text-blue-400 p-2.5 rounded-full border border-blue-500/30 hover:bg-blue-600 hover:text-white transition-all active:scale-95 shadow-lg"><HelpCircle size={20}/></button>
+            <button onClick={() => router.push('/perfil')} className="bg-slate-800 text-slate-300 p-2.5 rounded-full border border-slate-700 hover:bg-blue-600 hover:text-white transition-all active:scale-95 shadow-lg"><UserCircle size={20}/></button>
+          </div>
+        </div>
 
-      {/* BOTÃO DE PERFIL (JÁ EXISTENTE) */}
-      <button 
-        onClick={() => router.push('/perfil')} 
-        className="bg-slate-800 text-slate-300 p-2.5 rounded-full border border-slate-700 hover:bg-blue-600 hover:text-white transition-all shadow-lg active:scale-95"
-      >
-        <UserCircle size={20} />
-      </button>
-    </div>
-  </div>
-  {/* ... restante do header (botões de Saldo, Cartão, Novo) */}
+        {/* --- BOTÕES QUE ESTAVAM FALTANDO --- */}
+        <div className="flex gap-2">
+          <button 
+            onClick={() => setIsSaldoModalOpen(true)} 
+            className={`flex-1 p-3 rounded-2xl border border-emerald-800/50 text-[10px] flex items-center justify-center gap-2 bg-emerald-900/20 text-emerald-400 active:scale-95 transition-all font-black ${tourStep === 2 ? 'ring-4 ring-white animate-pulse z-[10001]' : ''}`}
+          >
+            <Coins size={14} /> Saldo
+          </button>
+          <button 
+            onClick={() => { setEditingCardId(null); setIsCardModalOpen(true); }} 
+            className="flex-1 p-3 rounded-2xl border border-slate-700 text-[10px] flex items-center justify-center gap-2 bg-slate-800/50 text-slate-300 active:scale-95 transition-all font-black"
+          >
+            <CreditCard size={14} /> Cartão
+          </button>
+          <button 
+            onClick={() => setIsModalOpen(true)} 
+            className={`w-full md:w-auto p-3.5 rounded-2xl shadow-lg text-[10px] flex items-center justify-center gap-2 ${theme.primary} text-white active:scale-95 transition-all font-black ${tourStep === 3 ? 'ring-4 ring-white animate-pulse z-[10001]' : ''}`}
+          >
+            <Plus size={18} /> Novo
+          </button>
+        </div>
       </header>
-      {/* Cards de Dashboard */}
+
+      {/* DASHBOARD CARDS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6">
         <Card title="Saldo Pago" value={`R$ ${formatarMoeda(saldoCalculado)}`} icon={<Banknote size={20}/>} color={`bg-[#111827] border-b-8 ${theme.border}`} />
         <Card title="Gasto Mês" value={`R$ ${formatarMoeda(transacoesFiltradas.filter(t=>t.valor<0).reduce((a,b)=>a+b.valor,0))}`} icon={<CreditCard size={20}/>} color="bg-[#111827] border-b-8 border-rose-600" onClick={() => router.push('/detalhes-gastos')} />
         <Card title="Entrada Mês" value={`R$ ${formatarMoeda(transacoesFiltradas.filter(t=>t.valor>0).reduce((a,b)=>a+b.valor,0))}`} icon={<TrendingUp size={20}/>} color="bg-[#111827] border-b-8 border-emerald-600" />
-        
         <div className="bg-[#111827] p-4 rounded-[1.5rem] border-b-8 border-amber-500 flex flex-col justify-between h-32 relative shadow-2xl">
            <div className="flex items-center justify-between uppercase text-[9px] border-b border-white/10 pb-2 font-black">
               <button onClick={() => setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth() - 1)))}><ChevronLeft size={16}/></button>
               <span>{selectedDate.toLocaleString('pt-BR', { month: 'short', year: 'numeric' })}</span>
               <button onClick={() => setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth() + 1)))}><ChevronRight size={16}/></button>
            </div>
-           <button onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} className="w-full flex items-center justify-between text-[9px] uppercase font-black bg-slate-800/50 p-2 rounded-lg border border-slate-700 mt-2">
-             <span className="truncate">{filtroCartao}</span><ChevronDown size={12}/>
-           </button>
+           <button onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} className="w-full flex items-center justify-between text-[9px] uppercase font-black bg-slate-800/50 p-2 rounded-lg border border-slate-700 mt-2"><span className="truncate">{filtroCartao}</span><ChevronDown size={12}/></button>
            {isFilterMenuOpen && (
              <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#111827] border-2 border-slate-800 rounded-xl shadow-2xl z-[500] max-h-40 overflow-y-auto">
                <button onClick={() => { setFiltroCartao('Todos'); setIsFilterMenuOpen(false); }} className="w-full text-left p-3 border-b border-slate-800 text-[9px] font-black uppercase hover:bg-slate-800">Todos</button>
@@ -287,7 +302,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Gráfico de Performance */}
+      {/* GRÁFICO */}
       <div className="bg-[#111827] p-6 rounded-[2.5rem] border border-slate-800 shadow-2xl h-80 overflow-hidden mb-6">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={formatarDadosGrafico()}>
@@ -299,7 +314,7 @@ export default function HomePage() {
         </ResponsiveContainer>
       </div>
 
-      {/* Listas Inferiores */}
+      {/* ATIVIDADE E CARTÕES */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div className="lg:col-span-2 bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 shadow-2xl">
           <h2 className="text-white font-black mb-6 uppercase text-[10px] tracking-widest px-1">Meus Cartões</h2>
@@ -308,22 +323,18 @@ export default function HomePage() {
               <div key={c.id} className="p-4 border-2 border-slate-800 rounded-2xl flex justify-between items-center bg-slate-950/50 hover:border-blue-500 transition-all">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center overflow-hidden border border-slate-700">
-                    <img src={c.logo_url} className="w-full h-full object-contain" onError={(e: any) => e.currentTarget.style.display = 'none'} />
+                    <img src={c.logo_url} className="w-full h-full object-contain" />
                   </div>
-                  <div className="leading-tight">
-                    <p className="text-[8px] font-black text-slate-500 uppercase">{c.banco}</p>
-                    <p className="font-black text-xs uppercase">{c.nome_cartao}</p>
-                  </div>
+                  <div className="leading-tight"><p className="text-[8px] font-black text-slate-500 uppercase">{c.banco}</p><p className="font-black text-xs uppercase">{c.nome_cartao}</p></div>
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => { setEditingCardId(c.id); setBanco(c.banco); setNomeCartao(c.nome_cartao); setVencimento(c.vencimento.toString()); setIsCardModalOpen(true); }} className="text-slate-600 hover:text-white"><Pencil size={16}/></button>
-                  <button onClick={async () => { if(confirm("Apagar cartão?")) { await supabase.from('cartoes').delete().eq('id', c.id); fetchDados(user.id); } }} className="text-slate-600 hover:text-rose-500"><Trash2 size={16}/></button>
+                  <button onClick={async () => { if(confirm("Apagar?")) { await supabase.from('cartoes').delete().eq('id', c.id); fetchDados(user.id); } }} className="text-slate-600 hover:text-rose-500"><Trash2 size={16}/></button>
                 </div>
               </div>
             ))}
           </div>
         </div>
-
         <div className="bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 flex flex-col shadow-2xl min-h-[500px]">
           <h2 className="text-white font-black mb-4 uppercase text-[10px] tracking-widest">Atividade</h2>
           <div className="relative mb-4">
@@ -332,28 +343,23 @@ export default function HomePage() {
           </div>
           <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-1">
             {transacoesFiltradas.map((t) => (
-              <div key={t.id} className={`flex justify-between items-center p-4 rounded-2xl border ${t.pago ? 'bg-slate-800/40 border-slate-800' : 'bg-rose-900/10 border-rose-900/30'}`}>
+              <div key={t.id} className={`flex justify-between items-center p-4 rounded-2xl border ${t.pago ? 'bg-slate-800/40 border-slate-800' : 'bg-rose-900/10 border-rose-900/30'} ${tourStep === 4 ? 'ring-2 ring-white z-[10001]' : ''}`}>
                 <div className="flex items-center gap-3">
                   <button onClick={() => togglePago(t.id, t.pago)} className={`p-1.5 rounded-full ${t.pago ? 'text-emerald-500 bg-emerald-500/10' : 'text-slate-500 bg-slate-800'}`}>{t.pago ? <CheckCircle size={18}/> : <Circle size={18}/>}</button>
-                  <div className="leading-tight truncate max-w-[120px]">
-                    <p className="text-[10px] uppercase font-black">{t.descricao}</p>
-                    <p className={`text-[7px] uppercase font-black ${theme.text}`}>{t.forma_pagamento}</p>
-                  </div>
+                  <div className="leading-tight truncate max-w-[120px]"><p className="text-[10px] uppercase font-black">{t.descricao}</p><p className={`text-[7px] uppercase font-black ${theme.text}`}>{t.forma_pagamento}</p></div>
                 </div>
-                <div className="text-right">
-                  <p className={`text-[10px] font-black ${t.valor > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>R$ {formatarMoeda(t.valor)}</p>
-                </div>
+                <div className="text-right"><p className={`text-[10px] font-black ${t.valor > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>R$ {formatarMoeda(t.valor)}</p></div>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* MODAL NOVO LANÇAMENTO */}
+      {/* MODAL LANÇAMENTO */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000]">
           <form onSubmit={handleSalvarGasto} className="bg-[#111827] w-full max-w-md rounded-[3rem] p-6 border-4 border-slate-800 shadow-2xl">
-            <div className="flex justify-between items-center mb-6"><h2 className="text-xl uppercase font-black italic">Novo Lançamento</h2><button type="button" onClick={() => setIsModalOpen(false)} className="bg-slate-800 p-2 rounded-full hover:bg-rose-600 transition-all"><X size={20}/></button></div>
+            <div className="flex justify-between items-center mb-6"><h2 className="text-xl uppercase font-black italic tracking-tighter">Novo Lançamento</h2><button type="button" onClick={() => setIsModalOpen(false)} className="bg-slate-800 p-2 rounded-full hover:bg-rose-600 transition-all"><X size={20}/></button></div>
             <div className="space-y-4">
               <div className="flex gap-2 p-1 bg-slate-800 rounded-2xl">
                 <button type="button" onClick={() => setTipoMovimento('despesa')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase font-black ${tipoMovimento === 'despesa' ? 'bg-rose-600' : 'text-slate-500'}`}>Despesa</button>
@@ -362,38 +368,21 @@ export default function HomePage() {
               <input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="DESCRIÇÃO" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-sm font-black uppercase outline-none" required />
               <input type="text" value={valorDisplay} onChange={(e) => setValorDisplay(aplicarMascara(e.target.value))} placeholder="R$ 0,00" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-lg font-black text-center outline-none" required />
               <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <label className="text-[7px] font-black uppercase opacity-50 ml-2">Forma</label>
-                  <select value={metodoPagamento} onChange={(e) => { setMetodoPagamento(e.target.value); setTipoPagamento(e.target.value === 'Pix' ? 'Dinheiro' : 'Crédito'); }} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] outline-none font-black uppercase">
-                    <option value="Pix">Pix / Dinheiro</option>
-                    {cartoes.map(c => (<option key={c.id} value={`${c.banco} - ${c.nome_cartao}`}>{c.banco} - {c.nome_cartao}</option>))}
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[7px] font-black uppercase opacity-50 ml-2">Modalidade</label>
-                  <select value={tipoPagamento} onChange={(e) => setTipoPagamento(e.target.value as any)} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] outline-none font-black uppercase" disabled={metodoPagamento === 'Pix'}>
-                    {metodoPagamento === 'Pix' ? <option value="Dinheiro">Dinheiro (À Vista)</option> : <><option value="Crédito">Crédito</option><option value="Débito">Débito</option></>}
-                  </select>
-                </div>
+                <select value={metodoPagamento} onChange={(e) => { setMetodoPagamento(e.target.value); setTipoPagamento(e.target.value === 'Pix' ? 'Dinheiro' : 'Crédito'); }} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] outline-none font-black uppercase">
+                  <option value="Pix">Pix / Dinheiro</option>
+                  {cartoes.map(c => (<option key={c.id} value={`${c.banco} - ${c.nome_cartao}`}>{c.banco} - {c.nome_cartao}</option>))}
+                </select>
+                <select value={tipoPagamento} onChange={(e) => setTipoPagamento(e.target.value as any)} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] outline-none font-black uppercase" disabled={metodoPagamento === 'Pix'}>
+                  {metodoPagamento === 'Pix' ? <option value="Dinheiro">Dinheiro (À Vista)</option> : <><option value="Crédito">Crédito</option><option value="Débito">Débito</option></>}
+                </select>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 {tipoPagamento === 'Crédito' && metodoPagamento !== 'Pix' ? (
-                  <div className="relative">
-                    <label className="absolute -top-2 left-3 bg-[#111827] px-1 text-[7px] font-black text-blue-500 z-10 uppercase">Parcelas</label>
-                    <div className="flex items-center bg-slate-800 rounded-xl border-2 border-slate-700">
-                      <input type="number" min="1" max="48" value={parcelas} onChange={(e) => setParcelas(Number(e.target.value))} className="w-full p-4 bg-transparent text-[10px] font-black text-center outline-none" />
-                      <span className="pr-4 text-[10px] font-black text-slate-500 italic">X</span>
-                    </div>
-                  </div>
+                   <input type="number" min="1" max="48" value={parcelas} onChange={(e) => setParcelas(Number(e.target.value))} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] font-black text-center outline-none" />
                 ) : (
                   <div className="w-full p-4 bg-slate-900/50 rounded-xl border border-slate-800 text-[8px] flex items-center justify-center text-emerald-500 font-black uppercase italic"><Zap size={10} className="mr-1" /> À Vista</div>
                 )}
-                {tipoPagamento !== 'Crédito' && (
-                  <div className="relative">
-                    <label className="absolute -top-2 left-3 bg-[#111827] px-1 text-[7px] font-black text-slate-500 z-10 uppercase">Data</label>
-                    <input type="date" value={dataLancamento} onChange={(e) => setDataLancamento(e.target.value)} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] font-black text-center outline-none" required />
-                  </div>
-                )}
+                <input type="date" value={dataLancamento} onChange={(e) => setDataLancamento(e.target.value)} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] font-black text-center outline-none" required />
               </div>
               <button type="submit" className={`w-full ${theme.primary} py-5 rounded-[2rem] shadow-xl text-[10px] font-black active:scale-95 transition-all uppercase`}>Confirmar Lançamento</button>
             </div>
@@ -404,9 +393,9 @@ export default function HomePage() {
       {/* MODAL SALDO */}
       {isSaldoModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[6000]">
-          <div className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl relative">
+          <div className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl relative text-center">
             <button onClick={() => setIsSaldoModalOpen(false)} className="absolute top-6 right-6 p-2 bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors"><X size={20}/></button>
-            <h2 className="text-xl mb-8 text-emerald-500 text-center font-black italic uppercase">Saldo Bancário</h2>
+            <h2 className="text-xl mb-8 text-emerald-500 font-black italic uppercase">Saldo Bancário</h2>
             <div className="relative mb-6">
               <label className="absolute -top-2 left-3 bg-[#111827] px-1 text-[7px] font-black text-emerald-500 z-10 uppercase font-black">Valor em conta</label>
               <input type="text" value={saldoDisplay} onChange={(e) => setSaldoDisplay(aplicarMascara(e.target.value))} placeholder="R$ 0,00" className="w-full p-5 bg-slate-800 rounded-2xl border-2 border-slate-700 text-emerald-500 text-xl font-black text-center outline-none" />
@@ -419,9 +408,9 @@ export default function HomePage() {
       {/* MODAL CARTÃO */}
       {isCardModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[6000]">
-          <form onSubmit={handleSalvarCartao} className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-8 border-4 border-slate-800 shadow-2xl relative">
+          <form onSubmit={handleSalvarCartao} className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-8 border-4 border-slate-800 shadow-2xl relative text-center">
             <button type="button" onClick={() => setIsCardModalOpen(false)} className="absolute top-6 right-6 p-2 bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors"><X size={20}/></button>
-            <h2 className="text-xl mb-6 text-center font-black italic uppercase">Salvar Cartão</h2>
+            <h2 className="text-xl mb-6 font-black italic uppercase">Salvar Cartão</h2>
             <div className="space-y-4">
               <input value={banco} onChange={(e) => setBanco(e.target.value.toUpperCase())} placeholder="BANCO (EX: NUBANK)" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none text-sm font-black uppercase" required />
               <input value={nomeCartao} onChange={(e) => setNomeCartao(e.target.value.toUpperCase())} placeholder="NOME NO APP" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none text-sm font-black uppercase" required />
@@ -432,10 +421,7 @@ export default function HomePage() {
         </div>
       )}
 
-      <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
-      `}</style>
+      <style jsx global>{` .custom-scrollbar::-webkit-scrollbar { width: 4px; } .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; } `}</style>
     </div>
   );
 }
@@ -443,10 +429,7 @@ export default function HomePage() {
 function Card({ title, value, icon, color, onClick }: any) {
   return (
     <div onClick={onClick} className={`${color} ${onClick ? 'cursor-pointer hover:scale-[1.03] active:scale-95 transition-all' : ''} p-4 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl flex flex-col justify-between h-32 md:h-36 text-white text-left font-black italic`}>
-      <div className="flex justify-between items-start w-full tracking-widest">
-        <span className="text-white/20 text-[7px] md:text-[10px] uppercase font-black">{title}</span>
-        <div className="p-1.5 md:p-3 bg-white/5 rounded-xl backdrop-blur-md opacity-50">{icon}</div>
-      </div>
+      <div className="flex justify-between items-start w-full tracking-widest"><span className="text-white/20 text-[7px] md:text-[10px] uppercase font-black">{title}</span><div className="p-1.5 md:p-3 bg-white/5 rounded-xl backdrop-blur-md opacity-50">{icon}</div></div>
       <div className="text-sm md:text-2xl font-black truncate uppercase px-1 leading-tight tracking-tighter">{value}</div>
     </div>
   );
