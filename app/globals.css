@@ -1,95 +1,26 @@
 @import "tailwindcss";
 
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
 @theme inline {
-  --color-wolf-bg: #0a0f1d;
-  --color-wolf-card: #111827;
-  --color-wolf-border: #1e293b;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@layer components {
-  /* 1. VARIAÇÕES DE BOTÕES (CSS Puro + Tailwind Utilities) */
-  .btn-wolf-primary {
-    @apply flex items-center justify-center gap-2 font-black italic uppercase tracking-widest 
-           transition-all duration-300 ease-in-out active:scale-95 hover:brightness-110 
-           bg-blue-600 text-white rounded-2xl shadow-lg shadow-blue-600/20 cursor-pointer select-none;
-  }
-
-  .btn-wolf-success {
-    @apply flex items-center justify-center gap-2 font-black italic uppercase tracking-widest 
-           transition-all duration-300 ease-in-out active:scale-95 hover:brightness-110 
-           bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-600/20 cursor-pointer select-none;
-  }
-
-  .btn-wolf-admin {
-    @apply flex items-center justify-center gap-2 font-black italic uppercase tracking-widest 
-           transition-all duration-300 ease-in-out active:scale-95 hover:brightness-110 
-           bg-amber-500 text-black rounded-2xl shadow-lg shadow-amber-500/20 cursor-pointer select-none;
-  }
-
-  .btn-wolf-danger {
-    @apply flex items-center justify-center gap-2 font-black italic uppercase tracking-widest 
-           transition-all duration-300 ease-in-out active:scale-95 hover:brightness-110 
-           bg-rose-600 text-white rounded-2xl shadow-lg shadow-rose-600/20 cursor-pointer select-none;
-  }
-
-  .btn-wolf-outline {
-    @apply flex items-center justify-center gap-2 font-black italic uppercase tracking-widest 
-           transition-all duration-300 ease-in-out active:scale-95 hover:brightness-110 
-           border-2 border-slate-700 bg-slate-800/30 text-slate-300 rounded-2xl cursor-pointer select-none;
-  }
-
-  /* 2. INPUTS E CARDS */
-  .input-wolf {
-    @apply w-full bg-[#111827] border-4 border-slate-800 p-4 rounded-2xl outline-none 
-           font-black italic uppercase text-sm text-white transition-all duration-300 
-           focus:border-amber-500;
-    box-shadow: 0 0 20px rgba(245, 158, 11, 0);
-  }
-
-  .input-wolf:focus {
-    box-shadow: 0 0 20px rgba(245, 158, 11, 0.15);
-  }
-
-  .card-wolf {
-    @apply bg-[#111827] border-4 border-slate-800 rounded-[2.5rem] relative overflow-hidden;
-    transition: all 300ms ease-in-out;
-  }
-
-  .card-wolf-interactive {
-    @apply card-wolf cursor-pointer active:scale-[0.98];
-  }
-
-  .btn-wolf-icon {
-    @apply flex items-center justify-center p-2.5 rounded-full border-2 border-slate-700 
-           bg-slate-800 text-slate-300 transition-all duration-300 
-           hover:bg-blue-600 hover:text-white hover:scale-110 active:scale-90 shadow-md;
-  }
-
-  /* 3. UTILITÁRIOS DE TEXTO */
-  .text-wolf-title {
-    @apply font-black italic uppercase tracking-tighter;
-  }
-
-  .text-wolf-label {
-    @apply text-[9px] font-black uppercase tracking-[0.2em] text-slate-500;
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
   }
 }
 
-@layer base {
-  body {
-    @apply bg-[#0a0f1d] text-white antialiased overflow-x-hidden;
-    font-family: var(--font-geist-sans), sans-serif;
-  }
-
-  ::-webkit-scrollbar {
-    @apply w-1.5;
-  }
-  ::-webkit-scrollbar-track {
-    @apply bg-[#0a0f1d];
-  }
-  ::-webkit-scrollbar-thumb {
-    @apply bg-slate-800 rounded-full;
-  }
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
 }
