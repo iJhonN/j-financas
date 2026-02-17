@@ -4,13 +4,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   TrendingUp, Trash2, CreditCard, Banknote, Plus, X, Coins, Pencil, LogOut, 
-  UserCircle, ShieldCheck, Loader2, ChevronDown, Settings, 
+  UserCircle, ShieldCheck, Loader2, ChevronDown, Settings, Zap,
   AlertCircle, CheckCircle, Clock, Lock, RefreshCcw, Palette, Search, ChevronLeft, ChevronRight, Circle
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { supabase } from '@/lib/supabase';
 
-// Temas do Sistema
+// Temas do Sistema Wolf
 const THEMES = {
   blue: { primary: 'bg-blue-600', text: 'text-blue-400', border: 'border-blue-600', hover: 'hover:bg-blue-700', shadow: 'shadow-blue-500/20', chart: '#3b82f6' },
   emerald: { primary: 'bg-emerald-600', text: 'text-emerald-400', border: 'border-emerald-600', hover: 'hover:bg-emerald-700', shadow: 'shadow-emerald-500/20', chart: '#10b981' },
@@ -29,7 +29,7 @@ export default function HomePage() {
   const router = useRouter();
   const theme = THEMES[currentTheme];
 
-  // Estados de Modais e UI
+  // Modais e UI
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
@@ -39,13 +39,13 @@ export default function HomePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date());
   
-  // Dados do Supabase
+  // Dados
   const [transacoes, setTransacoes] = useState<any[]>([]);
   const [cartoes, setCartoes] = useState<any[]>([]);
   const [filtroCartao, setFiltroCartao] = useState('Todos');
   const [saldoInicial, setSaldoInicial] = useState(0);
 
-  // Estados de Formulários
+  // Formulários
   const [descricao, setDescricao] = useState('');
   const [valorDisplay, setValorDisplay] = useState('');
   const [metodoPagamento, setMetodoPagamento] = useState('Pix');
@@ -56,7 +56,7 @@ export default function HomePage() {
   const [diaRecorrencia, setDiaRecorrencia] = useState(new Date().getDate());
   const [dataLancamento, setDataLancamento] = useState(new Date().toISOString().split('T')[0]);
 
-  // Estados de Perfil
+  // Perfil
   const [novoNome, setNovoNome] = useState("");
   const [novaSenha, setNovaSenha] = useState('');
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
@@ -125,45 +125,61 @@ export default function HomePage() {
   const handleSalvarGasto = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isExpired) return showAlert("Acesso expirado!", "error");
-    const cleanDesc = sanitize(descricao);
+    
+    const cleanDesc = sanitize(descricao).toUpperCase();
     const vTotal = Number(valorDisplay.replace(/\./g, '').replace(',', '.'));
+    
     if (!cleanDesc || vTotal <= 0) return showAlert("Dados inválidos", "error");
 
     try {
       const valorComSinal = tipoMovimento === 'receita' ? Math.abs(vTotal) : -Math.abs(vTotal);
-      const valorParcela = parseFloat((valorComSinal / (recorrente ? 1 : parcelas)).toFixed(2));
+      
+      // Lógica Pix vs Parcelado
+      const isPix = metodoPagamento === 'Pix';
+      const numRepeticoes = isPix ? 1 : (recorrente ? 12 : parcelas);
+      const valorParcela = parseFloat((valorComSinal / numRepeticoes).toFixed(2));
+      
       const novosLancamentos = [];
       const hoje = new Date();
-      const numRepeticoes = recorrente ? 12 : parcelas;
 
       for (let i = 0; i < numRepeticoes; i++) {
-        let d = metodoPagamento === 'Pix' ? new Date(dataLancamento + 'T12:00:00') : new Date();
+        let d = isPix ? new Date(dataLancamento + 'T12:00:00') : new Date();
         
-        if (metodoPagamento !== 'Pix' && tipoPagamento === 'Crédito') {
+        if (!isPix && tipoPagamento === 'Crédito') {
            const cartao = cartoes.find(c => `${c.banco} - ${c.nome_cartao}` === metodoPagamento);
            if (cartao) {
               d.setDate(cartao.vencimento);
               if (hoje.getDate() > cartao.vencimento) d.setMonth(d.getMonth() + 1);
            }
         }
+        
         d.setMonth(d.getMonth() + i);
         if (recorrente) d.setDate(diaRecorrencia);
 
+        // Descrição com identificação de parcela e ícone de raio para Pix
+        const sufixoParcela = numRepeticoes > 1 ? ` - PARCELA ${(i + 1).toString().padStart(2, '0')}/${numRepeticoes.toString().padStart(2, '0')}` : "";
+        const prefixoZap = isPix ? "⚡ " : "";
+        const descricaoFinal = `${prefixoZap}${cleanDesc}${sufixoParcela}`;
+
         novosLancamentos.push({
-          descricao: numRepeticoes > 1 ? `${cleanDesc.toUpperCase()} (${i + 1}/${numRepeticoes})` : cleanDesc.toUpperCase(),
+          descricao: descricaoFinal,
           valor: valorParcela,
           forma_pagamento: metodoPagamento,
           tipo: tipoMovimento,
-          tipo_pagamento: tipoPagamento,
+          tipo_pagamento: isPix ? 'Dinheiro' : tipoPagamento,
           recorrente: recorrente,
           data_ordenacao: d.toISOString().split('T')[0],
           user_id: user.id,
-          pago: tipoMovimento === 'receita' || tipoPagamento === 'Débito'
+          // Pix, Receitas e Débito entram como pago automaticamente (descontando do saldo)
+          pago: isPix || tipoMovimento === 'receita' || tipoPagamento === 'Débito'
         });
       }
+
       const { error } = await supabase.from('transacoes').insert(novosLancamentos);
       if (error) throw error;
-      showAlert("Lançado com sucesso!"); setIsModalOpen(false);
+      
+      showAlert(isPix ? "Pix liquidado com sucesso! ⚡" : "Lançamento realizado!"); 
+      setIsModalOpen(false);
       setDescricao(''); setValorDisplay(''); setParcelas(1); setRecorrente(false);
       fetchDados(user.id);
     } catch (err) { showAlert("Erro ao salvar", "error"); }
@@ -273,18 +289,8 @@ export default function HomePage() {
       {/* Cards de Dashboard */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6">
         <Card title="Saldo Pago" value={`R$ ${formatarMoeda(saldoCalculado)}`} icon={<Banknote size={20}/>} color={`bg-[#111827] border-b-8 ${theme.border}`} />
-        
-        {/* Card Gasto Mês com Redirecionamento */}
-        <Card 
-          title="Gasto Mês" 
-          value={`R$ ${formatarMoeda(saidasMensais)}`} 
-          icon={<CreditCard size={20}/>} 
-          color="bg-[#111827] border-b-8 border-rose-600" 
-          onClick={() => router.push('/detalhes-gastos')}
-        />
-
+        <Card title="Gasto Mês" value={`R$ ${formatarMoeda(saidasMensais)}`} icon={<CreditCard size={20}/>} color="bg-[#111827] border-b-8 border-rose-600" onClick={() => router.push('/detalhes-gastos')} />
         <Card title="Entrada Mês" value={`R$ ${formatarMoeda(entradasMensais)}`} icon={<TrendingUp size={20}/>} color="bg-[#111827] border-b-8 border-emerald-600" />
-        
         <div className="bg-[#111827] p-4 rounded-[1.5rem] border-b-8 border-amber-500 flex flex-col justify-between h-32 relative">
            <div className="flex items-center justify-between uppercase text-[9px] border-b border-white/10 pb-2">
               <button onClick={() => setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth() - 1)))}><ChevronLeft size={16}/></button>
@@ -305,12 +311,10 @@ export default function HomePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div className="lg:col-span-2 space-y-6">
-          {/* Grafico */}
           <div className="bg-[#111827] p-6 rounded-[2.5rem] border border-slate-800 shadow-2xl h-80 overflow-hidden">
             <ResponsiveContainer width="100%" height="100%"><AreaChart data={formatarDadosGrafico()}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" /><XAxis dataKey="data" stroke="#475569" fontSize={10} tickLine={false} axisLine={false} tickMargin={10} /><Tooltip contentStyle={{backgroundColor: '#0f172a', border: 'none', borderRadius: '15px', fontWeight: '900', color: '#fff'}} formatter={(val: any) => [`R$ ${Number(val).toFixed(2)}`, 'Valor']}/><Area type="monotone" dataKey="valor" stroke={theme.chart} fill={theme.chart} fillOpacity={0.1} strokeWidth={4} /></AreaChart></ResponsiveContainer>
           </div>
 
-          {/* LISTA DE CARTÕES */}
           <div className="bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 shadow-2xl">
             <h2 className="text-white font-black mb-6 uppercase text-[10px] tracking-widest px-1">Meus Cartões</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -341,7 +345,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Historico */}
         <div className="bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 h-full overflow-hidden flex flex-col shadow-2xl min-h-[500px]">
           <div className="flex flex-col gap-4 mb-4">
             <h2 className="text-white font-black mb-2 uppercase text-[10px] tracking-widest">Lançamentos</h2>
@@ -367,23 +370,31 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* MODAL LANÇAMENTO */}
+      {/* MODAL LANÇAMENTO ATUALIZADO (LÓGICA PIX) */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000]">
           <form onSubmit={handleSalvarGasto} className="bg-[#111827] w-full max-w-md rounded-[3rem] p-6 border-4 border-slate-800 shadow-2xl">
             <div className="flex justify-between items-center mb-6"><h2 className="text-xl uppercase font-black">Novo Lançamento</h2><button type="button" onClick={() => setIsModalOpen(false)} className="bg-slate-800 p-2 rounded-full"><X size={20}/></button></div>
             <div className="space-y-4">
-              <div className="flex gap-2 p-1 bg-slate-800 rounded-2xl"><button type="button" onClick={() => setTipoMovimento('despesa')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase font-black ${tipoMovimento === 'despesa' ? 'bg-rose-600' : 'text-slate-500'}`}>Despesa</button><button type="button" onClick={() => setTipoMovimento('receita')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase font-black ${tipoMovimento === 'receita' ? 'bg-emerald-600' : 'text-slate-500'}`}>Receita</button></div>
+              <div className="flex gap-2 p-1 bg-slate-800 rounded-2xl">
+                <button type="button" onClick={() => setTipoMovimento('despesa')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase font-black ${tipoMovimento === 'despesa' ? 'bg-rose-600' : 'text-slate-500'}`}>Despesa</button>
+                <button type="button" onClick={() => setTipoMovimento('receita')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase font-black ${tipoMovimento === 'receita' ? 'bg-emerald-600' : 'text-slate-500'}`}>Receita</button>
+              </div>
               <input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="DESCRIÇÃO" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-sm font-black uppercase outline-none" required />
               <input type="text" value={valorDisplay} onChange={(e) => setValorDisplay(aplicarMascara(e.target.value))} placeholder="R$ 0,00" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-lg font-black text-center outline-none" required />
-              <select value={metodoPagamento} onChange={(e) => { setMetodoPagamento(e.target.value); setTipoPagamento(e.target.value === 'Pix' ? 'Dinheiro' : 'Crédito'); }} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] outline-none uppercase font-black"><option value="Pix">Pix / Dinheiro</option>{cartoes.map(c => (<option key={c.id} value={`${c.banco} - ${c.nome_cartao}`}>{c.banco} - {c.nome_cartao}</option>))}</select>
+              <select value={metodoPagamento} onChange={(e) => { setMetodoPagamento(e.target.value); setTipoPagamento(e.target.value === 'Pix' ? 'Dinheiro' : 'Crédito'); }} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] outline-none uppercase font-black">
+                <option value="Pix">Pix / Dinheiro</option>
+                {cartoes.map(c => (<option key={c.id} value={`${c.banco} - ${c.nome_cartao}`}>{c.banco} - {c.nome_cartao}</option>))}
+              </select>
               <div className="grid grid-cols-2 gap-3">
-                <input type="number" min="1" value={parcelas} onChange={(e) => setParcelas(Number(e.target.value))} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] font-black text-center outline-none" placeholder="PARCELAS" />
-                {metodoPagamento === 'Pix' && (<input type="date" value={dataLancamento} onChange={(e) => setDataLancamento(e.target.value)} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] font-black text-center outline-none" required />)}
-              </div>
-              <div className="p-3 bg-slate-900/50 rounded-xl border border-slate-800 flex justify-between items-center">
-                <div className="leading-tight"><p className="text-[9px] uppercase font-black">Recorrente?</p><p className="text-[7px] text-slate-500 uppercase">Gera 12 meses futuros</p></div>
-                <button type="button" onClick={() => setRecorrente(!recorrente)} className={`w-10 h-5 rounded-full relative transition-all ${recorrente ? 'bg-emerald-600' : 'bg-slate-700'}`}><div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${recorrente ? 'left-6' : 'left-1'}`} /></button>
+                {metodoPagamento !== 'Pix' ? (
+                  <input type="number" min="1" value={parcelas} onChange={(e) => setParcelas(Number(e.target.value))} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] font-black text-center outline-none" placeholder="PARCELAS" />
+                ) : (
+                  <div className="w-full p-4 bg-slate-900/50 rounded-xl border border-slate-800 text-[8px] flex items-center justify-center text-emerald-500 font-black tracking-widest uppercase">
+                    <Zap size={10} className="mr-1" /> Pix À Vista
+                  </div>
+                )}
+                <input type="date" value={dataLancamento} onChange={(e) => setDataLancamento(e.target.value)} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] font-black text-center outline-none" required />
               </div>
               <button type="submit" className={`w-full ${theme.primary} py-5 rounded-[2rem] shadow-xl uppercase text-[10px] font-black active:scale-95 transition-all`}>Confirmar</button>
             </div>
@@ -446,7 +457,7 @@ export default function HomePage() {
   );
 }
 
-// Componente Card Atualizado para suportar o onClick
+// Componente Card
 function Card({ title, value, icon, color, onClick }: any) {
   return (
     <div 
