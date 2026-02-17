@@ -56,7 +56,7 @@ export default function HomePage() {
   const [diaRecorrencia, setDiaRecorrencia] = useState(new Date().getDate());
   const [dataLancamento, setDataLancamento] = useState(new Date().toISOString().split('T')[0]);
 
-  // Estados de Edição e Perfil
+  // Estados de Perfil e Edição
   const [novoNome, setNovoNome] = useState("");
   const [novaSenha, setNovaSenha] = useState('');
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
@@ -84,18 +84,16 @@ export default function HomePage() {
     try {
       const { data: tData } = await supabase.from('transacoes').select('*').eq('user_id', userId).order('data_ordenacao', { ascending: false });
       if (tData) setTransacoes(tData.map(t => ({ ...t, valor: Number(t.valor), pago: t.pago ?? false })));
-      
       const { data: cData } = await supabase.from('cartoes').select('*').eq('user_id', userId);
       if (cData) setCartoes(cData);
-
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
       if (profile) {
         setSaldoInicial(Number(profile.saldo_inicial) || 0);
         if (profile.theme && THEMES[profile.theme as keyof typeof THEMES]) setCurrentTheme(profile.theme as any);
         const expDate = new Date(profile.expires_at);
-        const diffDays = Math.ceil((expDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-        setDiasRestantes(diffDays > 0 ? diffDays : 0);
-        setIsExpired(diffDays <= 0);
+        const diff = Math.ceil((expDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+        setDiasRestantes(diff > 0 ? diff : 0);
+        setIsExpired(diff <= 0);
       }
       setCheckingSubscription(false);
       setNovoNome(user?.user_metadata?.full_name || "");
@@ -140,7 +138,6 @@ export default function HomePage() {
       for (let i = 0; i < numRepeticoes; i++) {
         let d = metodoPagamento === 'Pix' ? new Date(dataLancamento) : new Date();
         
-        // Lógica de Fechamento de Fatura Inteligente
         if (metodoPagamento !== 'Pix' && tipoPagamento === 'Crédito') {
            const cartao = cartoes.find(c => `${c.banco} - ${c.nome_cartao}` === metodoPagamento);
            if (cartao) {
@@ -157,7 +154,7 @@ export default function HomePage() {
           valor: valorParcela,
           forma_pagamento: metodoPagamento,
           tipo: tipoMovimento,
-          tipo_pagamento: metodoPagamento === 'Pix' ? 'Dinheiro' : tipoPagamento,
+          tipo_pagamento: tipoPagamento,
           recorrente: recorrente,
           data_ordenacao: d.toISOString().split('T')[0],
           user_id: user.id,
@@ -166,9 +163,7 @@ export default function HomePage() {
       }
       const { error } = await supabase.from('transacoes').insert(novosLancamentos);
       if (error) throw error;
-
-      showAlert("Lançado com sucesso!");
-      setIsModalOpen(false);
+      showAlert("Lançado com sucesso!"); setIsModalOpen(false);
       setDescricao(''); setValorDisplay(''); setParcelas(1); setRecorrente(false);
       fetchDados(user.id);
     } catch (err) { showAlert("Erro ao salvar", "error"); }
@@ -179,20 +174,10 @@ export default function HomePage() {
     const cleanBanco = sanitize(banco).toUpperCase();
     const cleanNomeC = sanitize(nomeCartao).toUpperCase();
     const logoUrl = `https://logo.clearbit.com/${cleanBanco.toLowerCase().replace(/\s/g, '')}.com?size=100`;
-    
     let res;
-    if (editingCardId) {
-      res = await supabase.from('cartoes').update({ banco: cleanBanco, nome_cartao: cleanNomeC, vencimento: Number(vencimento), logo_url: logoUrl }).eq('id', editingCardId);
-    } else {
-      res = await supabase.from('cartoes').insert([{ banco: cleanBanco, nome_cartao: cleanNomeC, vencimento: Number(vencimento), logo_url: logoUrl, user_id: user.id }]);
-    }
-    
-    if (!res.error) {
-      fetchDados(user.id);
-      setIsCardModalOpen(false);
-      setBanco(''); setNomeCartao(''); setVencimento(''); setEditingCardId(null);
-      showAlert("Cartão salvo!");
-    } else { showAlert("Erro ao salvar cartão", "error"); }
+    if (editingCardId) res = await supabase.from('cartoes').update({ banco: cleanBanco, nome_cartao: cleanNomeC, vencimento: Number(vencimento), logo_url: logoUrl }).eq('id', editingCardId);
+    else res = await supabase.from('cartoes').insert([{ banco: cleanBanco, nome_cartao: cleanNomeC, vencimento: Number(vencimento), logo_url: logoUrl, user_id: user.id }]);
+    if (!res.error) { fetchDados(user.id); setIsCardModalOpen(false); setBanco(''); setNomeCartao(''); setVencimento(''); setEditingCardId(null); showAlert("Cartão salvo!"); }
   };
 
   const aplicarMascara = (valor: string) => {
@@ -207,10 +192,7 @@ export default function HomePage() {
   const formatarDadosGrafico = () => {
     return [...transacoesFiltradas].reverse().map(t => {
       const d = new Date(t.data_ordenacao);
-      return {
-        data: `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`,
-        valor: parseFloat(Math.abs(t.valor).toFixed(2))
-      };
+      return { data: `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`, valor: parseFloat(Math.abs(t.valor).toFixed(2)) };
     });
   };
 
@@ -226,12 +208,7 @@ export default function HomePage() {
 
   const entradasMensais = transacoesFiltradas.filter(t => t.valor > 0).reduce((acc, t) => acc + t.valor, 0);
   const saidasMensais = transacoesFiltradas.filter(t => t.valor < 0).reduce((acc, t) => acc + t.valor, 0);
-  
-  // SALDO ATUAL: SÓ CONSIDERA O QUE ESTÁ MARCADO COMO PAGO
-  const saldoCalculado = useMemo(() => {
-    const totalPago = transacoes.filter(t => t.pago).reduce((acc, t) => acc + t.valor, 0);
-    return saldoInicial + totalPago;
-  }, [transacoes, saldoInicial]);
+  const saldoCalculado = saldoInicial + transacoes.filter(t => t.pago).reduce((acc, t) => acc + t.valor, 0);
 
   if (loading || !user) return <div className="min-h-screen flex items-center justify-center bg-[#0a0f1d]"><Loader2 className="h-12 w-12 animate-spin text-blue-600" /></div>;
 
@@ -241,7 +218,7 @@ export default function HomePage() {
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] px-4 w-full max-w-sm animate-in fade-in slide-in-from-top-4 duration-300">
           <div className={`flex items-center gap-3 p-4 rounded-2xl border-2 shadow-2xl backdrop-blur-xl ${alertConfig.type === 'error' ? 'bg-rose-950/80 border-rose-500 text-rose-200' : 'bg-emerald-950/80 border-emerald-500 text-emerald-200'}`}>
             {alertConfig.type === 'error' ? <AlertCircle size={20}/> : <CheckCircle size={20}/>}
-            <p className="text-[10px] uppercase tracking-widest font-black">{alertConfig.msg}</p>
+            <p className="text-[10px] uppercase tracking-widest font-black italic">{alertConfig.msg}</p>
           </div>
         </div>
       )}
@@ -249,7 +226,7 @@ export default function HomePage() {
       {!checkingSubscription && isExpired && (
         <div className="mb-6 bg-rose-600/20 border-2 border-rose-600 p-4 rounded-3xl flex items-center gap-4 animate-pulse leading-none font-black italic">
           <div className="bg-rose-600 p-2 rounded-xl text-white shadow-lg"><Lock size={20} /></div>
-          <div className="leading-none"><h3 className="text-xs uppercase font-black">Acesso Bloqueado</h3><p className="text-[9px] text-rose-400 uppercase mt-1 font-black">Renove sua assinatura.</p></div>
+          <div className="leading-none italic font-black"><h3 className="text-xs uppercase">Acesso Bloqueado</h3><p className="text-[9px] text-rose-400 uppercase mt-1">Sua assinatura expirou.</p></div>
         </div>
       )}
 
@@ -261,7 +238,7 @@ export default function HomePage() {
               <h1 className="text-lg md:text-xl font-black uppercase tracking-tighter px-1">WOLF FINANCE</h1>
               <div className="flex items-center gap-2 mt-1 leading-none font-black italic">
                 <p className={`text-[9px] md:text-[10px] font-black ${theme.text} uppercase`}>Olá, {user?.user_metadata?.full_name?.split(' ')[0]}</p>
-                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-500/50 text-amber-500 text-[7px] font-black uppercase tracking-widest italic">
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-500/50 text-amber-500 text-[7px] font-black uppercase tracking-widest">
                   <Clock size={8} /> {checkingSubscription ? "..." : diasRestantes} DIAS
                 </div>
               </div>
@@ -276,7 +253,7 @@ export default function HomePage() {
             </div>
           )}
         </div>
-        <div className="flex gap-2 font-black leading-none">
+        <div className="flex gap-2 font-black leading-none italic font-black italic">
           <button onClick={() => setIsSaldoModalOpen(true)} className="flex-1 p-3 rounded-2xl border border-emerald-800/50 text-[10px] uppercase flex items-center justify-center gap-2 bg-emerald-900/20 text-emerald-400 active:scale-95 transition-all italic font-black"><Coins size={14} /> Saldo</button>
           <button onClick={() => { setEditingCardId(null); setIsCardModalOpen(true); }} className="flex-1 p-3 rounded-2xl border border-slate-700 text-[10px] uppercase flex items-center justify-center gap-2 bg-slate-800/50 text-slate-300 active:scale-95 transition-all font-black"><CreditCard size={14} /> Cartão</button>
           <button onClick={() => setIsModalOpen(true)} className={`w-full md:w-auto p-3.5 rounded-2xl shadow-lg text-[10px] uppercase flex items-center justify-center gap-2 ${theme.primary} text-white active:scale-95 transition-all font-black italic`}><Plus size={18} /> Novo</button>
@@ -287,19 +264,19 @@ export default function HomePage() {
         <Card title="Saldo Pago" value={`R$ ${formatarMoeda(saldoCalculado)}`} icon={<Banknote size={20}/>} color={`bg-[#111827] border-b-8 ${theme.border}`} />
         <Card title="Gasto Mês" value={`R$ ${formatarMoeda(saidasMensais)}`} icon={<CreditCard size={20}/>} color="bg-[#111827] border-b-8 border-rose-600" />
         <Card title="Entrada Mês" value={`R$ ${formatarMoeda(entradasMensais)}`} icon={<TrendingUp size={20}/>} color="bg-[#111827] border-b-8 border-emerald-600" />
-        <div className="bg-[#111827] p-4 rounded-[1.5rem] border-b-8 border-amber-500 flex flex-col justify-between h-32 relative italic font-black">
-           <div className="flex items-center justify-between font-black uppercase text-[9px] border-b border-white/10 pb-2 italic">
+        <div className="bg-[#111827] p-4 rounded-[1.5rem] border-b-8 border-amber-500 flex flex-col justify-between h-32 relative font-black italic italic font-black">
+           <div className="flex items-center justify-between font-black uppercase text-[9px] border-b border-white/10 pb-2 italic font-black italic font-black">
               <button onClick={() => setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth() - 1)))}><ChevronLeft size={16}/></button>
               <span>{selectedDate.toLocaleString('pt-BR', { month: 'short', year: 'numeric' })}</span>
               <button onClick={() => setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth() + 1)))}><ChevronRight size={16}/></button>
            </div>
-           <div className="relative font-black">
-             <button onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} className="w-full flex items-center justify-between text-[9px] uppercase font-black bg-slate-800/50 p-2 rounded-lg border border-slate-700 italic font-black">
-               <span className="truncate italic">{filtroCartao}</span><ChevronDown size={12}/>
+           <div className="relative font-black italic">
+             <button onClick={() => setIsFilterMenuOpen(!isFilterMenuOpen)} className="w-full flex items-center justify-between text-[9px] uppercase font-black bg-slate-800/50 p-2 rounded-lg border border-slate-700 italic font-black italic font-black">
+               <span className="truncate italic font-black">{filtroCartao}</span><ChevronDown size={12}/>
              </button>
              {isFilterMenuOpen && (
-               <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#111827] border-2 border-slate-800 rounded-xl shadow-2xl z-[500] max-h-40 overflow-y-auto italic font-black">
-                 <button onClick={() => { setFiltroCartao('Todos'); setIsFilterMenuOpen(false); }} className="w-full text-left p-3 border-b border-slate-800 text-[9px] font-black uppercase hover:bg-slate-800 italic">Todos</button>
+               <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#111827] border-2 border-slate-800 rounded-xl shadow-2xl z-[500] max-h-40 overflow-y-auto italic font-black italic font-black">
+                 <button onClick={() => { setFiltroCartao('Todos'); setIsFilterMenuOpen(false); }} className="w-full text-left p-3 border-b border-slate-800 text-[9px] font-black uppercase hover:bg-slate-800 italic font-black">Todos</button>
                  {cartoes.map(c => <button key={c.id} onClick={() => { setFiltroCartao(`${c.banco} - ${c.nome_cartao}`); setIsFilterMenuOpen(false); }} className="w-full text-left p-3 border-b border-slate-800 text-[9px] font-black uppercase hover:bg-slate-800 italic font-black">{c.banco} - {c.nome_cartao}</button>)}
                </div>
              )}
@@ -307,35 +284,39 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 leading-none italic font-black">
-        <div className="lg:col-span-2 space-y-6 leading-none font-black italic">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 leading-none italic font-black italic font-black">
+        <div className="lg:col-span-2 space-y-6 leading-none font-black italic font-black italic">
           <div className="bg-[#111827] p-6 rounded-[2.5rem] border border-slate-800 shadow-2xl h-80 overflow-hidden font-black">
             <ResponsiveContainer width="100%" height="100%"><AreaChart data={formatarDadosGrafico()}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" /><XAxis dataKey="data" stroke="#475569" fontSize={10} tickLine={false} axisLine={false} tickMargin={10} /><Tooltip contentStyle={{backgroundColor: '#0f172a', border: 'none', borderRadius: '15px', fontWeight: '900', color: '#fff'}} formatter={(val: any) => [`R$ ${Number(val).toFixed(2)}`, 'Valor']}/><Area type="monotone" dataKey="valor" stroke={theme.chart} fill={theme.chart} fillOpacity={0.1} strokeWidth={4} /></AreaChart></ResponsiveContainer>
           </div>
-          <div className="bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 shadow-2xl font-black leading-none italic">
-            <h2 className="text-white font-black mb-6 uppercase text-[10px] tracking-widest px-1 italic leading-none">Meus Cartões</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 shadow-2xl font-black leading-none italic font-black italic">
+            <h2 className="text-white font-black mb-6 uppercase text-[10px] tracking-widest px-1 italic leading-none font-black italic">Meus Cartões</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 italic font-black">
               {cartoes.map(c => (
-                <div key={c.id} className="p-4 border-2 border-slate-800 rounded-2xl flex justify-between items-center bg-slate-950/50 hover:border-blue-500 transition-all leading-none italic font-black">
-                  <div className="flex items-center gap-3 italic font-black"><img src={c.logo_url} className="w-10 h-10 object-contain rounded-lg" onError={(e:any)=>e.currentTarget.style.display='none'} alt="" /><div className="leading-tight font-black italic"><p className="text-[8px] font-black text-slate-500 uppercase">{c.banco}</p><p className="font-black text-xs uppercase">{c.nome_cartao}</p><p className={`text-[9px] ${theme.text} uppercase italic font-black`}>DIA {c.vencimento}</p></div></div>
-                  <div className="flex gap-2 italic font-black font-black italic"><button onClick={() => { setEditingCardId(c.id); setBanco(c.banco); setNomeCartao(c.nome_cartao); setVencimento(c.vencimento.toString()); setIsCardModalOpen(true); }} className="text-slate-600 hover:text-white font-black"><Pencil size={16}/></button><button onClick={async () => { if(confirm("Apagar?")) { await supabase.from('cartoes').delete().eq('id', c.id); fetchDados(user.id); } }} className="text-slate-600 hover:text-rose-500 font-black"><Trash2 size={16}/></button></div>
+                <div key={c.id} className="p-4 border-2 border-slate-800 rounded-2xl flex justify-between items-center bg-slate-950/50 hover:border-blue-500 transition-all leading-none italic font-black italic font-black">
+                  <div className="flex items-center gap-3 italic font-black italic font-black"><img src={c.logo_url} className="w-10 h-10 object-contain rounded-lg" onError={(e:any)=>e.currentTarget.style.display='none'} alt="" /><div className="leading-tight italic font-black font-black italic"><p className="text-[8px] font-black text-slate-500 uppercase font-black italic">{c.banco}</p><p className="font-black text-xs uppercase italic">{c.nome_cartao}</p><p className={`text-[9px] ${theme.text} uppercase italic font-black`}>DIA {c.vencimento}</p></div></div>
+                  <div className="flex gap-2 font-black italic font-black italic"><button onClick={() => { setEditingCardId(c.id); setBanco(c.banco); setNomeCartao(c.nome_cartao); setVencimento(c.vencimento.toString()); setIsCardModalOpen(true); }} className="text-slate-600 hover:text-white font-black italic"><Pencil size={16}/></button><button onClick={async () => { if(confirm("Apagar?")) { await supabase.from('cartoes').delete().eq('id', c.id); fetchDados(user.id); } }} className="text-slate-600 hover:text-rose-500 font-black italic"><Trash2 size={16}/></button></div>
                 </div>
               ))}
             </div>
           </div>
         </div>
-        <div className="bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 h-full overflow-hidden flex flex-col shadow-2xl min-h-[500px] italic font-black">
-          <div className="flex flex-col gap-4 mb-4 font-black">
-            <h2 className="text-white font-black mb-2 uppercase text-[10px] tracking-widest px-1 italic leading-none">Lançamentos</h2>
-            <div className="relative italic font-black"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 italic" size={14} /><input type="text" placeholder="BUSCAR..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2 pl-9 pr-4 text-[9px] outline-none focus:border-blue-500 transition-all font-black uppercase italic italic font-black" /></div>
+        <div className="bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 h-full overflow-hidden flex flex-col shadow-2xl min-h-[500px] italic font-black italic font-black">
+          <div className="flex flex-col gap-4 mb-4 font-black italic font-black italic">
+            <h2 className="text-white font-black mb-2 uppercase text-[10px] tracking-widest px-1 italic font-black italic">Histórico de Lançamentos</h2>
+            <div className="relative italic font-black font-black italic font-black italic"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 italic" size={14} /><input type="text" placeholder="PESQUISAR..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2 pl-9 pr-4 text-[9px] outline-none focus:border-blue-500 transition-all font-black uppercase italic italic font-black italic font-black" /></div>
           </div>
-          <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-1 italic font-black italic font-black">
+          <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar flex-1 font-black italic font-black italic">
             {transacoesFiltradas.map((t) => (
               <div key={t.id} className={`flex justify-between items-center p-4 rounded-2xl border transition-all italic font-black italic font-black ${t.pago ? 'bg-slate-800/40 border-slate-800' : 'bg-rose-900/10 border-rose-900/30'}`}>
-                <div className="flex items-center gap-3 italic font-black"><button onClick={() => togglePago(t.id, t.pago)} className={`p-1.5 rounded-full transition-all ${t.pago ? 'text-emerald-500 bg-emerald-500/10' : 'text-slate-500 bg-slate-800'}`}>{t.pago ? <CheckCircle size={18}/> : <Circle size={18}/>}</button>
-                  <div className="leading-tight italic font-black"><p className={`text-[10px] uppercase truncate max-w-[100px] font-black ${t.pago ? 'text-slate-200' : 'text-rose-400'}`}>{t.descricao}</p><p className="text-[8px] text-slate-500 uppercase italic font-black">{t.data_ordenacao}</p></div>
+                <div className="flex items-center gap-3 italic font-black italic font-black"><button onClick={() => togglePago(t.id, t.pago)} className={`p-1.5 rounded-full transition-all ${t.pago ? 'text-emerald-500 bg-emerald-500/10 font-black italic' : 'text-slate-500 bg-slate-800 font-black italic'}`}>{t.pago ? <CheckCircle size={18}/> : <Circle size={18}/>}</button>
+                  <div className="leading-tight italic font-black italic font-black"><p className={`text-[10px] uppercase truncate max-w-[100px] font-black ${t.pago ? 'text-slate-200 font-black italic' : 'text-rose-400 font-black italic'}`}>{t.descricao}</p>
+                    {/* NOVO: BANCO + APELIDO NOS LANÇAMENTOS */}
+                    <div className="flex items-center gap-1 mt-0.5"><CreditCard size={8} className={theme.text}/><p className={`text-[7px] uppercase font-black italic ${theme.text}`}>{t.forma_pagamento}</p></div>
+                    <p className="text-[7px] text-slate-500 uppercase italic font-black mt-0.5">{t.data_ordenacao}</p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 italic font-black"><span className={`text-[10px] font-black ${t.valor > 0 ? 'text-emerald-500' : 'text-rose-500 font-black italic'}`}>R$ {formatarMoeda(t.valor)}</span><button onClick={async () => { if(confirm("Apagar?")) { await supabase.from('transacoes').delete().eq('id', t.id); fetchDados(user.id); } }} className="text-slate-700 hover:text-rose-500 italic font-black font-black italic"><Trash2 size={14} /></button></div>
+                <div className="flex items-center gap-2 font-black italic font-black italic italic font-black italic"><span className={`text-[10px] font-black ${t.valor > 0 ? 'text-emerald-500 font-black italic' : 'text-rose-500 font-black italic'}`}>R$ {formatarMoeda(t.valor)}</span><button onClick={async () => { if(confirm("Apagar?")) { await supabase.from('transacoes').delete().eq('id', t.id); fetchDados(user.id); } }} className="text-slate-700 hover:text-rose-500 italic font-black font-black italic font-black italic"><Trash2 size={14} /></button></div>
               </div>
             ))}
           </div>
@@ -344,26 +325,26 @@ export default function HomePage() {
 
       {/* MODAL LANÇAMENTO */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000]">
-          <form onSubmit={handleSalvarGasto} className="bg-[#111827] w-full max-w-md rounded-[3rem] p-6 border-4 border-slate-800 shadow-2xl text-white font-black italic italic font-black">
-            <div className="flex justify-between items-center mb-6 italic font-black"><h2 className="text-xl uppercase font-black italic">Novo Lançamento</h2><button type="button" onClick={() => setIsModalOpen(false)} className="bg-slate-800 p-2 rounded-full font-black italic font-black"><X size={20}/></button></div>
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000] italic font-black">
+          <form onSubmit={handleSalvarGasto} className="bg-[#111827] w-full max-w-md rounded-[3rem] p-6 border-4 border-slate-800 shadow-2xl text-white font-black italic font-black italic font-black">
+            <div className="flex justify-between items-center mb-6 italic font-black italic font-black"><h2 className="text-xl uppercase font-black italic font-black italic">Lançamento</h2><button type="button" onClick={() => setIsModalOpen(false)} className="bg-slate-800 p-2 rounded-full font-black italic italic font-black"><X size={20}/></button></div>
             <div className="space-y-4 italic font-black italic font-black">
-              <div className="flex gap-2 p-1 bg-slate-800 rounded-2xl font-black italic leading-none"><button type="button" onClick={() => setTipoMovimento('despesa')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase italic font-black ${tipoMovimento === 'despesa' ? 'bg-rose-600 font-black' : 'text-slate-500 font-black'}`}>Despesa</button><button type="button" onClick={() => setTipoMovimento('receita')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase italic font-black ${tipoMovimento === 'receita' ? 'bg-emerald-600 font-black' : 'text-slate-500 font-black'}`}>Receita</button></div>
-              <input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="DESCRIÇÃO" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-sm font-black uppercase outline-none italic font-black" required />
-              <input type="text" value={valorDisplay} onChange={(e) => setValorDisplay(aplicarMascara(e.target.value))} placeholder="R$ 0,00" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-lg font-black text-center outline-none italic font-black italic font-black" required />
-              <div className="space-y-3 font-black italic leading-none"><div className="space-y-1 italic font-black leading-none"><label className="text-[8px] text-slate-500 uppercase ml-2 italic font-black">Método / Cartão</label>
-                <select value={metodoPagamento} onChange={(e) => { setMetodoPagamento(e.target.value); setTipoPagamento(e.target.value === 'Pix' ? 'Dinheiro' : 'Crédito'); }} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] outline-none uppercase font-black italic font-black"><option value="Pix">Pix / Dinheiro</option>{cartoes.map(c => (<option key={c.id} value={`${c.banco} - ${c.nome_cartao}`}>{c.banco} - {c.nome_cartao}</option>))}</select></div>
+              <div className="flex gap-2 p-1 bg-slate-800 rounded-2xl font-black italic leading-none font-black italic"><button type="button" onClick={() => setTipoMovimento('despesa')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase italic font-black ${tipoMovimento === 'despesa' ? 'bg-rose-600 font-black' : 'text-slate-500 font-black'}`}>Despesa</button><button type="button" onClick={() => setTipoMovimento('receita')} className={`flex-1 py-3 rounded-xl text-[10px] uppercase italic font-black ${tipoMovimento === 'receita' ? 'bg-emerald-600 font-black' : 'text-slate-500 font-black'}`}>Receita</button></div>
+              <input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="DESCRIÇÃO" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-sm font-black uppercase outline-none italic font-black font-black italic" required />
+              <input type="text" value={valorDisplay} onChange={(e) => setValorDisplay(aplicarMascara(e.target.value))} placeholder="R$ 0,00" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-lg font-black text-center outline-none italic font-black font-black italic" required />
+              <div className="space-y-3 font-black italic italic font-black leading-none font-black italic"><div className="space-y-1 italic font-black leading-none italic font-black"><label className="text-[8px] text-slate-500 uppercase ml-2 italic font-black italic font-black">Método / Cartão</label>
+                <select value={metodoPagamento} onChange={(e) => { setMetodoPagamento(e.target.value); setTipoPagamento(e.target.value === 'Pix' ? 'Dinheiro' : 'Crédito'); }} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] outline-none uppercase font-black italic font-black italic font-black"><option value="Pix">Pix / Dinheiro</option>{cartoes.map(c => (<option key={c.id} value={`${c.banco} - ${c.nome_cartao}`}>{c.banco} - {c.nome_cartao}</option>))}</select></div>
                 {metodoPagamento !== 'Pix' && (
-                  <div className="space-y-1 italic font-black italic font-black leading-none"><label className="text-[8px] text-slate-500 uppercase ml-2 italic font-black">Tipo de Pagamento</label>
-                    <select value={tipoPagamento} onChange={(e: any) => setTipoPagamento(e.target.value)} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] font-black uppercase italic outline-none italic font-black"><option value="Crédito">Crédito</option><option value="Débito">Débito</option></select>
+                  <div className="space-y-1 italic font-black italic font-black font-black italic leading-none"><label className="text-[8px] text-slate-500 uppercase ml-2 italic font-black italic font-black">Tipo</label>
+                    <select value={tipoPagamento} onChange={(e: any) => setTipoPagamento(e.target.value)} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] font-black uppercase italic outline-none italic font-black italic font-black"><option value="Crédito">Crédito</option><option value="Débito">Débito</option></select>
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-3 italic font-black italic font-black leading-none"><div className="space-y-1 italic font-black"><label className="text-[8px] text-slate-500 uppercase ml-2 italic font-black">Parcelas</label><input type="number" min="1" max="48" value={parcelas} onChange={(e) => setParcelas(Number(e.target.value))} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] font-black text-center outline-none italic font-black font-black" /></div>
-                  {metodoPagamento === 'Pix' && (<div className="space-y-1 italic font-black"><label className="text-[8px] text-slate-500 uppercase ml-2 italic font-black">Data</label><input type="date" value={dataLancamento} onChange={(e) => setDataLancamento(e.target.value)} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] font-black text-center outline-none italic font-black font-black" required /></div>)}
+                <div className="grid grid-cols-2 gap-3 italic font-black italic font-black font-black italic leading-none font-black italic"><div className="space-y-1 italic font-black italic font-black"><label className="text-[8px] text-slate-500 uppercase ml-2 italic font-black italic font-black">Parcelas</label><input type="number" min="1" max="48" value={parcelas} onChange={(e) => setParcelas(Number(e.target.value))} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] font-black text-center outline-none italic font-black italic font-black font-black italic" /></div>
+                  {metodoPagamento === 'Pix' && (<div className="space-y-1 italic font-black italic font-black italic font-black"><label className="text-[8px] text-slate-500 uppercase ml-2 italic font-black italic font-black">Data</label><input type="date" value={dataLancamento} onChange={(e) => setDataLancamento(e.target.value)} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] font-black text-center outline-none italic font-black italic font-black font-black italic" required /></div>)}
                 </div>
-                <div className="p-3 bg-slate-900/50 rounded-xl border border-slate-800 flex justify-between items-center italic font-black italic font-black leading-none"><div className="leading-tight italic"><p className="text-[9px] uppercase font-black italic">Recorrente?</p><p className="text-[7px] text-slate-500 italic uppercase italic font-black">Gera 12 meses futuros</p></div><button type="button" onClick={() => setRecorrente(!recorrente)} className={`w-10 h-5 rounded-full relative transition-all italic font-black ${recorrente ? 'bg-emerald-600' : 'bg-slate-700 font-black'}`}><div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${recorrente ? 'left-6' : 'left-1'}`} /></button></div>
-                {recorrente && (<div className="flex items-center justify-between p-2 bg-slate-800 rounded-lg italic font-black font-black italic leading-none"><span className="text-[8px] uppercase font-black italic font-black">Dia fixo cobrado:</span><input type="number" min="1" max="31" value={diaRecorrencia} onChange={(e) => setDiaRecorrencia(Number(e.target.value))} className="w-12 bg-slate-900 border border-slate-700 rounded p-1 text-center text-xs font-black italic font-black" /></div>)}
-              </div><button type="submit" className={`w-full ${theme.primary} py-5 rounded-[2rem] shadow-xl uppercase text-[10px] font-black active:scale-95 transition-all italic font-black font-black italic leading-none`}>Confirmar Lançamento</button>
+                <div className="p-3 bg-slate-900/50 rounded-xl border border-slate-800 flex justify-between items-center italic font-black italic font-black italic font-black leading-none font-black italic"><div className="leading-tight italic font-black font-black italic"><p className="text-[9px] uppercase font-black italic font-black italic">Recorrente?</p><p className="text-[7px] text-slate-500 italic uppercase italic font-black italic font-black">Gera 12 meses futuros</p></div><button type="button" onClick={() => setRecorrente(!recorrente)} className={`w-10 h-5 rounded-full relative transition-all italic font-black ${recorrente ? 'bg-emerald-600' : 'bg-slate-700 font-black'}`}><div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${recorrente ? 'left-6' : 'left-1'}`} /></button></div>
+                {recorrente && (<div className="flex items-center justify-between p-2 bg-slate-800 rounded-lg italic font-black font-black italic font-black italic leading-none font-black italic"><span className="text-[8px] uppercase font-black italic font-black italic font-black italic">Dia fixo cobrado:</span><input type="number" min="1" max="31" value={diaRecorrencia} onChange={(e) => setDiaRecorrencia(Number(e.target.value))} className="w-12 bg-slate-900 border border-slate-700 rounded p-1 text-center text-xs font-black italic font-black italic font-black italic" /></div>)}
+              </div><button type="submit" className={`w-full ${theme.primary} py-5 rounded-[2rem] shadow-xl uppercase text-[10px] font-black active:scale-95 transition-all italic font-black font-black italic leading-none font-black italic`}>Confirmar Lançamento</button>
             </div>
           </form>
         </div>
@@ -371,46 +352,44 @@ export default function HomePage() {
 
       {/* MODAL CARTÃO */}
       {isCardModalOpen && (
-        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000]">
-          <form onSubmit={handleSalvarCartao} className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-8 border-4 border-slate-800 text-white font-black italic italic font-black">
-            <h2 className="text-xl mb-6 text-center uppercase tracking-widest font-black italic leading-none">{editingCardId ? 'Editar' : 'Novo'} Cartão</h2>
-            <div className="space-y-4 font-black font-black italic"><input value={banco} onChange={(e) => setBanco(e.target.value)} placeholder="BANCO" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none text-sm uppercase italic font-black italic" required /><input value={nomeCartao} onChange={(e) => setNomeCartao(e.target.value)} placeholder="APELIDO" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none text-sm uppercase italic font-black italic" required /><input type="number" min="1" max="31" value={vencimento} onChange={(e) => setVencimento(e.target.value)} placeholder="VENCIMENTO (DIA)" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-sm text-center outline-none italic font-black italic font-black" required /><button type="submit" className={`w-full ${theme.primary} py-4 rounded-[2rem] uppercase text-[10px] font-black italic font-black leading-none`}>Salvar Cartão</button><button type="button" onClick={() => { setIsCardModalOpen(false); setEditingCardId(null); setBanco(''); setNomeCartao(''); setVencimento(''); }} className="w-full text-slate-500 py-2 uppercase text-[9px] font-black italic italic font-black">Cancelar</button></div>
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000] italic font-black">
+          <form onSubmit={handleSalvarCartao} className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-8 border-4 border-slate-800 text-white font-black italic italic font-black italic font-black">
+            <h2 className="text-xl mb-6 text-center uppercase tracking-widest font-black italic font-black italic leading-none">{editingCardId ? 'Editar' : 'Novo'} Cartão</h2>
+            <div className="space-y-4 font-black font-black italic font-black italic"><input value={banco} onChange={(e) => setBanco(e.target.value)} placeholder="BANCO" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none text-sm uppercase italic font-black italic font-black italic font-black italic" required /><input value={nomeCartao} onChange={(e) => setNomeCartao(e.target.value)} placeholder="APELIDO" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none text-sm uppercase italic font-black italic font-black italic font-black italic" required /><input type="number" min="1" max="31" value={vencimento} onChange={(e) => setVencimento(e.target.value)} placeholder="DIA DE FECHAMENTO" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-sm text-center outline-none italic font-black italic font-black italic font-black italic font-black" required /><button type="submit" className={`w-full ${theme.primary} py-4 rounded-[2rem] uppercase text-[10px] font-black italic font-black italic font-black italic leading-none`}>Salvar</button><button type="button" onClick={() => { setIsCardModalOpen(false); setEditingCardId(null); setBanco(''); setNomeCartao(''); setVencimento(''); }} className="w-full text-slate-500 py-2 uppercase text-[9px] font-black italic italic font-black italic font-black italic font-black italic">Cancelar</button></div>
           </form>
         </div>
       )}
 
-      {/* MODAL SALDO */}
       {isSaldoModalOpen && (
-        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000]">
-          <div className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 text-white font-black italic italic font-black">
-            <h2 className="text-xl mb-8 text-emerald-500 text-center uppercase tracking-widest font-black italic italic font-black leading-none">Saldo Inicial</h2>
-            <input type="text" value={saldoDisplay} onChange={(e) => setSaldoDisplay(aplicarMascara(e.target.value))} placeholder="R$ 0,00" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-emerald-500 text-xl outline-none font-black text-center mb-6 italic italic font-black italic" />
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000] font-black italic">
+          <div className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 text-white font-black italic italic font-black font-black italic leading-none">
+            <h2 className="text-xl mb-8 text-emerald-500 text-center uppercase tracking-widest font-black italic italic font-black italic font-black font-black italic">Saldo Inicial</h2>
+            <input type="text" value={saldoDisplay} onChange={(e) => setSaldoDisplay(aplicarMascara(e.target.value))} placeholder="R$ 0,00" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-emerald-500 text-xl outline-none font-black text-center mb-6 italic italic font-black italic font-black italic font-black italic" />
             <button onClick={async () => {
               const v = Number(saldoDisplay.replace(/\./g, '').replace(',', '.'));
               await supabase.from('profiles').update({ saldo_inicial: v }).eq('id', user.id);
               setSaldoInicial(v); setIsSaldoModalOpen(false); setSaldoDisplay(''); fetchDados(user.id);
-            }} className="w-full bg-emerald-600 py-5 rounded-[2rem] uppercase text-[10px] shadow-lg font-black italic italic font-black italic leading-none">Confirmar</button>
-            <button onClick={() => setIsSaldoModalOpen(false)} className="w-full text-slate-500 py-4 mt-2 uppercase text-[9px] font-black italic italic font-black leading-none">Fechar</button>
+            }} className="w-full bg-emerald-600 py-5 rounded-[2rem] uppercase text-[10px] shadow-lg font-black italic italic font-black italic font-black italic font-black italic">Confirmar</button>
+            <button onClick={() => setIsSaldoModalOpen(false)} className="w-full text-slate-500 py-4 mt-2 uppercase text-[9px] font-black italic italic font-black italic font-black italic font-black italic">Fechar</button>
           </div>
         </div>
       )}
 
-      {/* MODAL AJUSTES */}
       {isConfigModalOpen && (
-        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000]">
+        <div className="fixed inset-0 bg-white/10 backdrop-blur-md flex items-center justify-center p-4 z-[5000] italic font-black">
           <form onSubmit={async (e) => {
             e.preventDefault();
             const { error } = await supabase.auth.updateUser({ data: { full_name: novoNome }, ...(novaSenha && { password: novaSenha }) });
             if (!error) { showAlert("Perfil atualizado!"); setIsConfigModalOpen(false); }
-          }} className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 text-white font-black italic italic font-black">
-            <div className="flex justify-between items-center mb-8 italic font-black leading-none"><h2 className="text-xl uppercase font-black italic italic font-black">Ajustes</h2><button type="button" onClick={() => setIsConfigModalOpen(false)} className="bg-slate-800 p-2 rounded-full font-black italic italic font-black"><X size={20}/></button></div>
-            <div className="mb-8 font-black italic leading-none"><p className="text-[8px] text-slate-500 uppercase mb-4 tracking-widest leading-none italic font-black"><Palette size={12} className="inline mr-2 italic"/> Estilo</p>
-              <div className="flex justify-between italic font-black">{Object.keys(THEMES).map((tName) => <button key={tName} type="button" onClick={() => changeTheme(tName as any)} className={`w-10 h-10 rounded-full border-4 font-black ${currentTheme === tName ? 'border-white scale-110' : 'border-transparent opacity-40'} ${THEMES[tName as keyof typeof THEMES].primary} transition-all font-black`} />)}</div>
+          }} className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 text-white font-black italic italic font-black font-black italic font-black italic">
+            <div className="flex justify-between items-center mb-8 italic font-black font-black italic leading-none font-black italic"><h2 className="text-xl uppercase font-black italic italic font-black font-black italic font-black italic">Ajustes</h2><button type="button" onClick={() => setIsConfigModalOpen(false)} className="bg-slate-800 p-2 rounded-full font-black italic italic font-black font-black italic font-black italic"><X size={20}/></button></div>
+            <div className="mb-8 font-black italic font-black italic leading-none font-black italic font-black italic"><p className="text-[8px] text-slate-500 uppercase mb-4 tracking-widest leading-none italic font-black font-black italic font-black italic font-black italic font-black italic"><Palette size={12} className="inline mr-2 italic italic font-black italic font-black"/> Estilo</p>
+              <div className="flex justify-between italic font-black font-black italic font-black italic font-black italic">{Object.keys(THEMES).map((tName) => <button key={tName} type="button" onClick={() => changeTheme(tName as any)} className={`w-10 h-10 rounded-full border-4 font-black italic font-black italic font-black italic font-black italic font-black italic font-black italic ${currentTheme === tName ? 'border-white scale-110' : 'border-transparent opacity-40'} ${THEMES[tName as keyof typeof THEMES].primary} transition-all font-black italic font-black italic`} />)}</div>
             </div>
-            <div className="space-y-4 italic font-black italic font-black leading-none">
-              <input value={novoNome} onChange={(e) => setNovoNome(e.target.value)} placeholder="NOME" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none text-white text-sm font-black italic font-black font-black" />
-              <input type="password" value={novaSenha} onChange={(e) => setNovaSenha(e.target.value)} placeholder="NOVA SENHA" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-white text-sm font-black italic font-black font-black" />
-              <button type="submit" className={`w-full ${theme.primary} py-5 rounded-[2rem] uppercase text-[10px] font-black italic italic font-black leading-none`}>Salvar Tudo</button>
+            <div className="space-y-4 italic font-black italic font-black font-black italic font-black italic leading-none font-black italic">
+              <input value={novoNome} onChange={(e) => setNovoNome(e.target.value)} placeholder="NOME" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none text-white text-sm font-black italic font-black italic font-black italic font-black italic font-black italic" />
+              <input type="password" value={novaSenha} onChange={(e) => setNovaSenha(e.target.value)} placeholder="NOVA SENHA" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-white text-sm font-black italic font-black italic font-black italic font-black italic font-black italic" />
+              <button type="submit" className={`w-full ${theme.primary} py-5 rounded-[2rem] uppercase text-[10px] font-black italic italic font-black italic font-black italic font-black italic leading-none`}>Salvar Tudo</button>
             </div>
           </form>
         </div>
@@ -421,12 +400,12 @@ export default function HomePage() {
 
 function Card({ title, value, icon, color }: any) {
   return (
-    <div className={`${color} p-4 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl transition-transform active:scale-[0.98] border-black/20 flex flex-col justify-between h-32 md:h-36 text-white text-left font-black italic leading-none italic font-black`}>
-      <div className="flex justify-between items-start w-full leading-none font-black italic">
-        <span className="text-white/20 font-black text-[7px] md:text-[10px] uppercase tracking-widest leading-none font-black italic italic font-black">{title}</span>
-        <div className="p-1.5 md:p-3 bg-white/5 rounded-xl backdrop-blur-md border border-white/5 opacity-50 leading-none italic font-black italic font-black">{icon}</div>
+    <div className={`${color} p-4 md:p-7 rounded-[1.5rem] md:rounded-[2.5rem] shadow-2xl transition-transform active:scale-[0.98] border-black/20 flex flex-col justify-between h-32 md:h-36 text-white text-left font-black italic leading-none italic font-black italic font-black`}>
+      <div className="flex justify-between items-start w-full leading-none font-black italic italic font-black italic font-black">
+        <span className="text-white/20 font-black text-[7px] md:text-[10px] uppercase tracking-widest leading-none font-black italic italic font-black italic font-black italic font-black italic">{title}</span>
+        <div className="p-1.5 md:p-3 bg-white/5 rounded-xl backdrop-blur-md border border-white/5 opacity-50 leading-none italic font-black italic font-black italic font-black italic font-black italic">{icon}</div>
       </div>
-      <div className="text-sm md:text-2xl font-black truncate uppercase px-1 leading-tight font-black italic italic font-black">{value}</div>
+      <div className="text-sm md:text-2xl font-black truncate uppercase px-1 leading-tight font-black italic italic font-black italic font-black italic font-black italic">{value}</div>
     </div>
   );
 }
