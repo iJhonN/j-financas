@@ -8,69 +8,59 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* --- ESTILOS TÁTEIS E REATIVOS --- */
 @layer components {
-  
-  /* Substituímos o @apply interno por propriedades CSS nativas para evitar erro de build */
-  .btn-wolf {
+  /* 1. Criamos a BASE (sem @apply para não bugar o compilador) */
+  .btn-wolf-base {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    font-weight: 900; /* black */
+    font-weight: 900;
     font-style: italic;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     transition: all 300ms ease-in-out;
     cursor: pointer;
     user-select: none;
+    border-radius: 1rem; /* rounded-2xl */
   }
-  
-  .btn-wolf:active {
+
+  .btn-wolf-base:active {
     transform: scale(0.95);
   }
 
-  .btn-wolf:hover {
+  .btn-wolf-base:hover {
     filter: brightness(110%);
   }
 
-  /* Agora as variações usam a base .btn-wolf e o @apply do Tailwind apenas para as cores */
+  /* 2. Definimos as VARIAÇÕES usando apenas cores no @apply */
   .btn-wolf-primary {
-    @apply btn-wolf bg-blue-600 text-white rounded-2xl;
+    @apply btn-wolf-base bg-blue-600 text-white;
     box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
   }
 
   .btn-wolf-success {
-    @apply btn-wolf bg-emerald-600 text-white rounded-2xl;
+    @apply btn-wolf-base bg-emerald-600 text-white;
     box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2);
   }
 
   .btn-wolf-admin {
-    @apply btn-wolf bg-amber-500 text-black rounded-2xl;
+    @apply btn-wolf-base bg-amber-500 text-black;
     box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.2);
   }
 
   .btn-wolf-danger {
-    @apply btn-wolf bg-rose-600 text-white rounded-2xl;
+    @apply btn-wolf-base bg-rose-600 text-white;
     box-shadow: 0 10px 15px -3px rgba(225, 29, 72, 0.2);
   }
-  
-  .btn-wolf-icon {
-    @apply flex items-center justify-center p-2.5 rounded-full border-2 border-slate-700 bg-slate-800 text-slate-300;
-    transition: all 300ms ease-in-out;
-  }
-  
-  .btn-wolf-icon:hover {
-    @apply bg-blue-600 text-white scale-110;
-  }
-  
-  .btn-wolf-icon:active {
-    @apply scale-90;
+
+  .btn-wolf-outline {
+    @apply btn-wolf-base border-2 border-slate-700 bg-slate-800/30 text-slate-300;
   }
 
-  /* --- INPUTS --- */
+  /* 3. Inputs e Cards (CSS Puro com @apply simples) */
   .input-wolf {
-    @apply w-full bg-wolf-card border-4 border-slate-800 p-4 rounded-2xl outline-none font-black italic uppercase text-sm text-white;
+    @apply w-full bg-[#111827] border-4 border-slate-800 p-4 rounded-2xl outline-none font-black italic uppercase text-sm text-white;
     transition: all 300ms ease-in-out;
   }
 
@@ -79,33 +69,42 @@
     box-shadow: 0 0 20px rgba(245, 158, 11, 0.15);
   }
 
-  /* --- CARDS E LISTAS --- */
   .card-wolf {
-    @apply bg-wolf-card border-4 border-slate-800 rounded-[2.5rem];
+    @apply bg-[#111827] border-4 border-slate-800 rounded-[2.5rem];
     transition: all 300ms ease-in-out;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   }
 
-  .list-item-wolf {
-    @apply p-6 flex items-center justify-between border-b-4 border-slate-800 last:border-b-0;
+  .card-wolf-interactive {
+    @apply card-wolf cursor-pointer;
+  }
+
+  .card-wolf-interactive:active {
+    @apply scale-[0.98];
+  }
+
+  .btn-wolf-icon {
+    @apply flex items-center justify-center p-2.5 rounded-full border-2 border-slate-700 bg-slate-800 text-slate-300;
     transition: all 300ms ease-in-out;
   }
 
-  .list-item-wolf:hover {
-    @apply bg-slate-800/30;
+  .btn-wolf-icon:hover {
+    @apply bg-blue-600 text-white scale-110;
+  }
+
+  .btn-wolf-icon:active {
+    @apply scale-90;
   }
 }
 
-/* --- RESET GLOBAL --- */
 @layer base {
   body {
-    @apply bg-wolf-bg text-white antialiased overflow-x-hidden;
+    @apply bg-[#0a0f1d] text-white antialiased overflow-x-hidden;
     font-family: var(--font-geist-sans), sans-serif;
   }
 
   ::-webkit-scrollbar { @apply w-1.5; }
-  ::-webkit-scrollbar-track { @apply bg-wolf-bg; }
+  ::-webkit-scrollbar-track { @apply bg-[#0a0f1d]; }
   ::-webkit-scrollbar-thumb { @apply bg-slate-800 rounded-full; }
 }
