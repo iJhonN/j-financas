@@ -14,7 +14,6 @@ const PLATAFORMAS = [
   { nome: '99', slug: '99', pasta: 'transporte', tipo: 'transporte' },
   { nome: 'InDrive', slug: 'indrive', pasta: 'transporte', tipo: 'transporte' },
   { nome: 'Maxim', slug: 'maxim', pasta: 'transporte', tipo: 'transporte' },
-  { nome: 'Mottu', slug: 'mottu', pasta: 'transporte', tipo: 'transporte' },
   { nome: 'Particular', slug: 'particular', pasta: 'transporte', tipo: 'transporte' },
   { nome: 'iFood', slug: 'ifood', pasta: 'delivery', tipo: 'delivery' },
   { nome: '99 Food', slug: '99food', pasta: 'delivery', tipo: 'delivery' },
