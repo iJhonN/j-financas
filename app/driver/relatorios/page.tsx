@@ -29,10 +29,11 @@ export default function RelatoriosDriverPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return router.push('/login');
 
-      // Busca Ganhos e Gastos do mês selecionado
+      // Define o intervalo do mês selecionado
       const startOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1).toISOString();
       const endOfMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0).toISOString();
 
+      // 1. Busca Ganhos do mês
       const { data: ganhos } = await supabase
         .from('driver_ganhos')
         .select('*')
@@ -40,13 +41,13 @@ export default function RelatoriosDriverPage() {
         .gte('data_trabalho', startOfMonth)
         .lte('data_trabalho', endOfMonth);
 
+      // 2. Busca Despesas (AGORA NA TABELA driver_despesas)
       const { data: gastos } = await supabase
-        .from('transacoes')
+        .from('driver_despesas')
         .select('*')
         .eq('user_id', session.user.id)
-        .eq('eh_driver', true)
-        .gte('data_ordenacao', startOfMonth.split('T')[0])
-        .lte('data_ordenacao', endOfMonth.split('T')[0]);
+        .gte('data_despesa', startOfMonth.split('T')[0])
+        .lte('data_despesa', endOfMonth.split('T')[0]);
 
       setDadosGanhos(ganhos || []);
       setDadosGastos(gastos || []);
@@ -55,7 +56,7 @@ export default function RelatoriosDriverPage() {
     fetchRelatorios();
   }, [selectedDate, router]);
 
-  // Lógica para o Gráfico de Barras (Semanas)
+  // Lógica para o Gráfico de Barras (Ganhos por Semana)
   const chartDataSemanal = useMemo(() => {
     const semanas: any = { 'Semana 1': 0, 'Semana 2': 0, 'Semana 3': 0, 'Semana 4': 0 };
     dadosGanhos.forEach(g => {
@@ -66,19 +67,19 @@ export default function RelatoriosDriverPage() {
     return Object.keys(semanas).map(name => ({ name, valor: semanas[name] }));
   }, [dadosGanhos]);
 
-  // Lógica para o Gráfico de Pizza (Categorias)
+  // Lógica para o Gráfico de Pizza (Categorias da nova tabela)
   const pizzaData = useMemo(() => {
     const cats: any = {};
     dadosGastos.forEach(g => {
-      const nome = g.descricao.includes('COMBUSTIVEL') ? 'Combustível' : 
-                   g.descricao.includes('ALIMENTAÇÃO') ? 'Alimentação' : 'Outros';
-      cats[nome] = (cats[nome] || 0) + Math.abs(Number(g.valor));
+      // Usa a coluna categoria que definimos no SQL da nova tabela
+      const nome = g.categoria || 'Outros';
+      cats[nome] = (cats[nome] || 0) + Number(g.valor);
     });
     return Object.keys(cats).map(name => ({ name, value: cats[name] }));
   }, [dadosGastos]);
 
   const totalGanhos = dadosGanhos.reduce((acc, g) => acc + Number(g.valor_especie) + Number(g.valor_cartao), 0);
-  const totalGastos = dadosGastos.reduce((acc, g) => acc + Math.abs(Number(g.valor)), 0);
+  const totalGastos = dadosGastos.reduce((acc, g) => acc + Number(g.valor), 0);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-[#0a0f1d]"><Loader2 className="animate-spin text-amber-500" size={48} /></div>;
 
@@ -91,7 +92,7 @@ export default function RelatoriosDriverPage() {
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="text-xl tracking-tighter italic">RELATÓRIOS</h1>
+            <h1 className="text-xl tracking-tighter italic">RELATÓRIOS WOLF</h1>
             <div className="flex items-center gap-2 mt-1">
               <button onClick={() => setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth() - 1)))}><ChevronLeft size={14} className="text-amber-500"/></button>
               <span className="text-[10px] text-slate-400 tracking-widest">
@@ -108,9 +109,9 @@ export default function RelatoriosDriverPage() {
 
       <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
         
-        {/* GRÁFICO DE RENDIMENTO SEMANAL */}
+        {/* GRÁFICO DE GANHOS SEMANAIS */}
         <section className="bg-[#111827] p-6 rounded-[2.5rem] border-2 border-slate-800 shadow-2xl">
-          <h2 className="text-[10px] tracking-widest opacity-40 mb-8 font-black">RENDIMENTO LÍQUIDO / SEMANA</h2>
+          <h2 className="text-[10px] tracking-widest opacity-40 mb-8 font-black">FATURAMENTO / SEMANA</h2>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartDataSemanal}>
@@ -127,9 +128,9 @@ export default function RelatoriosDriverPage() {
           </div>
         </section>
 
-        {/* DISTRIBUIÇÃO DE CUSTOS */}
+        {/* DISTRIBUIÇÃO DE CUSTOS OPERACIONAIS */}
         <section className="bg-[#111827] p-6 rounded-[2.5rem] border-2 border-slate-800 shadow-2xl">
-          <h2 className="text-[10px] tracking-widest opacity-40 mb-8 font-black">DISTRIBUIÇÃO DE CUSTOS</h2>
+          <h2 className="text-[10px] tracking-widest opacity-40 mb-8 font-black">GASTOS OPERACIONAIS</h2>
           <div className="h-64 w-full relative">
             <ResponsiveContainer width="100%" height="100%">
               <RePie>
@@ -142,25 +143,25 @@ export default function RelatoriosDriverPage() {
               </RePie>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <p className="text-[8px] text-slate-500">TOTAL GASTO</p>
+              <p className="text-[8px] text-slate-500">TOTAL CUSTO</p>
               <p className="text-sm font-black text-rose-500">R$ {totalGastos.toFixed(2)}</p>
             </div>
           </div>
         </section>
 
-        {/* RESUMO DE PERFORMANCE (Inspirado no final do seu print) */}
+        {/* RESUMO DE PERFORMANCE */}
         <section className="lg:col-span-2 bg-[#111827] p-8 rounded-[3rem] border-2 border-slate-800 shadow-2xl">
-          <h2 className="text-[10px] tracking-widest opacity-40 mb-6 font-black text-center">RESUMO DE PERFORMANCE</h2>
+          <h2 className="text-[10px] tracking-widest opacity-40 mb-6 font-black text-center uppercase">Performance do Mês</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <StatsBox label="DIAS TRABALHADOS" value={new Set(dadosGanhos.map(g => g.data_trabalho)).size.toString()} icon={<Zap className="text-amber-500"/>} />
-            <StatsBox label="MÉDIA RECEBIMENTO" value={`R$ ${(totalGanhos / (dadosGanhos.length || 1)).toFixed(2)}`} icon={<TrendingUp className="text-emerald-500"/>} />
-            <StatsBox label="LUCRO LÍQUIDO MÊS" value={`R$ ${(totalGanhos - totalGastos).toFixed(2)}`} icon={<Car className="text-blue-500"/>} />
+            <StatsBox label="DIAS DE TRABALHO" value={new Set(dadosGanhos.map(g => g.data_trabalho)).size.toString()} icon={<Zap className="text-amber-500"/>} />
+            <StatsBox label="MÉDIA DIÁRIA (BRUTA)" value={`R$ ${(totalGanhos / (new Set(dadosGanhos.map(g => g.data_trabalho)).size || 1)).toFixed(2)}`} icon={<TrendingUp className="text-emerald-500"/>} />
+            <StatsBox label="LUCRO LÍQUIDO REAL" value={`R$ ${(totalGanhos - totalGastos).toFixed(2)}`} icon={<Car className="text-blue-500"/>} />
           </div>
         </section>
 
       </div>
 
-      <footer className="mt-12 flex flex-col items-center opacity-30 font-black italic">
+      <footer className="mt-12 flex flex-col items-center opacity-30 font-black italic uppercase">
         <p className="text-[7px] tracking-[0.4em] mb-1">Engineered by</p>
         <p className="text-[10px] text-blue-500">Jhonatha <span className="text-white">| Wolf Finance © 2026</span></p>
       </footer>
