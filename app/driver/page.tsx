@@ -4,8 +4,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Car, TrendingUp, Fuel, Wrench, Navigation, 
-  ChevronLeft, Plus, History, PieChart, ArrowLeft, Loader2,
-  RefreshCcw // <--- Ícone importado aqui
+  Plus, History, PieChart, ArrowLeft, Loader2,
+  RefreshCcw 
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -18,7 +18,6 @@ export default function DriverDashboard() {
 
   const fetchDadosDriver = useCallback(async (userId: string) => {
     try {
-      // Busca o último veículo cadastrado
       const { data: vData } = await supabase
         .from('veiculos')
         .select('*')
@@ -29,7 +28,6 @@ export default function DriverDashboard() {
 
       if (vData) setVeiculoAtivo(vData);
 
-      // Busca ganhos e despesas vinculadas ao driver
       const { data: ganhos } = await supabase.from('driver_ganhos').select('valor_especie, valor_cartao').eq('user_id', userId);
       const { data: despesas } = await supabase.from('transacoes').select('valor').eq('user_id', userId).eq('eh_driver', true);
 
@@ -60,23 +58,31 @@ export default function DriverDashboard() {
 
   const formatarMoeda = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+  // Lógica para detectar o slug da imagem baseado no modelo
+  const getLogoSlug = (modelo: string) => {
+    if (!modelo) return 'default';
+    const marca = modelo.split(' ')[0].toLowerCase();
+    // Lista simplificada para conferência rápida, igual à da página de veículos
+    return marca; 
+  };
+
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-[#0a0f1d]"><Loader2 className="animate-spin text-amber-500" size={48} /></div>;
 
   return (
-    <div className="min-h-screen bg-[#0a0f1d] p-4 md:p-8 text-white font-black italic uppercase antialiased leading-none">
+    <div className="min-h-screen bg-[#0a0f1d] p-4 md:p-8 text-white font-black italic uppercase antialiased leading-none pb-10">
       
-      {/* HEADER DRIVER */}
-      <header className="flex justify-between items-center mb-8 bg-[#111827] p-6 rounded-[2rem] border border-slate-800 shadow-2xl">
+      {/* HEADER */}
+      <header className="flex justify-between items-center mb-8 bg-[#111827] p-6 rounded-[2rem] border-2 border-slate-800 shadow-2xl">
         <div className="flex items-center gap-4">
           <button onClick={() => router.push('/')} className="p-3 bg-slate-800 rounded-full text-slate-400 hover:text-white transition-all active:scale-90 border border-slate-700">
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="text-xl tracking-tighter italic">DRIVER DASHBOARD</h1>
-            <p className="text-[9px] text-amber-500 tracking-widest font-black italic">WOLF OPERACIONAL</p>
+            <h1 className="text-xl tracking-tighter italic font-black">DRIVER DASHBOARD</h1>
+            <p className="text-[9px] text-amber-500 tracking-widest font-black italic uppercase">WOLF OPERACIONAL</p>
           </div>
         </div>
-        <div className="bg-amber-500/10 text-amber-500 p-3 rounded-2xl border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+        <div className="bg-amber-500/10 text-amber-500 p-3 rounded-2xl border border-amber-500/20">
           <Car size={24} />
         </div>
       </header>
@@ -88,7 +94,7 @@ export default function DriverDashboard() {
         <ResumoCard title="Despesas (Carro)" value={resumo.despesas} color="border-rose-600" textColor="text-rose-500" />
       </div>
 
-      {/* BOTÕES DE AÇÃO */}
+      {/* MENU DE AÇÕES */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <MenuButton icon={<Plus />} label="Novo Ganho" color="bg-emerald-600" onClick={() => router.push('/driver/ganhos')} />
         <MenuButton icon={<Car />} label="Veículos" color="bg-slate-800" onClick={() => router.push('/driver/veiculos')} />
@@ -96,25 +102,33 @@ export default function DriverDashboard() {
         <MenuButton icon={<PieChart />} label="Relatórios" color="bg-slate-800" onClick={() => router.push('/driver/relatorios')} />
       </div>
 
-      {/* STATUS DO VEÍCULO ATUAL */}
+      {/* VEÍCULO EM OPERAÇÃO COM LOGO LOCAL */}
       <div className="bg-[#111827] p-8 rounded-[3rem] border-2 border-slate-800 shadow-2xl relative overflow-hidden group">
         <div className="absolute right-0 top-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-700">
           <Navigation size={120} />
         </div>
         
-        <h2 className="text-[10px] tracking-[0.3em] opacity-40 mb-6 font-black italic">VEÍCULO EM OPERAÇÃO</h2>
+        <h2 className="text-[10px] tracking-[0.3em] opacity-40 mb-6 font-black italic uppercase">STATUS DA OPERAÇÃO</h2>
         
         {veiculoAtivo ? (
           <div className="flex items-center justify-between relative z-10">
             <div className="flex items-center gap-5">
-              <div className="w-16 h-16 bg-slate-800 rounded-[1.5rem] flex items-center justify-center border-2 border-slate-700 shadow-inner">
-                <Car className="text-amber-500" size={32} />
+              {/* Box da Logo Local */}
+              <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center p-3 shadow-inner border-4 border-slate-700 overflow-hidden">
+                <img 
+                  src={`/carlogos/${getLogoSlug(veiculoAtivo.modelo)}.png`} 
+                  alt="Brand" 
+                  className="w-full h-full object-contain"
+                  onError={(e: any) => e.target.src = "/logo.png"} 
+                />
               </div>
               <div>
-                <p className="text-lg font-black tracking-tight italic">{veiculoAtivo.modelo} - {veiculoAtivo.placa}</p>
+                <p className="text-xl font-black tracking-tight italic uppercase">{veiculoAtivo.modelo}</p>
                 <div className="flex items-center gap-3 mt-1">
-                  <span className="text-[10px] text-slate-500 bg-slate-900 px-2 py-1 rounded-md border border-slate-800 uppercase italic font-black">ANO {veiculoAtivo.ano}</span>
-                  <span className="text-[10px] text-amber-500 font-black italic">KM: {Number(veiculoAtivo.km_atual).toLocaleString()}</span>
+                  <span className="text-[11px] text-amber-500 font-black tracking-widest bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20">
+                    {veiculoAtivo.placa.slice(0,3)}-{veiculoAtivo.placa.slice(3)}
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-black italic uppercase">KM: {Number(veiculoAtivo.km_atual).toLocaleString()}</span>
                 </div>
               </div>
             </div>
@@ -123,15 +137,15 @@ export default function DriverDashboard() {
             </button>
           </div>
         ) : (
-          <div className="text-center py-4 relative z-10">
-            <p className="text-xs text-slate-500 mb-4 font-black italic uppercase tracking-widest">NENHUM VEÍCULO CADASTRADO</p>
-            <button onClick={() => router.push('/driver/veiculos')} className="bg-amber-600 text-white px-8 py-4 rounded-2xl text-[10px] font-black hover:bg-amber-500 transition-all shadow-lg shadow-amber-900/20 active:scale-95 italic">CADASTRAR MEU PRIMEIRO CARRO</button>
+          <div className="text-center py-6 relative z-10">
+            <p className="text-xs text-slate-500 mb-4 font-black italic tracking-widest uppercase">NENHUM VEÍCULO EM OPERAÇÃO</p>
+            <button onClick={() => router.push('/driver/veiculos')} className="bg-amber-600 text-white px-8 py-4 rounded-2xl text-[10px] font-black hover:bg-amber-500 transition-all shadow-lg active:scale-95 italic uppercase">VINCULAR MEU CARRO</button>
           </div>
         )}
       </div>
 
-      <footer className="mt-12 flex flex-col items-center opacity-30 font-black italic">
-        <p className="text-[7px] tracking-[0.4em] mb-1 uppercase font-black">Engineered by</p>
+      <footer className="mt-12 flex flex-col items-center opacity-30 font-black italic uppercase">
+        <p className="text-[7px] tracking-[0.4em] mb-1">Engineered by</p>
         <p className="text-[10px] text-blue-500 font-black italic">Jhonatha <span className="text-white">| Wolf Finance © 2026</span></p>
       </footer>
     </div>
@@ -150,7 +164,7 @@ function ResumoCard({ title, value, color, textColor }: any) {
 function MenuButton({ icon, label, color, onClick }: any) {
   return (
     <button onClick={onClick} className={`${color} p-8 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 shadow-xl hover:scale-[1.03] hover:brightness-110 transition-all active:scale-95 border border-white/5 group`}>
-      <div className="transition-transform duration-300 group-hover:scale-110">
+      <div className="transition-transform duration-300 group-hover:scale-110 text-white">
         {React.cloneElement(icon, { size: 28 })}
       </div>
       <span className="text-[10px] font-black tracking-tighter uppercase italic">{label}</span>
