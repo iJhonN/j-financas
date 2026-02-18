@@ -4,13 +4,15 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   ArrowLeft, Save, Loader2, Fuel, Wrench, Sparkles, Utensils, 
-  PlusCircle, Banknote, Calendar, CheckCircle2
+  PlusCircle, Banknote, Calendar, CheckCircle2, Wind // Importei o Wind para o GNV
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
+// Atalhos atualizados com GNV
 const ATALHOS = [
   { label: 'GASOLINA', icon: <Fuel size={20} />, color: 'text-amber-500' },
   { label: 'ETANOL', icon: <Fuel size={20} />, color: 'text-emerald-500' },
+  { label: 'GNV', icon: <Wind size={20} />, color: 'text-cyan-400' },
   { label: 'BORRACHARIA', icon: <Wrench size={20} />, color: 'text-blue-500' },
   { label: 'LAVAGEM', icon: <Sparkles size={20} />, color: 'text-purple-500' },
   { label: 'COMIDA', icon: <Utensils size={20} />, color: 'text-rose-500' },
@@ -33,7 +35,6 @@ export default function NovaDespesaDriver() {
       if (!session) return router.push('/login');
       setUser(session.user);
 
-      // Busca o último veículo para vincular à despesa automaticamente
       const { data: vData } = await supabase
         .from('veiculos')
         .select('id')
@@ -62,7 +63,6 @@ export default function NovaDespesaDriver() {
     setSaving(true);
     const valorNumerico = Number(valor.replace(/\./g, '').replace(',', '.'));
 
-    // SALVANDO NA TABELA EXCLUSIVA DO TRABALHO
     const { error } = await supabase.from('driver_despesas').insert([{
       user_id: user.id,
       veiculo_id: veiculoAtivo,
@@ -94,7 +94,7 @@ export default function NovaDespesaDriver() {
 
       <form onSubmit={handleSalvar} className="max-w-lg mx-auto space-y-6">
         
-        {/* ATALHOS RÁPIDOS */}
+        {/* ATALHOS RÁPIDOS - Agora com 6 opções (2 linhas de 3 no mobile) */}
         <div className="grid grid-cols-3 gap-3">
           {ATALHOS.map((item) => (
             <button
@@ -117,7 +117,7 @@ export default function NovaDespesaDriver() {
               <PlusCircle className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
               <input 
                 type="text" 
-                placeholder="DIGITE AQUI..." 
+                placeholder="OU DIGITE O QUE COMPROU..." 
                 value={descricao}
                 onChange={(e) => setDescricao(e.target.value)}
                 className="w-full bg-slate-900 border-2 border-slate-800 p-5 pl-14 rounded-2xl outline-none focus:border-amber-500 font-black italic text-sm"
