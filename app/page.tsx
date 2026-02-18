@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation';
 import { 
   TrendingUp, Trash2, CreditCard, Banknote, Plus, X, Coins, Pencil, 
   UserCircle, Loader2, ChevronDown, Zap, CheckCircle, Clock, Search, 
-  ChevronLeft, ChevronRight, Circle, HelpCircle
+  ChevronLeft, ChevronRight, Circle, HelpCircle, Car
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { supabase } from '@/lib/supabase';
 
+// Configuração de Temas e Conteúdo do Tour
 const THEMES = {
   blue: { primary: 'bg-blue-600', text: 'text-blue-400', border: 'border-blue-600', chart: '#3b82f6' },
   emerald: { primary: 'bg-emerald-600', text: 'text-emerald-400', border: 'border-emerald-600', chart: '#10b981' },
@@ -154,22 +155,22 @@ export default function HomePage() {
             </div>
           </div>
           <div className="flex gap-2">
+            {/* BOTÃO DRIVER */}
+            <button onClick={() => router.push('/driver')} className="bg-slate-800 text-amber-500 p-2.5 rounded-full border border-amber-500/30 shadow-lg hover:bg-amber-600 hover:text-white transition-all active:scale-90"><Car size={20}/></button>
             <button onClick={() => router.push('/tutorial')} className="bg-slate-800 text-blue-400 p-2.5 rounded-full border border-blue-500/30 shadow-lg hover:bg-blue-600 hover:text-white transition-all active:scale-90"><HelpCircle size={20}/></button>
             <button onClick={() => router.push('/perfil')} className="bg-slate-800 text-slate-300 p-2.5 rounded-full border border-slate-700 shadow-lg hover:bg-slate-700 hover:text-white transition-all active:scale-90"><UserCircle size={20}/></button>
           </div>
         </div>
         <div className="flex gap-2">
-           {/* ALTERADO: Agora redireciona para a página de ajuste de banca */}
-           <ActionButton icon={<Coins size={14}/>} label="Banca" active={tourStep === 2} onClick={() => router.push('/saldo')} color="emerald" />
-           <ActionButton icon={<CreditCard size={14}/>} label="Cartão" active={tourStep === 3} onClick={() => router.push('/cartoes')} color="slate" />
-           <ActionButton icon={<Plus size={18}/>} label="Novo" active={tourStep === 4} onClick={() => router.push('/lancamento')} color="theme" themeColor={theme.primary} />
+           <ActionButton icon={<Coins size={14}/>} label="Saldo" active={tourStep === 2} onClick={() => router.push('/saldo')} color="emerald" />
+           <ActionButton icon={<CreditCard size={14}/>} label="Novo Cartão" active={tourStep === 3} onClick={() => router.push('/cartoes')} color="slate" />
+           <ActionButton icon={<Plus size={18}/>} label="Novo Lançamento" active={tourStep === 4} onClick={() => router.push('/lancamento')} color="theme" themeColor={theme.primary} />
         </div>
       </header>
 
       {/* DASHBOARD CARDS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6">
-        {/* ALTERADO: Card de saldo agora é clicável para edição rápida */}
-        <Card title="Saldo em Conta" value={`R$ ${formatarMoeda(saldoCalculado)}`} icon={<Banknote size={20}/>} border={theme.border} onClick={() => router.push('/saldo')} />
+        <Card title="Saldo Pago" value={`R$ ${formatarMoeda(saldoCalculado)}`} icon={<Banknote size={20}/>} border={theme.border} onClick={() => router.push('/saldo')} />
         <Card title="Gasto Mês" value={`R$ ${formatarMoeda(transacoesFiltradas.filter(t=>t.valor<0).reduce((a,b)=>a+b.valor,0))}`} icon={<CreditCard size={20}/>} border="border-rose-600" onClick={() => router.push('/detalhes-gastos')} />
         <Card title="Entrada Mês" value={`R$ ${formatarMoeda(transacoesFiltradas.filter(t=>t.valor>0).reduce((a,b)=>a+b.valor,0))}`} icon={<TrendingUp size={20}/>} border="border-emerald-600" />
         <div className="bg-[#111827] p-4 rounded-[1.5rem] border-b-8 border-amber-500 h-32 flex flex-col justify-between shadow-2xl relative">
