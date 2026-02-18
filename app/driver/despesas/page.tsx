@@ -4,11 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   ArrowLeft, Save, Loader2, Fuel, Wrench, Sparkles, Utensils, 
-  PlusCircle, Banknote, Calendar, CheckCircle2, Wind // Importei o Wind para o GNV
+  PlusCircle, Banknote, Calendar, CheckCircle2, Wind
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
-// Atalhos atualizados com GNV
 const ATALHOS = [
   { label: 'GASOLINA', icon: <Fuel size={20} />, color: 'text-amber-500' },
   { label: 'ETANOL', icon: <Fuel size={20} />, color: 'text-emerald-500' },
@@ -83,19 +82,19 @@ export default function NovaDespesaDriver() {
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-[#0a0f1d]"><Loader2 className="animate-spin text-amber-500" size={48} /></div>;
 
   return (
-    <div className="min-h-screen bg-[#0a0f1d] p-4 md:p-8 text-white font-black italic uppercase antialiased leading-none">
+    <div className="min-h-screen bg-[#0a0f1d] p-4 text-white font-black italic uppercase antialiased leading-none pb-24">
       
-      <header className="flex items-center gap-4 mb-8 max-w-lg mx-auto">
-        <button onClick={() => router.push('/driver')} className="p-3 bg-slate-800 rounded-full text-slate-400 hover:text-white transition-all border-2 border-slate-700">
-          <ArrowLeft size={20} />
+      <header className="flex items-center gap-4 mb-6 max-w-lg mx-auto">
+        <button onClick={() => router.push('/driver')} className="p-2.5 bg-slate-800 rounded-full text-slate-400 border-2 border-slate-700 active:scale-95 transition-all">
+          <ArrowLeft size={18} />
         </button>
-        <h1 className="text-xl tracking-tighter italic">CUSTO OPERACIONAL</h1>
+        <h1 className="text-lg tracking-tighter italic font-black uppercase">CUSTO OPERACIONAL</h1>
       </header>
 
-      <form onSubmit={handleSalvar} className="max-w-lg mx-auto space-y-6">
+      <form onSubmit={handleSalvar} className="max-w-lg mx-auto space-y-5">
         
-        {/* ATALHOS RÁPIDOS - Agora com 6 opções (2 linhas de 3 no mobile) */}
-        <div className="grid grid-cols-3 gap-3">
+        {/* ATALHOS RÁPIDOS */}
+        <div className="grid grid-cols-3 gap-2.5">
           {ATALHOS.map((item) => (
             <button
               key={item.label}
@@ -110,24 +109,24 @@ export default function NovaDespesaDriver() {
         </div>
 
         {/* CAMPOS DE ENTRADA */}
-        <section className="bg-[#111827] p-6 rounded-[2.5rem] border-2 border-slate-800 shadow-2xl space-y-4">
-          <div className="space-y-2">
-            <label className="text-[9px] text-slate-500 tracking-widest ml-2">DETALHE DO GASTO</label>
+        <section className="bg-[#111827] p-5 rounded-[2rem] border-2 border-slate-800 shadow-2xl space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-[8px] text-slate-500 tracking-[0.2em] ml-2 font-black italic uppercase">DETALHE DO GASTO</label>
             <div className="relative">
-              <PlusCircle className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={20} />
+              <PlusCircle className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
               <input 
                 type="text" 
                 placeholder="OU DIGITE O QUE COMPROU..." 
                 value={descricao}
                 onChange={(e) => setDescricao(e.target.value)}
-                className="w-full bg-slate-900 border-2 border-slate-800 p-5 pl-14 rounded-2xl outline-none focus:border-amber-500 font-black italic text-sm"
+                className="w-full bg-slate-900 border-2 border-slate-800 p-4 pl-12 rounded-2xl outline-none focus:border-amber-500 font-black italic text-sm"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-[9px] text-slate-500 tracking-widest ml-2">VALOR (R$)</label>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-[8px] text-slate-500 tracking-[0.2em] ml-2 font-black italic uppercase">VALOR (R$)</label>
               <div className="relative">
                 <Banknote className="absolute left-4 top-1/2 -translate-y-1/2 text-rose-500" size={18} />
                 <input 
@@ -135,19 +134,19 @@ export default function NovaDespesaDriver() {
                   placeholder="0,00" 
                   value={valor}
                   onChange={(e) => setValor(formatarMoeda(e.target.value))}
-                  className="w-full bg-slate-900 border-2 border-slate-800 p-4 pl-12 rounded-2xl outline-none focus:border-rose-500 font-black italic text-rose-500"
+                  className="w-full bg-slate-900 border-2 border-slate-800 p-3.5 pl-11 rounded-xl outline-none focus:border-rose-500 font-black italic text-rose-500 text-sm"
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-[9px] text-slate-500 tracking-widest ml-2">DATA</label>
-              <div className="relative">
-                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+            <div className="space-y-1.5">
+              <label className="text-[8px] text-slate-500 tracking-[0.2em] ml-2 font-black italic uppercase">DATA</label>
+              <div className="relative flex items-center bg-slate-900 border-2 border-slate-800 rounded-xl px-3 py-3 focus-within:border-amber-500 transition-all">
+                <Calendar className="text-slate-500 mr-2 shrink-0" size={16} />
                 <input 
                   type="date" 
                   value={data}
                   onChange={(e) => setData(e.target.value)}
-                  className="w-full bg-slate-900 border-2 border-slate-800 p-4 pl-12 rounded-2xl outline-none focus:border-amber-500 font-black italic text-[10px]"
+                  className="w-full bg-transparent text-[10px] font-black outline-none italic uppercase"
                 />
               </div>
             </div>
@@ -157,12 +156,17 @@ export default function NovaDespesaDriver() {
         <button 
           type="submit" 
           disabled={saving}
-          className="w-full bg-rose-600 py-6 rounded-[2rem] shadow-xl hover:bg-rose-500 transition-all active:scale-95 flex items-center justify-center gap-3 text-sm font-black italic"
+          className="w-full bg-rose-600 py-5 rounded-3xl shadow-xl hover:bg-rose-500 transition-all active:scale-95 flex items-center justify-center gap-3 text-sm font-black italic"
         >
-          {saving ? <Loader2 className="animate-spin" /> : <><CheckCircle2 size={20} /> SALVAR DESPESA</>}
+          {saving ? <Loader2 className="animate-spin" /> : <><CheckCircle2 size={18} /> SALVAR DESPESA</>}
         </button>
 
       </form>
+
+      <footer className="mt-8 flex flex-col items-center opacity-30 font-black italic">
+        <p className="text-[6px] tracking-[0.4em] mb-1">Engineered by</p>
+        <p className="text-[9px] text-blue-500">Jhonatha <span className="text-white">| Wolf Driver © 2026</span></p>
+      </footer>
     </div>
   );
 }
