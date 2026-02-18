@@ -10,7 +10,6 @@ import {
 import { AreaChart, Area, XAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { supabase } from '@/lib/supabase';
 
-// Configuração de Temas e Conteúdo do Tour
 const THEMES = {
   blue: { primary: 'bg-blue-600', text: 'text-blue-400', border: 'border-blue-600', chart: '#3b82f6' },
   emerald: { primary: 'bg-emerald-600', text: 'text-emerald-400', border: 'border-emerald-600', chart: '#10b981' },
@@ -35,7 +34,6 @@ export default function HomePage() {
   const [diasRestantes, setDiasRestantes] = useState(0);
   const [tourStep, setTourStep] = useState(0);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
-  const [isSaldoModalOpen, setIsSaldoModalOpen] = useState(false);
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -43,11 +41,9 @@ export default function HomePage() {
   const [cartoes, setCartoes] = useState<any[]>([]);
   const [filtroCartao, setFiltroCartao] = useState('Todos');
   const [saldoInicial, setSaldoInicial] = useState(0);
-  const [saldoDisplay, setSaldoDisplay] = useState('');
 
   const theme = THEMES[currentTheme];
 
-  // Busca de dados otimizada (Paralela)
   const fetchDados = useCallback(async (userId: string) => {
     try {
       const [{ data: tData }, { data: cData }, { data: profile }] = await Promise.all([
@@ -163,7 +159,8 @@ export default function HomePage() {
           </div>
         </div>
         <div className="flex gap-2">
-           <ActionButton icon={<Coins size={14}/>} label="Saldo" active={tourStep === 2} onClick={() => setIsSaldoModalOpen(true)} color="emerald" />
+           {/* ALTERADO: Agora redireciona para a página de ajuste de banca */}
+           <ActionButton icon={<Coins size={14}/>} label="Banca" active={tourStep === 2} onClick={() => router.push('/saldo')} color="emerald" />
            <ActionButton icon={<CreditCard size={14}/>} label="Cartão" active={tourStep === 3} onClick={() => router.push('/cartoes')} color="slate" />
            <ActionButton icon={<Plus size={18}/>} label="Novo" active={tourStep === 4} onClick={() => router.push('/lancamento')} color="theme" themeColor={theme.primary} />
         </div>
@@ -171,7 +168,8 @@ export default function HomePage() {
 
       {/* DASHBOARD CARDS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6">
-        <Card title="Saldo Pago" value={`R$ ${formatarMoeda(saldoCalculado)}`} icon={<Banknote size={20}/>} border={theme.border} />
+        {/* ALTERADO: Card de saldo agora é clicável para edição rápida */}
+        <Card title="Saldo em Conta" value={`R$ ${formatarMoeda(saldoCalculado)}`} icon={<Banknote size={20}/>} border={theme.border} onClick={() => router.push('/saldo')} />
         <Card title="Gasto Mês" value={`R$ ${formatarMoeda(transacoesFiltradas.filter(t=>t.valor<0).reduce((a,b)=>a+b.valor,0))}`} icon={<CreditCard size={20}/>} border="border-rose-600" onClick={() => router.push('/detalhes-gastos')} />
         <Card title="Entrada Mês" value={`R$ ${formatarMoeda(transacoesFiltradas.filter(t=>t.valor>0).reduce((a,b)=>a+b.valor,0))}`} icon={<TrendingUp size={20}/>} border="border-emerald-600" />
         <div className="bg-[#111827] p-4 rounded-[1.5rem] border-b-8 border-amber-500 h-32 flex flex-col justify-between shadow-2xl relative">
@@ -245,42 +243,16 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* FOOTER - NÃO FIXO */}
-      <footer className="relative mt-12 pb-8 flex flex-col items-center opacity-30 hover:opacity-100 transition-all duration-700 font-black italic pointer-events-none">
-        <p className="text-[7px] tracking-[0.4em] mb-1">Engineered by</p>
+      <footer className="relative mt-12 pb-8 flex flex-col items-center opacity-30 hover:opacity-100 transition-all duration-700 font-black italic pointer-events-none text-center">
+        <p className="text-[7px] tracking-[0.4em] mb-1 uppercase">Engineered by</p>
         <p className="text-[10px] text-blue-500">Jhonatha <span className="text-white">| Wolf Finance © 2026</span></p>
       </footer>
-
-      {/* MODAL SALDO */}
-      {isSaldoModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[6000]">
-          <div className="bg-[#111827] w-full max-w-sm rounded-[3rem] p-10 border-4 border-slate-800 shadow-2xl relative text-center italic font-black animate-in zoom-in duration-300">
-            <button onClick={() => setIsSaldoModalOpen(false)} className="absolute top-6 right-6 p-2 bg-slate-800 rounded-full text-slate-400 hover:text-white transition-all active:scale-90"><X size={20}/></button>
-            <h2 className="text-xl mb-8 text-emerald-500 uppercase italic">Saldo Bancário</h2>
-            <div className="relative mb-6">
-              <label className="absolute -top-2 left-3 bg-[#111827] px-1 text-[7px] text-emerald-500 uppercase font-black">Valor em conta</label>
-              <input type="text" value={saldoDisplay} onChange={(e) => {
-                let v = e.target.value.replace(/\D/g, '');
-                v = (Number(v) / 100).toFixed(2).replace('.', ',');
-                v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
-                setSaldoDisplay(v);
-              }} placeholder="R$ 0,00" className="w-full p-5 bg-slate-800 rounded-2xl border-2 border-slate-700 text-emerald-500 text-xl font-black text-center outline-none focus:border-emerald-500 transition-colors" />
-            </div>
-            <button onClick={async () => { 
-                const v = Number(saldoDisplay.replace(/\./g, '').replace(',', '.')); 
-                await supabase.from('profiles').update({ saldo_inicial: v }).eq('id', user.id); 
-                setSaldoInicial(v); setIsSaldoModalOpen(false); setSaldoDisplay(''); fetchDados(user.id); showAlert("Saldo ajustado!"); 
-              }} className="w-full bg-emerald-600 py-5 rounded-[2rem] text-[10px] uppercase font-black shadow-lg shadow-emerald-900/20 hover:bg-emerald-500 hover:tracking-widest active:scale-95 transition-all">Confirmar Novo Saldo</button>
-          </div>
-        </div>
-      )}
 
       <style jsx global>{` .custom-scrollbar::-webkit-scrollbar { width: 4px; } .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; } `}</style>
     </div>
   );
 }
 
-// COMPONENTES AUXILIARES OTIMIZADOS
 function ActionButton({ icon, label, active, onClick, color, themeColor }: any) {
   const base = "flex-1 p-3 rounded-2xl border text-[10px] flex items-center justify-center gap-2 transition-all duration-300 font-black active:scale-95 ease-out italic uppercase";
   const colors: any = {
