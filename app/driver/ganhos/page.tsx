@@ -1,12 +1,38 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  ArrowLeft, Save, Loader2, Zap, Banknote, 
-  CreditCard, Navigation, Calendar, CheckCircle2
+  ArrowLeft, Loader2, Zap, Banknote, 
+  CreditCard, Navigation, CheckCircle2,
+  Truck, Bike, Car, Check
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+
+// Configuração das Plataformas conforme as tuas pastas em public/plataformas/
+const PLATAFORMAS = [
+  // TRANSPORTE
+  { nome: 'Uber', slug: 'uber', pasta: 'transporte', tipo: 'transporte' },
+  { nome: '99', slug: '99', pasta: 'transporte', tipo: 'transporte' },
+  { nome: 'InDrive', slug: 'indrive', pasta: 'transporte', tipo: 'transporte' },
+  { nome: 'Maxim', slug: 'maxim', pasta: 'transporte', tipo: 'transporte' },
+  { nome: 'Mottu', slug: 'mottu', pasta: 'transporte', tipo: 'transporte' },
+  { nome: 'Particular', slug: 'particular', pasta: 'transporte', tipo: 'transporte' },
+
+  // DELIVERY
+  { nome: 'iFood', slug: 'ifood', pasta: 'delivery', tipo: 'delivery' },
+  { nome: '99 Food', slug: '99food', pasta: 'delivery', tipo: 'delivery' },
+  { nome: 'Rappi', slug: 'rappi', pasta: 'delivery', tipo: 'delivery' },
+  { nome: 'Uber Eats', slug: 'ubereats', pasta: 'delivery', tipo: 'delivery' },
+  { nome: 'Zé Delivery', slug: 'zedelivery', pasta: 'delivery', tipo: 'delivery' },
+  { nome: 'Quero Delivery', slug: 'querodelivery', pasta: 'delivery', tipo: 'delivery' },
+
+  // ENCOMENDAS
+  { nome: 'Mercado Livre', slug: 'mercadolivre', pasta: 'encomendas', tipo: 'encomendas' },
+  { nome: 'Amazon', slug: 'amazon', pasta: 'encomendas', tipo: 'encomendas' },
+  { nome: 'Shopee', slug: 'shopee', pasta: 'encomendas', tipo: 'encomendas' },
+  { nome: 'Loggi', slug: 'loggi', pasta: 'encomendas', tipo: 'encomendas' },
+];
 
 export default function NovoGanhoPage() {
   const router = useRouter();
@@ -16,12 +42,20 @@ export default function NovoGanhoPage() {
   const [veiculos, setVeiculos] = useState<any[]>([]);
 
   // Estados do Formulário
+  const [tabAtiva, setTabAtiva] = useState('transporte');
+  const [plataformaSel, setPlataformaSel] = useState<any>(PLATAFORMAS[0]);
   const [veiculoId, setVeiculoId] = useState('');
   const [dataTrabalho, setDataTrabalho] = useState(new Date().toISOString().split('T')[0]);
   const [valorEspecie, setValorEspecie] = useState('');
   const [valorCartao, setValorCartao] = useState('');
   const [kmInicial, setKmInicial] = useState('');
   const [kmFinal, setKmFinal] = useState('');
+
+  // Filtra as plataformas baseadas na aba ativa
+  const plataformasFiltradas = useMemo(() => 
+    PLATAFORMAS.filter(p => p.tipo === tabAtiva), 
+    [tabAtiva]
+  );
 
   useEffect(() => {
     const init = async () => {
@@ -57,6 +91,7 @@ export default function NovoGanhoPage() {
     const { error } = await supabase.from('driver_ganhos').insert([{
       user_id: user.id,
       veiculo_id: veiculoId,
+      plataforma: plataformaSel.nome,
       data_trabalho: dataTrabalho,
       valor_especie: vEspecie,
       valor_cartao: vCartao,
@@ -64,7 +99,7 @@ export default function NovoGanhoPage() {
       km_final: parseFloat(kmFinal) || 0
     }]);
 
-    // Opcional: Atualizar o KM atual do veículo automaticamente
+    // Atualiza o KM atual do veículo
     if (!error && kmFinal) {
       await supabase.from('veiculos').update({ km_atual: parseFloat(kmFinal) }).eq('id', veiculoId);
     }
@@ -92,7 +127,49 @@ export default function NovoGanhoPage() {
 
       <form onSubmit={handleSalvar} className="max-w-lg mx-auto space-y-6">
         
-        {/* SELEÇÃO DE VEÍCULO E DATA */}
+        {/* TABS DE CATEGORIAS */}
+        <div className="flex bg-[#111827] p-1 rounded-2xl border-2 border-slate-800 shadow-lg">
+          <TabBtn active={tabAtiva === 'transporte'} label="Transporte" icon={<Car size={14}/>} onClick={() => setTabAtiva('transporte')} />
+          <TabBtn active={tabAtiva === 'delivery'} label="Delivery" icon={<Bike size={14}/>} onClick={() => setTabAtiva('delivery')} />
+          <TabBtn active={tabAtiva === 'encomendas'} label="Cargas" icon={<Truck size={14}/>} onClick={() => setTabAtiva('encomendas')} />
+        </div>
+
+        {/* SELETOR DE PLATAFORMAS */}
+        <div className="grid grid-cols-4 gap-2 bg-[#111827] p-3 rounded-[2rem] border-2 border-slate-800 max-h-52 overflow-y-auto custom-scrollbar">
+          {plataformasFiltradas.map((p) => (
+            <button
+              key={p.nome}
+              type="button"
+              onClick={() => setPlataformaSel(p)}
+              className={`relative flex flex-col items-center p-3 rounded-xl border-2 transition-all ${
+                plataformaSel.nome === p.nome 
+                ? 'border-amber-500 bg-amber-500/10 scale-95 shadow-lg shadow-amber-500/10' 
+                : 'border-slate-800 bg-slate-900/50'
+              }`}
+            >
+              <div className="w-10 h-10 bg-white rounded-lg p-1 mb-1 flex items-center justify-center overflow-hidden">
+                {p.slug === 'particular' ? (
+                  <div className="bg-slate-900 w-full h-full rounded-md flex items-center justify-center">
+                    <Car size={20} className="text-amber-500" />
+                  </div>
+                ) : (
+                  <img 
+                    src={`/plataformas/${p.pasta}/${p.slug}.png`} 
+                    className="w-full h-full object-contain" 
+                    onError={(e:any) => e.target.src = "/logo.png"} 
+                    alt={p.nome}
+                  />
+                )}
+              </div>
+              <span className="text-[6px] font-black truncate w-full text-center">{p.nome}</span>
+              {plataformaSel.nome === p.nome && (
+                <Check className="absolute top-1 right-1 text-amber-500" size={10} />
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* VEÍCULO E DATA */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <label className="text-[9px] text-slate-500 tracking-[0.2em] ml-2 font-black">VEÍCULO</label>
@@ -115,11 +192,11 @@ export default function NovoGanhoPage() {
           </div>
         </div>
 
-        {/* GANHOS (FINANCEIRO) */}
+        {/* VALORES */}
         <section className="bg-[#111827] p-6 rounded-[2.5rem] border-2 border-slate-800 shadow-2xl space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <Zap size={16} className="text-amber-500" />
-            <h2 className="text-[10px] tracking-widest font-black">VALORES RECEBIDOS</h2>
+            <h2 className="text-[10px] tracking-widest font-black uppercase">Ganhos: {plataformaSel.nome}</h2>
           </div>
 
           <div className="space-y-4">
@@ -146,11 +223,11 @@ export default function NovoGanhoPage() {
           </div>
         </section>
 
-        {/* DESEMPENHO (KM) */}
+        {/* KM */}
         <section className="bg-[#111827] p-6 rounded-[2.5rem] border-2 border-slate-800 shadow-2xl space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <Navigation size={16} className="text-blue-500" />
-            <h2 className="text-[10px] tracking-widest font-black">RODAGEM DO DIA</h2>
+            <h2 className="text-[10px] tracking-widest font-black">RODAGEM</h2>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -180,7 +257,7 @@ export default function NovoGanhoPage() {
         <button 
           type="submit" 
           disabled={saving}
-          className="w-full bg-amber-600 py-6 rounded-[2rem] shadow-xl hover:bg-amber-500 hover:tracking-[0.2em] transition-all active:scale-95 flex items-center justify-center gap-3 text-sm font-black italic shadow-amber-900/10"
+          className="w-full bg-amber-600 py-6 rounded-[2rem] shadow-xl hover:bg-amber-500 transition-all active:scale-95 flex items-center justify-center gap-3 text-sm font-black italic"
         >
           {saving ? <Loader2 className="animate-spin" /> : <><CheckCircle2 size={20} /> FINALIZAR PLANTÃO</>}
         </button>
@@ -191,6 +268,28 @@ export default function NovoGanhoPage() {
         <p className="text-[7px] tracking-[0.4em] mb-1">Engineered by</p>
         <p className="text-[10px] text-blue-500">Jhonatha <span className="text-white">| Wolf Finance © 2026</span></p>
       </footer>
+
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar { width: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+      `}</style>
     </div>
+  );
+}
+
+// Subcomponente de Botão de Aba
+function TabBtn({ active, label, icon, onClick }: any) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[8px] font-black transition-all ${
+        active 
+        ? 'bg-amber-600 text-white shadow-lg' 
+        : 'text-slate-500 hover:text-slate-300'
+      }`}
+    >
+      {icon} {label.toUpperCase()}
+    </button>
   );
 }
