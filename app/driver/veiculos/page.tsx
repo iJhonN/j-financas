@@ -137,7 +137,9 @@ const MARCAS = [
   { nome: 'Xpeng', slug: 'xpeng' }, { nome: 'Yulon', slug: 'yulon' }, { nome: 'Yutong', slug: 'yutong' },
   { nome: 'Zarooq Motors', slug: 'zarooq-motors' }, { nome: 'Zastava', slug: 'zastava' }, { nome: 'ZAZ', slug: 'zaz' },
   { nome: 'Zeekr', slug: 'zeekr' }, { nome: 'Zenos', slug: 'zenos' }, { nome: 'Zenvo', slug: 'zenvo' },
-  { nome: 'Zhongtong', slug: 'zhongtong' }, { nome: 'Zinoro', slug: 'zinoro' }
+  { nome: 'Zhongtong', slug: 'zhongtong' }, { nome: 'Zinoro', slug: 'zinoro' }, { nome: 'Harley-Davidson', slug: 'harley' }, { nome: 'Honda Motos', slug: 'hondamoto' },
+  { nome: 'Mottu', slug: 'mottu' }, { nome: 'Shineray', slug: 'shineray' }, { nome: 'Yamaha', slug: 'yamaha' },
+  
 ].sort((a, b) => a.nome.localeCompare(b.nome));
 
 export default function VeiculosPage() {
