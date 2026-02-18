@@ -18,7 +18,6 @@ export default function AdminPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [customDays, setCustomDays] = useState<{ [key: string]: number }>({});
   
-  // Estado para edição direta de data
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDate, setEditDate] = useState('');
   
@@ -78,7 +77,6 @@ export default function AdminPage() {
     checkAdmin();
   }, [router]);
 
-  // Função para adicionar dias (o que você já tinha)
   const handleAddCustomAccess = async (userId: string, currentExpiresAt: string | null) => {
     const dias = customDays[userId] || 0;
     if (dias === 0) return;
@@ -101,10 +99,8 @@ export default function AdminPage() {
     }
   };
 
-  // NOVA FUNÇÃO: Salvar data editada manualmente
   const handleUpdateDateManual = async (userId: string) => {
     if (!editDate) return;
-
     const { error } = await supabase
       .from('profiles')
       .update({ expires_at: new Date(editDate).toISOString() })
@@ -118,7 +114,7 @@ export default function AdminPage() {
 
   const handleResetTourLocal = () => {
     localStorage.removeItem('wolf_tour_complete');
-    alert("TOUR RESETADO PARA SUA CONTA ADM! VOLTE À HOME.");
+    alert("TOUR RESETADO!");
     router.push('/');
   };
 
@@ -138,9 +134,9 @@ export default function AdminPage() {
             <button onClick={() => router.push('/')} className="p-3 bg-slate-800 rounded-2xl text-slate-400 hover:text-white transition-all border-2 border-transparent hover:border-slate-700">
               <ArrowLeft size={24} />
             </button>
-            <div className="flex items-center gap-3 text-nowrap">
+            <div className="flex items-center gap-3">
               <ShieldCheck size={32} className="text-amber-500" />
-              <h1 className="text-2xl uppercase tracking-tighter italic text-white">Wolf <span className="text-amber-500">Panel</span></h1>
+              <h1 className="text-2xl uppercase tracking-tighter text-white italic">Wolf <span className="text-amber-500">Panel</span></h1>
             </div>
           </div>
 
@@ -155,19 +151,15 @@ export default function AdminPage() {
                 className="w-full bg-[#111827] border-4 border-slate-800 rounded-2xl py-3 pl-12 pr-4 text-xs uppercase outline-none focus:border-amber-500 transition-all font-black"
               />
             </div>
-            <button onClick={handleResetTourLocal} className="bg-blue-600 hover:bg-blue-500 text-white p-4 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg">
-              <Zap size={20} />
-              <span className="text-[10px] uppercase font-black">Testar Tour</span>
-            </button>
           </div>
         </div>
 
         {/* Lista de Usuários */}
         <div className="bg-[#111827] rounded-[2.5rem] border-4 border-slate-800 shadow-2xl overflow-hidden">
           <div className="p-6 border-b-4 border-slate-800 bg-slate-800/50 flex justify-between items-center">
-            <h2 className="uppercase tracking-widest text-sm text-slate-300 font-black italic">Membros da Alcateia</h2>
-            <div className="flex items-center gap-4 font-black italic">
-              <span className="text-[10px] bg-amber-500 text-black px-3 py-1 rounded-full font-black italic">{totalCount} TOTAL</span>
+            <h2 className="uppercase tracking-widest text-sm text-slate-300 font-black italic">Gestão de Alcatéia</h2>
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] bg-amber-500 text-black px-3 py-1 rounded-full font-black italic">{totalCount} MEMBROS</span>
             </div>
           </div>
 
@@ -177,8 +169,8 @@ export default function AdminPage() {
               const expireDateDisplay = u.expires_at ? new Date(u.expires_at).toLocaleDateString('pt-BR') : 'SEM ACESSO';
 
               return (
-                <div key={u.id} className="p-6 flex flex-col xl:flex-row xl:items-center justify-between gap-6 hover:bg-slate-800/30 transition-all font-black italic">
-                  <div className="flex items-center gap-4 min-w-[250px]">
+                <div key={u.id} className="p-6 flex flex-col xl:flex-row xl:items-center justify-between gap-6 hover:bg-slate-800/30 transition-all">
+                  <div className="flex items-center gap-4 min-w-[280px]">
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-slate-950 shadow-lg ${isExpired ? 'bg-slate-700' : 'bg-amber-500'}`}>
                       <UserIcon size={28} />
                     </div>
@@ -191,68 +183,91 @@ export default function AdminPage() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-4">
-                    
-                    {/* ÁREA DE EXPIRAÇÃO EDITÁVEL */}
-                    <div className={`flex items-center gap-3 px-4 py-2 rounded-2xl border-2 transition-all ${isExpired ? 'border-red-500/20 bg-red-500/10' : 'border-emerald-500/20 bg-emerald-500/10'}`}>
+                    {/* EXPIRAÇÃO */}
+                    <div className={`flex items-center gap-3 px-4 py-2 rounded-2xl border-2 min-w-[180px] ${isExpired ? 'border-red-500/20 bg-red-500/10' : 'border-emerald-500/20 bg-emerald-500/10'}`}>
                       {editingId === u.id ? (
-                        <div className="flex items-center gap-2 animate-in fade-in zoom-in duration-200">
+                        <div className="flex items-center gap-2">
                           <input 
                             type="date" 
-                            className="bg-slate-900 border border-slate-700 rounded-lg text-[10px] p-1 outline-none text-white font-black"
+                            className="bg-slate-900 border border-slate-700 rounded-lg text-[10px] p-1 text-white font-black"
                             value={editDate}
                             onChange={(e) => setEditDate(e.target.value)}
                           />
-                          <button onClick={() => handleUpdateDateManual(u.id)} className="text-emerald-500 p-1 hover:scale-110 transition-transform"><Save size={16}/></button>
-                          <button onClick={() => setEditingId(null)} className="text-red-500 p-1 hover:scale-110 transition-transform"><X size={16}/></button>
+                          <button onClick={() => handleUpdateDateManual(u.id)} className="text-emerald-500"><Save size={16}/></button>
+                          <button onClick={() => setEditingId(null)} className="text-red-500"><X size={16}/></button>
                         </div>
                       ) : (
-                        <>
-                          {isExpired ? <AlertCircle size={16} className="text-red-500" /> : <CheckCircle2 size={16} className="text-emerald-500" />}
-                          <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-center gap-2">
+                            {isExpired ? <AlertCircle size={16} className="text-red-500" /> : <CheckCircle2 size={16} className="text-emerald-500" />}
                             <div>
                               <p className={`text-[8px] uppercase font-black ${isExpired ? 'text-red-400' : 'text-emerald-400'}`}>Expiração</p>
                               <p className={`text-xs font-black ${isExpired ? 'text-red-500' : 'text-emerald-500'}`}>{expireDateDisplay}</p>
                             </div>
-                            <button 
-                              onClick={() => {
-                                setEditingId(u.id);
-                                setEditDate(u.expires_at ? new Date(u.expires_at).toISOString().split('T')[0] : '');
-                              }}
-                              className="text-slate-500 hover:text-amber-500 transition-colors"
-                            >
-                              <Edit3 size={14} />
-                            </button>
                           </div>
-                        </>
+                          <button onClick={() => { setEditingId(u.id); setEditDate(u.expires_at ? new Date(u.expires_at).toISOString().split('T')[0] : ''); }} className="text-slate-500 hover:text-amber-500 ml-2">
+                            <Edit3 size={14} />
+                          </button>
+                        </div>
                       )}
                     </div>
 
-                    {/* Gestão de Dias (Rápida) */}
+                    {/* ADD DIAS */}
                     <div className="flex items-center gap-2 bg-slate-800/50 p-1.5 rounded-2xl border-2 border-slate-700">
                       <input 
                         type="number"
-                        placeholder="DIAS"
+                        placeholder="0"
                         value={customDays[u.id] || ''}
                         onChange={(e) => setCustomDays({ ...customDays, [u.id]: parseInt(e.target.value) })}
-                        className="w-14 bg-transparent text-center outline-none font-black text-amber-500 text-sm"
+                        className="w-12 bg-transparent text-center outline-none font-black text-amber-500 text-sm"
                       />
-                      <button 
-                        onClick={() => handleAddCustomAccess(u.id, u.expires_at)}
-                        className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-xl transition-all active:scale-90 flex items-center gap-2 shadow-lg"
-                      >
+                      <button onClick={() => handleAddCustomAccess(u.id, u.expires_at)} className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-xl transition-all flex items-center gap-2 shadow-lg">
                         <CalendarPlus size={16} />
-                        <span className="text-[9px] uppercase font-black pr-1 italic">ADD</span>
+                        <span className="text-[9px] font-black uppercase italic">ADD</span>
                       </button>
                     </div>
 
-                    <button onClick={handleResetTourLocal} className="p-3 bg-slate-800 rounded-xl text-slate-500 hover:text-blue-400 border-2 border-slate-700 hover:border-blue-500 transition-all active:scale-90 shadow-md group">
-                      <RefreshCw size={18} className="group-hover:rotate-180 transition-transform duration-500" />
+                    <button onClick={handleResetTourLocal} className="p-3 bg-slate-800 rounded-xl text-slate-500 hover:text-blue-400 border-2 border-slate-700 transition-all active:scale-90">
+                      <RefreshCw size={18} />
                     </button>
                   </div>
                 </div>
               );
             })}
           </div>
+
+          {/* RODAPÉ COM PAGINAÇÃO (Só aparece se não estiver buscando) */}
+          {!searchTerm && totalCount > ITEMS_PER_PAGE && (
+            <div className="p-6 bg-slate-800/30 flex justify-center items-center gap-6 border-t-4 border-slate-800">
+              <button 
+                disabled={currentPage === 0}
+                onClick={() => setCurrentPage(prev => prev - 1)}
+                className="flex items-center gap-2 text-xs font-black uppercase italic disabled:opacity-20 hover:text-amber-500 transition-all"
+              >
+                <ChevronLeft size={20} /> Anterior
+              </button>
+              
+              <div className="flex gap-2">
+                {Array.from({ length: Math.ceil(totalCount / ITEMS_PER_PAGE) }).map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentPage(i)}
+                    className={`w-8 h-8 rounded-lg font-black text-xs transition-all ${currentPage === i ? 'bg-amber-500 text-black scale-110' : 'bg-slate-800 text-slate-500 hover:bg-slate-700'}`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+              </div>
+
+              <button 
+                disabled={(currentPage + 1) * ITEMS_PER_PAGE >= totalCount}
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                className="flex items-center gap-2 text-xs font-black uppercase italic disabled:opacity-20 hover:text-amber-500 transition-all"
+              >
+                Próximo <ChevronRight size={20} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
