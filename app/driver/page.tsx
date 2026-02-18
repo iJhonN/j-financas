@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Car, TrendingUp, Fuel, Wrench, Navigation, 
   Plus, History, PieChart, ArrowLeft, Loader2,
-  RefreshCcw, Bike, Zap // <--- Adicionado Zap aqui
+  RefreshCcw, Bike, Zap, ChevronRight
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -46,15 +46,14 @@ export default function DriverDashboard() {
         .select('valor_especie, valor_cartao')
         .eq('user_id', userId);
 
-      // 3. Busca Despesas (Transações marcadas como eh_driver)
+      // 3. Busca Despesas (Agora na tabela exclusiva driver_despesas)
       const { data: despesas } = await supabase
-        .from('transacoes')
+        .from('driver_despesas')
         .select('valor')
-        .eq('user_id', userId)
-        .eq('eh_driver', true);
+        .eq('user_id', userId);
 
       const totalGanhos = ganhos?.reduce((acc, g) => acc + Number(g.valor_especie) + Number(g.valor_cartao), 0) || 0;
-      const totalDespesas = despesas?.reduce((acc, d) => acc + Math.abs(Number(d.valor)), 0) || 0;
+      const totalDespesas = despesas?.reduce((acc, d) => acc + Number(d.valor), 0) || 0;
 
       setResumo({
         ganhos: totalGanhos,
@@ -78,14 +77,13 @@ export default function DriverDashboard() {
     init();
   }, [router, fetchDadosDriver]);
 
-  // Função para detectar o slug da imagem na pasta /public/carlogos/
   const getLogoSlug = (modelo: string) => {
     if (!modelo) return 'default';
     const marcaEncontrada = MARCAS_MAPPING.find(m => modelo.toUpperCase().startsWith(m.nome.toUpperCase()));
     return marcaEncontrada ? marcaEncontrada.slug : 'default';
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-[#0a0f1d]"><Loader2 className="animate-spin text-amber-500" size={48} /></div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-[#0a0f1d] text-amber-500"><Loader2 className="animate-spin" size={48} /></div>;
 
   return (
     <div className="min-h-screen bg-[#0a0f1d] p-4 md:p-8 text-white font-black italic uppercase antialiased leading-none pb-12">
@@ -97,7 +95,7 @@ export default function DriverDashboard() {
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="text-xl tracking-tighter italic">DRIVER DASHBOARD</h1>
+            <h1 className="text-xl tracking-tighter italic font-black">DRIVER DASHBOARD</h1>
             <p className="text-[9px] text-amber-500 tracking-widest font-black italic">SISTEMA DE OPERAÇÃO WOLF</p>
           </div>
         </div>
@@ -106,11 +104,29 @@ export default function DriverDashboard() {
         </div>
       </header>
 
-      {/* CARDS DE PERFORMANCE FINANCEIRA */}
+      {/* CARDS DE PERFORMANCE FINANCEIRA - AGORA COM REDIRECIONAMENTO */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <ResumoCard title="Lucro Líquido" value={resumo.rendimento} color="border-blue-600" textColor="text-blue-400" />
-        <ResumoCard title="Recebimentos" value={resumo.ganhos} color="border-emerald-600" textColor="text-emerald-500" />
-        <ResumoCard title="Custos Operacionais" value={resumo.despesas} color="border-rose-600" textColor="text-rose-500" />
+        <ResumoCard 
+          title="Lucro Operacional" 
+          value={resumo.rendimento} 
+          color="border-blue-600" 
+          textColor="text-blue-400" 
+          onClick={() => router.push('/driver/consultas')} 
+        />
+        <ResumoCard 
+          title="Recebimentos" 
+          value={resumo.ganhos} 
+          color="border-emerald-600" 
+          textColor="text-emerald-500" 
+          onClick={() => router.push('/driver/ganhos/lista')} 
+        />
+        <ResumoCard 
+          title="Custos Operacionais" 
+          value={resumo.despesas} 
+          color="border-rose-600" 
+          textColor="text-rose-500" 
+          onClick={() => router.push('/driver/despesas/lista')} 
+        />
       </div>
 
       {/* BOTÕES DE AÇÃO RÁPIDA */}
@@ -132,7 +148,6 @@ export default function DriverDashboard() {
         {veiculoAtivo ? (
           <div className="flex items-center justify-between relative z-10">
             <div className="flex items-center gap-5">
-              {/* Logo Local do Carro/Moto */}
               <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center p-3 shadow-inner border-4 border-slate-700 overflow-hidden">
                 <img 
                   src={`/carlogos/${getLogoSlug(veiculoAtivo.modelo)}.png`} 
@@ -142,7 +157,7 @@ export default function DriverDashboard() {
                 />
               </div>
               <div>
-                <p className="text-xl font-black tracking-tight italic">{veiculoAtivo.modelo}</p>
+                <p className="text-xl font-black tracking-tight italic uppercase">{veiculoAtivo.modelo}</p>
                 <div className="flex items-center gap-3 mt-1">
                    {veiculoAtivo.tipo === 'moto' ? <Bike size={14} className="text-slate-500" /> : <Car size={14} className="text-slate-500" />}
                    <span className="text-[11px] text-amber-500 font-black tracking-widest bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20">
@@ -165,19 +180,25 @@ export default function DriverDashboard() {
       </div>
 
       {/* FOOTER */}
-      <footer className="mt-12 flex flex-col items-center opacity-30 font-black italic">
-        <p className="text-[7px] tracking-[0.4em] mb-1 uppercase font-black">Engineered by</p>
-        <p className="text-[10px] text-blue-500 font-black italic">Jhonatha <span className="text-white">| Wolf Finance © 2026</span></p>
+      <footer className="mt-12 flex flex-col items-center opacity-30 font-black italic uppercase">
+        <p className="text-[7px] tracking-[0.4em] mb-1">Engineered by</p>
+        <p className="text-[10px] text-blue-500">Jhonatha <span className="text-white">| Wolf Finance © 2026</span></p>
       </footer>
     </div>
   );
 }
 
-// Componentes Auxiliares
-function ResumoCard({ title, value, color, textColor }: any) {
+// Componentes Auxiliares Atualizados
+function ResumoCard({ title, value, color, textColor, onClick }: any) {
   return (
-    <div className={`bg-[#111827] p-6 rounded-[2.5rem] border-b-8 ${color} shadow-2xl transition-all hover:translate-y-[-4px]`}>
-      <p className="text-[9px] tracking-widest opacity-40 mb-3 font-black uppercase italic">{title}</p>
+    <div 
+      onClick={onClick}
+      className={`bg-[#111827] p-6 rounded-[2.5rem] border-b-8 ${color} shadow-2xl transition-all hover:translate-y-[-4px] active:scale-95 cursor-pointer group`}
+    >
+      <div className="flex justify-between items-start">
+        <p className="text-[9px] tracking-widest opacity-40 mb-3 font-black uppercase italic">{title}</p>
+        <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-500" />
+      </div>
       <p className={`text-2xl font-black italic ${textColor}`}>{value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
     </div>
   );
