@@ -55,11 +55,17 @@ export default function HomePage() {
 
       if (tData) setTransacoes(tData.map(t => ({ ...t, valor: Number(t.valor), pago: t.pago ?? false })));
       if (cData) setCartoes(cData);
+      
       if (profile) {
         setSaldoInicial(Number(profile.saldo_inicial) || 0);
         if (profile.theme) setCurrentTheme(profile.theme as any);
         const diff = Math.ceil((new Date(profile.expires_at).getTime() - new Date().getTime()) / (86400000));
         setDiasRestantes(Math.max(0, diff));
+        
+        // Lógica de Tour persistente: Só inicia se 'tour_completado' for falso no banco
+        if (!profile.tour_completado) {
+           setTimeout(() => setTourStep(1), 1500);
+        }
       }
     } catch (err) { console.error(err); }
   }, []);
@@ -71,7 +77,6 @@ export default function HomePage() {
       setUser(session.user);
       await fetchDados(session.user.id);
       
-      if (!localStorage.getItem('wolf_tour_complete')) setTimeout(() => setTourStep(1), 1500);
       if (!window.matchMedia('(display-mode: standalone)').matches && !localStorage.getItem('wolf_install_prompt_v1')) {
         setTimeout(() => setShowInstallPrompt(true), 6000);
       }
@@ -79,6 +84,14 @@ export default function HomePage() {
     };
     init();
   }, [router, fetchDados]);
+
+  // Função para finalizar o tour e salvar no banco
+  const finalizarTour = async () => {
+    setTourStep(0);
+    if (user) {
+      await supabase.from('profiles').update({ tour_completado: true }).eq('id', user.id);
+    }
+  };
 
   const showAlert = (msg: string, type = 'success') => {
     setAlertConfig({ show: true, msg, type });
@@ -101,42 +114,23 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-[#0a0f1d] p-2 md:p-8 text-white font-black antialiased overflow-x-hidden pb-10 italic uppercase relative leading-none">
       
-      {/* TOUR MODAL OTIMIZADO */}
+      {/* TOUR MODAL PERSISTENTE */}
       {tourStep > 0 && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-6 pointer-events-none">
           <div className="pointer-events-auto bg-gradient-to-b from-blue-600 to-blue-800 p-8 rounded-[3rem] border-[3px] border-white/20 shadow-2xl max-w-sm w-full animate-in zoom-in relative text-center">
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-white text-blue-700 px-4 py-1.5 rounded-full text-[10px] shadow-xl border-2 border-blue-600 font-black">PASSO {tourStep} / 5</div>
-            <button onClick={() => {setTourStep(0); localStorage.setItem('wolf_tour_complete', 'true');}} className="absolute top-4 right-4 bg-white/10 p-2 rounded-full hover:bg-white/20 transition-all"><X size={18}/></button>
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-white text-blue-700 px-4 py-1.5 rounded-full text-[10px] shadow-xl border-2 border-blue-600 font-black uppercase">PASSO {tourStep} / 5</div>
+            <button onClick={finalizarTour} className="absolute top-4 right-4 bg-white/10 p-2 rounded-full hover:bg-white/20 transition-all"><X size={18}/></button>
             <div className="py-4">
               <div className="mb-4">{TOUR_CONTENT[tourStep-1].icon}</div>
-              <h3 className="text-2xl mb-4 italic tracking-tighter">{TOUR_CONTENT[tourStep-1].title}</h3>
+              <h3 className="text-2xl mb-4 italic tracking-tighter uppercase">{TOUR_CONTENT[tourStep-1].title}</h3>
               <p className="text-[10px] normal-case mb-8 italic text-blue-50 leading-tight">{TOUR_CONTENT[tourStep-1].desc}</p>
-              <button onClick={() => tourStep === 5 ? setTourStep(0) : setTourStep(s => s + 1)} className={`w-full py-5 rounded-2xl text-[12px] font-black uppercase transition-all duration-300 hover:tracking-[0.2em] active:scale-95 ${tourStep === 5 ? 'bg-emerald-500 text-white shadow-emerald-500/20 shadow-lg' : 'bg-white text-blue-700 shadow-xl'}`}>
+              <button 
+                onClick={() => tourStep === 5 ? finalizarTour() : setTourStep(s => s + 1)} 
+                className={`w-full py-5 rounded-2xl text-[12px] font-black uppercase transition-all duration-300 hover:tracking-[0.2em] active:scale-95 ${tourStep === 5 ? 'bg-emerald-500 text-white shadow-emerald-500/20 shadow-lg' : 'bg-white text-blue-700 shadow-xl'}`}
+              >
                 {tourStep === 5 ? 'Finalizar' : 'Próximo'}
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* BANNER INSTALAÇÃO PWA */}
-      {showInstallPrompt && (
-        <div className="fixed bottom-24 left-4 right-4 z-[9999] animate-in slide-in-from-bottom-10">
-          <div className="bg-blue-600 p-5 rounded-[2.5rem] border-2 border-white shadow-2xl flex flex-col gap-3 relative hover:scale-[1.01] transition-transform duration-300">
-            <button onClick={() => {localStorage.setItem('wolf_install_prompt_v1', 'true'); setShowInstallPrompt(false);}} className="absolute top-4 right-4 bg-white/20 p-1 rounded-full"><X size={16}/></button>
-            <div className="flex gap-4 items-center">
-              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-lg"><img src="/logo.png" className="w-8 h-8 object-contain" /></div>
-              <div className="leading-tight"><h3 className="text-[11px] font-black italic">INSTALAR WOLF FINANCE</h3><p className="text-[8px] normal-case opacity-90 italic">Adicione o ícone na sua tela de início.</p></div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ALERTAS */}
-      {alertConfig.show && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] px-4 w-full max-w-sm animate-in fade-in slide-in-from-top-4">
-          <div className={`flex items-center gap-3 p-4 rounded-2xl border-2 shadow-2xl backdrop-blur-xl ${alertConfig.type === 'error' ? 'bg-rose-950/80 border-rose-500 text-rose-200' : 'bg-emerald-950/80 border-emerald-500 text-emerald-200'}`}>
-            <p className="text-[10px] tracking-widest font-black uppercase italic">{alertConfig.msg}</p>
           </div>
         </div>
       )}
@@ -155,7 +149,6 @@ export default function HomePage() {
             </div>
           </div>
           <div className="flex gap-2">
-            {/* BOTÃO DRIVER */}
             <button onClick={() => router.push('/driver')} className="bg-slate-800 text-amber-500 p-2.5 rounded-full border border-amber-500/30 shadow-lg hover:bg-amber-600 hover:text-white transition-all active:scale-90"><Car size={20}/></button>
             <button onClick={() => router.push('/tutorial')} className="bg-slate-800 text-blue-400 p-2.5 rounded-full border border-blue-500/30 shadow-lg hover:bg-blue-600 hover:text-white transition-all active:scale-90"><HelpCircle size={20}/></button>
             <button onClick={() => router.push('/perfil')} className="bg-slate-800 text-slate-300 p-2.5 rounded-full border border-slate-700 shadow-lg hover:bg-slate-700 hover:text-white transition-all active:scale-90"><UserCircle size={20}/></button>
