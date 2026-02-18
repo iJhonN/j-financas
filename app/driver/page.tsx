@@ -1,0 +1,159 @@
+'use client';
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { 
+  Car, TrendingUp, Fuel, Wrench, Navigation, 
+  ChevronLeft, Plus, History, PieChart, ArrowLeft, Loader2,
+  RefreshCcw // <--- Ícone importado aqui
+} from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+
+export default function DriverDashboard() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const [resumo, setResumo] = useState({ rendimento: 0, ganhos: 0, despesas: 0 });
+  const [veiculoAtivo, setVeiculoAtivo] = useState<any>(null);
+
+  const fetchDadosDriver = useCallback(async (userId: string) => {
+    try {
+      // Busca o último veículo cadastrado
+      const { data: vData } = await supabase
+        .from('veiculos')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (vData) setVeiculoAtivo(vData);
+
+      // Busca ganhos e despesas vinculadas ao driver
+      const { data: ganhos } = await supabase.from('driver_ganhos').select('valor_especie, valor_cartao').eq('user_id', userId);
+      const { data: despesas } = await supabase.from('transacoes').select('valor').eq('user_id', userId).eq('eh_driver', true);
+
+      const totalGanhos = ganhos?.reduce((acc, g) => acc + Number(g.valor_especie) + Number(g.valor_cartao), 0) || 0;
+      const totalDespesas = despesas?.reduce((acc, d) => acc + Math.abs(Number(d.valor)), 0) || 0;
+
+      setResumo({
+        ganhos: totalGanhos,
+        despesas: totalDespesas,
+        rendimento: totalGanhos - totalDespesas
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const init = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return router.push('/login');
+      setUser(session.user);
+      await fetchDadosDriver(session.user.id);
+    };
+    init();
+  }, [router, fetchDadosDriver]);
+
+  const formatarMoeda = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-[#0a0f1d]"><Loader2 className="animate-spin text-amber-500" size={48} /></div>;
+
+  return (
+    <div className="min-h-screen bg-[#0a0f1d] p-4 md:p-8 text-white font-black italic uppercase antialiased leading-none">
+      
+      {/* HEADER DRIVER */}
+      <header className="flex justify-between items-center mb-8 bg-[#111827] p-6 rounded-[2rem] border border-slate-800 shadow-2xl">
+        <div className="flex items-center gap-4">
+          <button onClick={() => router.push('/')} className="p-3 bg-slate-800 rounded-full text-slate-400 hover:text-white transition-all active:scale-90 border border-slate-700">
+            <ArrowLeft size={20} />
+          </button>
+          <div>
+            <h1 className="text-xl tracking-tighter italic">DRIVER DASHBOARD</h1>
+            <p className="text-[9px] text-amber-500 tracking-widest font-black italic">WOLF OPERACIONAL</p>
+          </div>
+        </div>
+        <div className="bg-amber-500/10 text-amber-500 p-3 rounded-2xl border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+          <Car size={24} />
+        </div>
+      </header>
+
+      {/* CARDS DE RESUMO */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <ResumoCard title="Rendimento Líquido" value={resumo.rendimento} color="border-blue-600" textColor="text-blue-400" />
+        <ResumoCard title="Recebimentos" value={resumo.ganhos} color="border-emerald-600" textColor="text-emerald-500" />
+        <ResumoCard title="Despesas (Carro)" value={resumo.despesas} color="border-rose-600" textColor="text-rose-500" />
+      </div>
+
+      {/* BOTÕES DE AÇÃO */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <MenuButton icon={<Plus />} label="Novo Ganho" color="bg-emerald-600" onClick={() => router.push('/driver/ganhos')} />
+        <MenuButton icon={<Car />} label="Veículos" color="bg-slate-800" onClick={() => router.push('/driver/veiculos')} />
+        <MenuButton icon={<History />} label="Consultas" color="bg-slate-800" onClick={() => router.push('/driver/consultas')} />
+        <MenuButton icon={<PieChart />} label="Relatórios" color="bg-slate-800" onClick={() => router.push('/driver/relatorios')} />
+      </div>
+
+      {/* STATUS DO VEÍCULO ATUAL */}
+      <div className="bg-[#111827] p-8 rounded-[3rem] border-2 border-slate-800 shadow-2xl relative overflow-hidden group">
+        <div className="absolute right-0 top-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-700">
+          <Navigation size={120} />
+        </div>
+        
+        <h2 className="text-[10px] tracking-[0.3em] opacity-40 mb-6 font-black italic">VEÍCULO EM OPERAÇÃO</h2>
+        
+        {veiculoAtivo ? (
+          <div className="flex items-center justify-between relative z-10">
+            <div className="flex items-center gap-5">
+              <div className="w-16 h-16 bg-slate-800 rounded-[1.5rem] flex items-center justify-center border-2 border-slate-700 shadow-inner">
+                <Car className="text-amber-500" size={32} />
+              </div>
+              <div>
+                <p className="text-lg font-black tracking-tight italic">{veiculoAtivo.modelo} - {veiculoAtivo.placa}</p>
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="text-[10px] text-slate-500 bg-slate-900 px-2 py-1 rounded-md border border-slate-800 uppercase italic font-black">ANO {veiculoAtivo.ano}</span>
+                  <span className="text-[10px] text-amber-500 font-black italic">KM: {Number(veiculoAtivo.km_atual).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+            <button onClick={() => router.push('/driver/veiculos')} className="bg-slate-800 hover:bg-amber-600 text-amber-500 hover:text-white p-4 rounded-2xl border border-amber-500/20 transition-all active:scale-95 shadow-lg group">
+              <RefreshCcw size={20} className="group-hover:rotate-180 transition-transform duration-500" />
+            </button>
+          </div>
+        ) : (
+          <div className="text-center py-4 relative z-10">
+            <p className="text-xs text-slate-500 mb-4 font-black italic uppercase tracking-widest">NENHUM VEÍCULO CADASTRADO</p>
+            <button onClick={() => router.push('/driver/veiculos')} className="bg-amber-600 text-white px-8 py-4 rounded-2xl text-[10px] font-black hover:bg-amber-500 transition-all shadow-lg shadow-amber-900/20 active:scale-95 italic">CADASTRAR MEU PRIMEIRO CARRO</button>
+          </div>
+        )}
+      </div>
+
+      <footer className="mt-12 flex flex-col items-center opacity-30 font-black italic">
+        <p className="text-[7px] tracking-[0.4em] mb-1 uppercase font-black">Engineered by</p>
+        <p className="text-[10px] text-blue-500 font-black italic">Jhonatha <span className="text-white">| Wolf Finance © 2026</span></p>
+      </footer>
+    </div>
+  );
+}
+
+function ResumoCard({ title, value, color, textColor }: any) {
+  return (
+    <div className={`bg-[#111827] p-6 rounded-[2.5rem] border-b-8 ${color} shadow-2xl transition-all hover:translate-y-[-4px]`}>
+      <p className="text-[9px] tracking-widest opacity-40 mb-3 font-black uppercase italic">{title}</p>
+      <p className={`text-2xl font-black italic ${textColor}`}>{value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+    </div>
+  );
+}
+
+function MenuButton({ icon, label, color, onClick }: any) {
+  return (
+    <button onClick={onClick} className={`${color} p-8 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 shadow-xl hover:scale-[1.03] hover:brightness-110 transition-all active:scale-95 border border-white/5 group`}>
+      <div className="transition-transform duration-300 group-hover:scale-110">
+        {React.cloneElement(icon, { size: 28 })}
+      </div>
+      <span className="text-[10px] font-black tracking-tighter uppercase italic">{label}</span>
+    </button>
+  );
+}
