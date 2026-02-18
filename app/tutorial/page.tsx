@@ -1,19 +1,45 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Plus, UserCircle, ChevronLeft, HelpCircle, 
   CreditCard, Banknote, Coins, TrendingUp, 
   CheckCircle, Circle, Zap, Info, Clock,
-  RefreshCcw, ShieldCheck as ShieldCheckIcon
+  RefreshCcw, ShieldCheck as ShieldCheckIcon,
+  PlayCircle, Loader2
 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 export default function ManualWolf() {
   const router = useRouter();
+  const [isResetting, setIsResetting] = useState(false);
+
+  // Função para resetar o tutorial no banco de dados
+  const reiniciarTutorial = async () => {
+    try {
+      setIsResetting(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session) {
+        // Atualiza o banco para permitir que o tour apareça novamente
+        await supabase
+          .from('profiles')
+          .update({ tour_completado: false })
+          .eq('id', session.user.id);
+        
+        // Redireciona para a Home onde o useEffect vai disparar o tour
+        router.push('/');
+      }
+    } catch (error) {
+      console.error("Erro ao resetar tour:", error);
+    } finally {
+      setIsResetting(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-[#0a0f1d] p-4 md:p-8 text-white font-black antialiased uppercase italic leading-none">
+    <div className="min-h-screen bg-[#0a0f1d] p-4 md:p-8 text-white font-black antialiased uppercase italic leading-none pb-12">
       
       {/* CABEÇALHO DO MANUAL */}
       <header className="flex flex-col gap-4 mb-8 bg-[#111827] p-6 rounded-[2rem] border-2 border-blue-600 shadow-2xl relative">
@@ -36,7 +62,27 @@ export default function ManualWolf() {
         
         {/* COLUNA 1: LÓGICA FINANCEIRA E CARTÕES */}
         <div className="space-y-6">
-          {/* SEÇÃO CARTÕES - SEGURANÇA */}
+          
+          {/* NOVO BOTÃO: REINICIAR TOUR INTERATIVO */}
+          <section className="bg-gradient-to-r from-blue-900/40 to-slate-900 p-6 rounded-[2.5rem] border-2 border-dashed border-blue-500/30 flex items-center justify-between group">
+            <div className="flex items-center gap-4">
+              <div className="bg-blue-600 p-3 rounded-2xl shadow-lg">
+                <PlayCircle size={24} className="text-white" />
+              </div>
+              <div>
+                <h2 className="text-xs mb-1">DÚVIDAS NA INTERFACE?</h2>
+                <p className="text-[8px] normal-case opacity-50 italic">REVEJA O PASSO A PASSO INICIAL.</p>
+              </div>
+            </div>
+            <button 
+              onClick={reiniciarTutorial}
+              disabled={isResetting}
+              className="bg-white text-blue-700 px-6 py-4 rounded-2xl text-[10px] font-black hover:bg-blue-500 hover:text-white transition-all active:scale-90 shadow-xl disabled:opacity-50 flex items-center gap-2"
+            >
+              {isResetting ? <Loader2 className="animate-spin" size={14} /> : "REINICIAR TOUR"}
+            </button>
+          </section>
+
           <section className="bg-[#111827] p-6 rounded-[2.5rem] border border-slate-800 shadow-xl border-t-amber-500/50">
             <div className="flex items-center gap-3 mb-4 text-amber-500">
               <CreditCard size={24} />
@@ -44,35 +90,21 @@ export default function ManualWolf() {
             </div>
             <div className="bg-rose-900/20 p-4 rounded-2xl border border-rose-500/30 mb-4">
               <p className="text-[9px] text-rose-200 normal-case leading-tight font-black italic">
-                ⚠️ <span className="uppercase">Aviso de Segurança:</span> Não é necessário (nem recomendado) colocar dados reais do seu cartão como número ou código.
+                ⚠️ <span className="uppercase">Aviso de Segurança:</span> Não é necessário (nem recomendado) colocar dados reais do seu cartão.
               </p>
             </div>
             <p className="text-[10px] leading-relaxed text-slate-400 normal-case italic">
-              Coloque apenas o <span className="text-white font-black uppercase">Essencial</span>: O nome do banco para você se organizar e o <span className="text-white font-black uppercase">Dia de Vencimento</span>. O Wolf usa esse dia apenas para calcular quando as parcelas aparecerão no gráfico.
+              Coloque apenas o <span className="text-white font-black uppercase">Essencial</span>: O nome do banco e o <span className="text-white font-black uppercase">Dia de Vencimento</span>.
             </p>
           </section>
 
-          {/* SEÇÃO RECORRÊNCIA */}
           <section className="bg-[#111827] p-6 rounded-[2.5rem] border border-slate-800 shadow-xl border-t-purple-500/50">
             <div className="flex items-center gap-3 mb-4 text-purple-400">
               <RefreshCcw size={24} />
               <h2 className="text-sm">CONTAS FIXAS (RECORRÊNCIA)</h2>
             </div>
             <p className="text-[10px] leading-relaxed text-slate-400 normal-case italic">
-              Tem gastos que se repetem todo mês (Aluguel, Luz, Software)? Ative o botão de <span className="text-purple-400 font-black uppercase tracking-tighter">Recorrência</span>. O sistema irá projetar automaticamente os próximos 12 meses, poupando seu tempo.
-            </p>
-          </section>
-
-          <section className="bg-[#111827] p-6 rounded-[2.5rem] border border-slate-800 shadow-xl">
-            <div className="flex items-center gap-3 mb-4 text-emerald-400">
-              <Coins size={24} />
-              <h2 className="text-sm">FÓRMULA DO SALDO</h2>
-            </div>
-            <div className="bg-black/40 p-4 rounded-2xl border border-slate-800 text-center mb-4">
-              <span className="text-xs text-white">SALDO INICIAL + RECEITAS PAGAS - DESPESAS PAGAS</span>
-            </div>
-            <p className="text-[9px] text-slate-500 normal-case italic">
-              * Lançamentos pendentes (círculo vazio) não alteram seu saldo até que o pagamento seja confirmado.
+              Ative o botão de <span className="text-purple-400 font-black uppercase tracking-tighter">Recorrência</span>. O sistema irá projetar automaticamente os próximos 12 meses.
             </p>
           </section>
         </div>
