@@ -13,7 +13,6 @@ export default function LoginPage() {
   const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   
-  // Estados de formulário
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nome, setNome] = useState('');
@@ -55,7 +54,6 @@ export default function LoginPage() {
         const { error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
         if (error) throw error;
 
-        // Lógica de Segundo Passo para Admin
         if (cleanEmail === ADMIN_EMAIL && step === 1) {
           setStep(2);
           setLoading(false);
@@ -73,7 +71,7 @@ export default function LoginPage() {
           options: { data: { full_name: nome.trim() } } 
         });
         if (error) throw error;
-        alert("CONTA CRIADA! ACESSO LIBERADO."); // Ajustado para sua nova política sem verificação de e-mail
+        alert("CONTA CRIADA! ACESSO LIBERADO.");
         setAuthMode('login');
       }
     } catch (error: any) {
@@ -92,7 +90,6 @@ export default function LoginPage() {
           onSubmit={handleAuth} 
           className="bg-[#111827]/80 backdrop-blur-xl w-full max-w-md rounded-[2.5rem] p-7 md:p-10 border-4 border-slate-800/50 shadow-2xl transition-all duration-500 hover:border-blue-500/30"
         >
-          {/* Logo e Título */}
           <div className="flex flex-col items-center mb-8 md:mb-10 text-center group">
             <div className="relative mb-3 transition-transform duration-500 group-hover:scale-110">
               <div className="absolute inset-0 bg-blue-600/20 blur-3xl rounded-full scale-125 animate-pulse" />
@@ -107,13 +104,14 @@ export default function LoginPage() {
             {step === 1 ? (
               <>
                 {authMode === 'signup' && (
-                  <InputGroup icon={<User size={18}/>} placeholder="NOME COMPLETO">
-                    <input type="text" placeholder="NOME" value={nome} onChange={(e) => setNome(e.target.value)} className="auth-input" required />
+                  <InputGroup icon={<User size={18}/>}>
+                    <input type="text" placeholder="NOME COMPLETO" value={nome} onChange={(e) => setNome(e.target.value)} className="auth-input uppercase" required />
                   </InputGroup>
                 )}
                 
-                <InputGroup icon={<Mail size={18}/>} placeholder="E-MAIL">
-                  <input type="email" placeholder="E-MAIL" value={email} onChange={(e) => setEmail(e.target.value)} className="auth-input" required />
+                <InputGroup icon={<Mail size={18}/>}>
+                  {/* Removida a classe 'uppercase' do campo de E-mail */}
+                  <input type="email" placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} className="auth-input lowercase" required />
                 </InputGroup>
                 
                 <div className="relative group">
@@ -174,7 +172,6 @@ export default function LoginPage() {
           </div>
         </form>
 
-        {/* Créditos fixos */}
         <div className="fixed bottom-6 left-0 right-0 flex flex-col items-center opacity-30 hover:opacity-100 transition-all duration-700 pointer-events-none z-[10]">
           <p className="text-[7px] tracking-[0.4em] uppercase font-black mb-1">Engineered by</p>
           <p className="text-[10px] tracking-tighter font-black italic uppercase text-blue-500">
@@ -194,7 +191,6 @@ export default function LoginPage() {
           outline: none;
           color: white;
           font-weight: 900;
-          text-transform: uppercase;
           font-size: 0.75rem;
           transition: all 0.3s;
         }
