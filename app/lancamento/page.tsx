@@ -49,15 +49,22 @@ export default function LancamentoPage() {
       setLoading(true);
       const valorComSinal = tipoMovimento === 'receita' ? Math.abs(vTotal) : -Math.abs(vTotal);
       const isPix = metodoPagamento === 'Pix';
+      
+      // LÓGICA CORRIGIDA:
+      // Se for RECORRENTE: Repetimos 12x com o valor CHEIO em cada mês.
+      // Se for CRÉDITO (não recorrente): Dividimos o valor total pelas parcelas.
       const numRepeticoes = recorrente ? 12 : (tipoPagamento === 'Crédito' ? parcelas : 1);
-      const valorParcela = parseFloat((valorComSinal / numRepeticoes).toFixed(2));
+      const valorPorLancamento = recorrente 
+        ? valorComSinal 
+        : parseFloat((valorComSinal / numRepeticoes).toFixed(2));
+
       const novosLancamentos = [];
       const hoje = new Date();
 
       for (let i = 0; i < numRepeticoes; i++) {
         let d = new Date(dataLancamento + 'T12:00:00');
         
-        if (!isPix && tipoPagamento === 'Crédito') {
+        if (!recorrente && !isPix && tipoPagamento === 'Crédito') {
           const cartao = cartoes.find(c => `${c.banco} - ${c.nome_cartao}` === metodoPagamento);
           if (cartao) {
             d = new Date(); 
@@ -70,8 +77,8 @@ export default function LancamentoPage() {
         if (recorrente) d.setDate(diaRecorrencia);
 
         novosLancamentos.push({
-          descricao: `${isPix ? "⚡ " : ""}${descricao.toUpperCase()}${numRepeticoes > 1 ? ` - ${(i + 1).toString().padStart(2, '0')}/${numRepeticoes}` : ""}`,
-          valor: valorParcela, 
+          descricao: `${isPix ? "⚡ " : ""}${descricao.toUpperCase()}${numRepeticoes > 1 && !recorrente ? ` - ${(i + 1).toString().padStart(2, '0')}/${numRepeticoes}` : ""}`,
+          valor: valorPorLancamento, 
           forma_pagamento: metodoPagamento, 
           tipo: tipoMovimento,
           tipo_pagamento: isPix ? 'Dinheiro' : tipoPagamento, 
@@ -81,12 +88,16 @@ export default function LancamentoPage() {
           pago: (isPix || tipoMovimento === 'receita') && i === 0
         });
       }
+      
       await supabase.from('transacoes').insert(novosLancamentos);
       router.push('/');
-    } catch (err) { console.error(err); setLoading(false); }
+    } catch (err) { 
+      console.error(err); 
+      setLoading(false); 
+    }
   };
 
-  if (loading && !user) return <div className="min-h-screen flex items-center justify-center bg-[#0a0f1d]"><Loader2 className="animate-spin text-blue-600" size={32} /></div>;
+  if (loading && !user) return <div className="min-h-screen flex items-center justify-center bg-[#0a0f1d] text-blue-600"><Loader2 className="animate-spin" size={32} /></div>;
 
   return (
     <div className="min-h-screen bg-[#0a0f1d] p-3 md:p-6 text-white font-black antialiased uppercase italic leading-none relative pb-10">
@@ -103,14 +114,13 @@ export default function LancamentoPage() {
 
       <form onSubmit={handleSalvar} className="max-w-lg mx-auto bg-[#111827] p-6 rounded-[2.5rem] border-2 border-slate-800 shadow-2xl space-y-6">
         
-        {/* Toggle Tipo Movimento */}
         <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-900 rounded-2xl border border-slate-800">
           <TypeBtn active={tipoMovimento === 'despesa'} onClick={() => setTipoMovimento('despesa')} color="rose" icon={<ArrowDownCircle size={16}/>} label="DESPESA" />
           <TypeBtn active={tipoMovimento === 'receita'} onClick={() => setTipoMovimento('receita')} color="emerald" icon={<ArrowUpCircle size={16}/>} label="RECEITA" />
         </div>
 
         <div className="space-y-4">
-          <input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="DESCRIÇÃO DO LANÇAMENTO" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none text-[11px] font-black focus:border-blue-500 transition-all" required />
+          <input value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="DESCRIÇÃO DO LANÇAMENTO" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none text-[11px] font-black focus:border-blue-500 transition-all uppercase" required />
           <div className="relative group">
             <input type="text" value={valorDisplay} onChange={(e) => {
                 let v = e.target.value.replace(/\D/g, '');
@@ -127,13 +137,13 @@ export default function LancamentoPage() {
             <button type="button" onClick={() => setIsCardDropdownOpen(!isCardDropdownOpen)} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 flex items-center justify-between hover:bg-slate-700 transition-all active:scale-95">
               <div className="flex items-center gap-2">
                 {metodoPagamento === 'Pix' ? <Zap size={14} className="text-emerald-500" /> : <CreditCard size={14} className="text-blue-500" />}
-                <span className="text-[10px] font-black">{metodoPagamento.split(' - ')[0]}</span>
+                <span className="text-[10px] font-black uppercase">{metodoPagamento.split(' - ')[0]}</span>
               </div>
               <ChevronDown size={14} className={`transition-transform duration-300 ${isCardDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {isCardDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-[#111827] border-2 border-slate-800 rounded-2xl shadow-2xl z-[100] max-h-56 overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95">
+              <div className="absolute top-full left-0 right-0 mt-2 bg-[#111827] border-2 border-slate-800 rounded-2xl shadow-2xl z-[100] max-h-56 overflow-y-auto custom-scrollbar">
                 <DropdownItem icon={<div className="bg-emerald-500 text-black rounded p-1"><Zap size={12}/></div>} label="PIX / DINHEIRO" onClick={() => { setMetodoPagamento('Pix'); setTipoPagamento('Dinheiro'); setIsCardDropdownOpen(false); }} />
                 {cartoes.map((c) => (
                   <DropdownItem key={c.id} icon={<img src={c.logo_url} className="w-6 h-6 object-contain p-1 bg-slate-700 rounded" onError={(e) => (e.currentTarget.src = "/logo.png")} />} label={c.banco} sublabel={c.nome_cartao} onClick={() => { setMetodoPagamento(`${c.banco} - ${c.nome_cartao}`); setTipoPagamento('Crédito'); setIsCardDropdownOpen(false); }} />
@@ -144,7 +154,7 @@ export default function LancamentoPage() {
 
           <div className="space-y-1">
             <label className="text-[7px] opacity-40 ml-1">MODALIDADE</label>
-            <select value={tipoPagamento} onChange={(e) => setTipoPagamento(e.target.value as any)} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] font-black outline-none appearance-none cursor-pointer focus:border-blue-500" disabled={metodoPagamento === 'Pix'}>
+            <select value={tipoPagamento} onChange={(e) => setTipoPagamento(e.target.value as any)} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] font-black outline-none appearance-none cursor-pointer focus:border-blue-500 uppercase" disabled={metodoPagamento === 'Pix'}>
               {metodoPagamento === 'Pix' ? <option value="Dinheiro">À VISTA</option> : <><option value="Crédito">CRÉDITO</option><option value="Débito">DÉBITO</option></>}
             </select>
           </div>
@@ -152,22 +162,22 @@ export default function LancamentoPage() {
 
         <div className="grid grid-cols-2 gap-4 items-end">
           <div className="space-y-1">
-             <label className="text-[7px] opacity-40 ml-1">{recorrente ? 'DIA DO MÊS' : (tipoPagamento === 'Crédito' ? 'PARCELAS' : 'MODO')}</label>
-             {tipoPagamento === 'Crédito' && !recorrente ? (
-                <input type="number" min="1" max="48" value={parcelas} onChange={(e) => setParcelas(Number(e.target.value))} className="w-full p-3.5 bg-slate-800 rounded-xl border-2 border-slate-700 text-center font-black text-xs focus:border-blue-500 outline-none" />
-             ) : recorrente ? (
-                <input type="number" min="1" max="31" value={diaRecorrencia} onChange={(e) => setDiaRecorrencia(Number(e.target.value))} className="w-full p-3.5 bg-slate-800 rounded-xl border-2 border-purple-500/50 text-center font-black text-xs text-purple-400 outline-none" />
-             ) : (
-                <div className="p-3.5 rounded-xl border-2 border-slate-800 text-[9px] font-black text-center text-slate-600 bg-slate-900/50 uppercase">À VISTA</div>
-             )}
+              <label className="text-[7px] opacity-40 ml-1 uppercase">{recorrente ? 'DIA DO MÊS' : (tipoPagamento === 'Crédito' ? 'PARCELAS' : 'MODO')}</label>
+              {tipoPagamento === 'Crédito' && !recorrente ? (
+                 <input type="number" min="1" max="48" value={parcelas} onChange={(e) => setParcelas(Number(e.target.value))} className="w-full p-3.5 bg-slate-800 rounded-xl border-2 border-slate-700 text-center font-black text-xs focus:border-blue-500 outline-none" />
+              ) : recorrente ? (
+                 <input type="number" min="1" max="31" value={diaRecorrencia} onChange={(e) => setDiaRecorrencia(Number(e.target.value))} className="w-full p-3.5 bg-slate-800 rounded-xl border-2 border-purple-500/50 text-center font-black text-xs text-purple-400 outline-none" />
+              ) : (
+                 <div className="p-3.5 rounded-xl border-2 border-slate-800 text-[9px] font-black text-center text-slate-600 bg-slate-900/50 uppercase">À VISTA</div>
+              )}
           </div>
           <div className="space-y-1">
-             <label className="text-[7px] opacity-40 ml-1">DATA DE REFERÊNCIA</label>
-             {(metodoPagamento === 'Pix' || tipoPagamento !== 'Crédito') ? (
-                <input type="date" value={dataLancamento} onChange={(e) => setDataLancamento(e.target.value)} className="w-full p-3.5 bg-slate-800 rounded-xl border-2 border-slate-700 text-center font-black text-[10px] focus:border-blue-500 outline-none" required />
-             ) : (
-                <div className="p-3.5 rounded-xl border-2 border-blue-900/30 text-[9px] font-black text-center text-blue-500 bg-blue-900/10 uppercase italic">Automática</div>
-             )}
+              <label className="text-[7px] opacity-40 ml-1 uppercase">DATA DE REFERÊNCIA</label>
+              {(metodoPagamento === 'Pix' || tipoPagamento !== 'Crédito') ? (
+                 <input type="date" value={dataLancamento} onChange={(e) => setDataLancamento(e.target.value)} className="w-full p-3.5 bg-slate-800 rounded-xl border-2 border-slate-700 text-center font-black text-[10px] focus:border-blue-500 outline-none uppercase" required />
+              ) : (
+                 <div className="p-3.5 rounded-xl border-2 border-blue-900/30 text-[9px] font-black text-center text-blue-500 bg-blue-900/10 uppercase italic">Automática</div>
+              )}
           </div>
         </div>
 
@@ -178,21 +188,20 @@ export default function LancamentoPage() {
 
         <button type="submit" disabled={loading} className="group relative w-full bg-blue-600 py-5 rounded-[2rem] shadow-2xl overflow-hidden active:scale-95 transition-all">
           <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-          <div className="relative flex items-center justify-center gap-3 text-[11px] font-black uppercase tracking-widest">
+          <div className="relative flex items-center justify-center gap-3 text-[11px] font-black uppercase tracking-widest italic">
             {loading ? <Loader2 className="animate-spin"/> : <><Save size={18} /> CONFIRMAR LANÇAMENTO</>}
           </div>
         </button>
       </form>
 
       <footer className="relative mt-12 pb-8 flex flex-col items-center opacity-30 hover:opacity-100 transition-all font-black italic">
-        <p className="text-[7px] tracking-[0.4em] mb-1">Engineered by</p>
-        <p className="text-[10px] text-blue-500">Jhonatha <span className="text-white">| Wolf Finance © 2026</span></p>
+        <p className="text-[7px] tracking-[0.4em] mb-1 uppercase">Engineered by</p>
+        <p className="text-[10px] text-blue-500 uppercase">Jhonatha <span className="text-white">| Wolf Finance © 2026</span></p>
       </footer>
     </div>
   );
 }
 
-// Componentes Auxiliares
 function TypeBtn({ active, onClick, color, icon, label }: any) {
   const styles: any = {
     rose: active ? 'bg-rose-600 shadow-lg shadow-rose-900/20' : 'text-slate-500 hover:text-rose-400',
