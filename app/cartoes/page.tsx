@@ -4,11 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   ChevronLeft, CreditCard, Plus, Trash2, ShieldCheck, 
-  Save, Loader2, Check, ChevronDown, Search
+  Save, Loader2, Check, ChevronDown, Search, AlertTriangle, XCircle
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
-// Lista sincronizada exatamente com os nomes dos seus arquivos no GitHub
 const BANCOS_SUPORTADOS = [
   { id: 'nubank', nome: 'NUBANK', logo: '/logos/nubank.svg' },
   { id: 'itau', nome: 'ITAÚ', logo: '/logos/itau.svg' },
@@ -32,7 +31,7 @@ const BANCOS_SUPORTADOS = [
   { id: 'riachuelo', nome: 'RIACHUELO', logo: '/logos/riachuelo.svg' },
   { id: 'asaas', nome: 'ASAAS', logo: '/logos/asaas.svg' },
   { id: 'bne', nome: 'BANCO DO NORDESTE', logo: '/logos/bancodonordeste.svg' },
-  { id: 'bne', nome: 'C&A', logo: '/logos/cea.svg' },
+  { id: 'cea', nome: 'C&A', logo: '/logos/cea.svg' },
   { id: 'outros', nome: 'OUTRO BANCO', logo: '/logo.png' },
 ];
 
@@ -48,6 +47,7 @@ export default function CartoesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [nomeCartao, setNomeCartao] = useState('');
   const [vencimento, setVencimento] = useState('');
+  const [showNumberAlert, setShowNumberAlert] = useState(false);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -67,11 +67,37 @@ export default function CartoesPage() {
     setLoading(false);
   };
 
+  // LOGICA DE BLOQUEIO E AVISO
+  const handleNomeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    
+    // Verifica se o usuário tentou digitar um número
+    if (/\d/.test(value)) {
+      setShowNumberAlert(true);
+      setTimeout(() => setShowNumberAlert(false), 3000);
+    }
+
+    const apenasLetras = value.replace(/[0-9]/g, '');
+    setNomeCartao(apenasLetras);
+  };
+
+  const handleVencimentoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '');
+    if (value.length <= 2) {
+      setVencimento(value);
+    }
+  };
+
   const handleSalvar = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (Number(vencimento) < 1 || Number(vencimento) > 31) {
+      alert("DIA DE VENCIMENTO INVÁLIDO!");
+      return;
+    }
+
     const { error } = await supabase.from('cartoes').insert([{
       banco: bancoSelecionado.nome,
-      nome_cartao: nomeCartao.toUpperCase(),
+      nome_cartao: nomeCartao.toUpperCase().trim(),
       vencimento: Number(vencimento),
       logo_url: bancoSelecionado.logo,
       user_id: user.id
@@ -86,12 +112,11 @@ export default function CartoesPage() {
   };
 
   const handleDeletar = async (id: string) => {
-    if (!confirm("DESEJA REMOVER ESTE CARTÃO DA ALCATEIA?")) return;
+    if (!confirm("REMOVER CARTÃO DA ALCATEIA?")) return;
     await supabase.from('cartoes').delete().eq('id', id);
     fetchCartoes(user.id);
   };
 
-  // Filtro de busca para o dropdown de bancos
   const bancosFiltrados = BANCOS_SUPORTADOS.filter(b => 
     b.nome.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -105,21 +130,20 @@ export default function CartoesPage() {
         <button onClick={() => router.push('/')} className="bg-slate-800 p-2.5 rounded-full border border-slate-700 active:scale-90 transition-all shadow-lg">
           <ChevronLeft size={24}/>
         </button>
-        <h1 className="text-xl md:text-2xl tracking-tighter uppercase font-black">GESTÃO DE CARTÕES</h1>
+        <h1 className="text-xl md:text-2xl tracking-tighter font-black italic">GESTÃO DE CARTÕES</h1>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
         
-        {/* FORMULÁRIO DE CADASTRO */}
-        <section className="bg-[#111827] p-6 rounded-[2.5rem] border-2 border-slate-800 shadow-2xl h-fit">
+        {/* FORMULÁRIO */}
+        <section className="bg-[#111827] p-6 rounded-[2.5rem] border-2 border-slate-800 shadow-2xl h-fit relative">
           <div className="flex items-center gap-3 mb-6 text-blue-500">
             <Plus size={24} />
-            <h2 className="text-sm">ADICIONAR NOVO</h2>
+            <h2 className="text-sm font-black italic">ADICIONAR NOVO</h2>
           </div>
-          
+
           <form onSubmit={handleSalvar} className="space-y-4">
             
-            {/* SELETOR DE BANCO VISUAL COM BUSCA */}
             <div className="space-y-1 relative">
               <label className="text-[7px] opacity-40 ml-1 uppercase">Instituição Financeira</label>
               <button 
@@ -170,41 +194,56 @@ export default function CartoesPage() {
               )}
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[7px] opacity-40 ml-1 uppercase">Apelido do Cartão</label>
-              <input value={nomeCartao} onChange={(e) => setNomeCartao(e.target.value)} placeholder="EX: CARTÃO DO LOBO" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none font-black uppercase text-xs focus:border-blue-500 transition-all" required />
+            <div className="space-y-1 relative">
+              <label className="text-[7px] opacity-40 ml-1 uppercase font-black">Apelido do Cartão</label>
+              
+              {/* AVISO DE SOMENTE LETRAS */}
+              {showNumberAlert && (
+                <div className="absolute -top-6 right-0 animate-bounce flex items-center gap-1 text-rose-500 font-black text-[8px] bg-rose-500/10 px-2 py-1 rounded-lg border border-rose-500/20">
+                  <XCircle size={10} /> PROIBIDO NÚMEROS! DIGITE APENAS UM NOME.
+                </div>
+              )}
+
+              <input 
+                value={nomeCartao} 
+                onChange={handleNomeChange}
+                placeholder="EX: NUBANK PESSOAL" 
+                className={`w-full p-4 bg-slate-800 rounded-xl border-2 outline-none font-black uppercase text-xs transition-all ${showNumberAlert ? 'border-rose-500 ring-4 ring-rose-500/10' : 'border-slate-700 focus:border-blue-500'}`} 
+                required 
+              />
             </div>
             
             <div className="relative">
               <label className="absolute -top-2 left-4 bg-[#111827] px-2 text-[7px] text-slate-500 font-black italic">DIA DE VENCIMENTO</label>
-              <input type="number" min="1" max="31" value={vencimento} onChange={(e) => setVencimento(e.target.value)} placeholder="DIA" className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none font-black text-xs text-center focus:border-emerald-500 transition-all" required />
+              <input 
+                type="text" 
+                value={vencimento} 
+                onChange={handleVencimentoChange}
+                placeholder="00" 
+                className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 outline-none font-black text-xl text-center focus:border-emerald-500 transition-all text-emerald-500" 
+                required 
+              />
             </div>
 
             <div className="bg-amber-900/20 p-4 rounded-2xl border border-amber-500/30 flex gap-3 items-center">
                <ShieldCheck size={20} className="text-amber-500 shrink-0" />
-               <p className="text-[8px] text-amber-200 normal-case leading-tight font-black italic">
-                 DICA DE SEGURANÇA: NÃO É NECESSÁRIO O NÚMERO REAL DO CARTÃO. O SISTEMA USA APENAS O NOME PARA IDENTIFICAÇÃO E O DIA PARA O GRÁFICO.
+               <p className="text-[8px] text-amber-200 leading-tight font-black italic uppercase">
+                 NÃO DIGITE O NÚMERO REAL. O SISTEMA É APENAS PARA ORGANIZAÇÃO DA OFICINA.
                </p>
             </div>
             
-            <button type="submit" className="w-full bg-blue-600 py-5 rounded-2xl shadow-xl text-[11px] font-black active:scale-95 transition-all flex items-center justify-center gap-2 uppercase">
-              <Save size={18} /> Cadastrar Cartão
+            <button type="submit" className="w-full bg-blue-600 py-5 rounded-2xl shadow-xl text-[11px] font-black active:scale-95 transition-all flex items-center justify-center gap-2 uppercase italic">
+              <Save size={18} /> Cadastrar Cartão na Alcateia
             </button>
           </form>
         </section>
 
-        {/* LISTA DE CARTÕES ATIVOS */}
+        {/* LISTAGEM */}
         <section className="space-y-4">
-          <h2 className="text-slate-500 text-[10px] tracking-widest ml-4 font-black uppercase">Cartões Ativos na Oficina</h2>
-          {cartoes.length === 0 && (
-            <div className="p-16 text-center text-slate-700 border-2 border-dashed border-slate-800 rounded-[3rem] italic text-[10px] flex flex-col items-center gap-4">
-              <CreditCard size={40} className="opacity-20" />
-              NENHUM CARTÃO DETECTADO
-            </div>
-          )}
+          <h2 className="text-slate-500 text-[10px] tracking-widest ml-4 font-black uppercase italic">Cartões Ativos</h2>
           <div className="grid gap-3 overflow-y-auto max-h-[550px] pr-2 custom-scrollbar">
             {cartoes.map(c => (
-              <div key={c.id} className="bg-[#111827] p-5 rounded-3xl border-2 border-slate-800 flex justify-between items-center group hover:border-blue-600 transition-all shadow-lg hover:shadow-blue-900/10">
+              <div key={c.id} className="bg-[#111827] p-5 rounded-3xl border-2 border-slate-800 flex justify-between items-center group hover:border-blue-600 transition-all shadow-lg">
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center border border-slate-700 overflow-hidden shadow-inner group-hover:bg-white/10 transition-colors">
                     <img src={c.logo_url} className="w-full h-full object-contain p-2.5" onError={(e:any) => e.target.src = "/logo.png"} />
@@ -213,13 +252,13 @@ export default function CartoesPage() {
                     <p className="text-[11px] font-black italic tracking-tight uppercase text-white">{c.banco}</p>
                     <p className="text-[9px] text-slate-500 italic uppercase font-black">{c.nome_cartao}</p>
                     <div className="flex items-center gap-1.5 text-emerald-500 text-[8px] mt-1.5 font-black bg-emerald-500/10 w-fit px-2 py-0.5 rounded-full">
-                       <Check size={10}/> FATURA TODO DIA {c.vencimento}
+                       <Check size={10}/> VENCE DIA {c.vencimento}
                     </div>
                   </div>
                 </div>
                 <button 
                   onClick={() => handleDeletar(c.id)} 
-                  className="text-slate-600 hover:text-rose-500 p-3 bg-slate-800/50 rounded-full hover:bg-rose-500/10 transition-all"
+                  className="text-slate-600 hover:text-rose-500 p-3 bg-slate-800/50 rounded-full transition-all"
                 >
                   <Trash2 size={20} />
                 </button>
@@ -229,12 +268,9 @@ export default function CartoesPage() {
         </section>
       </div>
 
-{/* CRÉDITOS NO FINAL DA PÁGINA (NÃO FIXO) */}
       <div className="relative mt-12 pb-8 flex flex-col items-center opacity-30 hover:opacity-100 transition-all duration-700 pointer-events-none z-[10] font-black italic">
-        <p className="text-[7px] tracking-[0.4em] uppercase font-black mb-1">Engineered by</p>
-        <p className="text-[10px] tracking-tighter font-black italic uppercase text-blue-500">
-          Jhonatha <span className="text-white">| Wolf Finance © 2026</span>
-        </p>
+        <p className="text-[7px] tracking-[0.4em] mb-1">Engineered by</p>
+        <p className="text-[10px] text-blue-500 font-black italic">Jhonatha <span className="text-white">| Wolf Finance © 2026</span></p>
       </div>
 
       <style jsx global>{` 
