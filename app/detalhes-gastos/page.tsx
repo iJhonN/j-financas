@@ -86,35 +86,34 @@ export default function DetalhesGastos() {
     if (!error) { setShowUndo(false); setLastUpdatedIds([]); fetchData(user.id); showAlert("Revertido!"); }
   };
 
-  // --- LÓGICA DE EXCLUSÃO CORRIGIDA (SEM ERRO TYPESCRIPT) ---
+  // --- LÓGICA DE EXCLUSÃO 100% CORRIGIDA ---
   const excluirRecorrencia = async (descricaoFull: string, valor: number, dataRef: string) => {
-    // 1. Criamos a string limpa primeiro (remove raios, emojis e o sufixo de parcelas)
-    const nomeLimpo = descricaoFull
-      .replace(/[^\w\s]/gi, '') 
-      .split(' - ')[0]          
+    // 1. Remove emojis e limpa o nome base para a busca
+    // Se a descrição for "⚡ ALUGUEL - 01/12", o nomeBase será "ALUGUEL"
+    const nomeBase = descricaoFull
+      .replace(/[⚡]/g, '')     // Remove especificamente o raio do Pix
+      .split(' - ')[0]          // Remove o sufixo de parcelas
       .trim();
     
-    // 2. Usamos a variável diretamente no confirm
-    if (confirm(`DESEJA EXCLUIR TODAS AS RECORRÊNCIAS DE "${nomeLimpo}" DESTE MÊS EM DIANTE?`)) {
+    if (confirm(`DESEJA EXCLUIR TODAS AS RECORRÊNCIAS DE "${nomeBase}" DESTE MÊS EM DIANTE?`)) {
       try {
         const { error } = await supabase
           .from('transacoes')
           .delete()
           .eq('user_id', user.id)
-          .ilike('descricao', `%${nomeLimpo}%`) 
-          .eq('valor', valor)                
-          .gte('data_ordenacao', dataRef);   
+          .ilike('descricao', `%${nomeBase}%`) // Busca parcial para ignorar espaços ou símbolos extras
+          .eq('valor', valor)                  // Filtra pelo mesmo valor (segurança)
+          .gte('data_ordenacao', dataRef);     // APAGA DO MÊS CLICADO PARA FRENTE
 
         if (!error) {
           showAlert("RECORRÊNCIAS APAGADAS!");
           await fetchData(user.id); 
         } else {
           console.error("Erro Supabase:", error);
-          showAlert("ERRO NO BANCO.", "error");
+          showAlert("ERRO AO EXCLUIR.", "error");
         }
       } catch (err) {
         console.error("Erro Catch:", err);
-        showAlert("ERRO DE CONEXÃO.", "error");
       }
     }
   };
@@ -156,7 +155,7 @@ export default function DetalhesGastos() {
         <div className="bg-[#111827] p-5 rounded-[2.5rem] border-b-4 border-amber-500 flex flex-col justify-between h-32 shadow-2xl relative">
           <div className="flex items-center justify-between text-[10px] border-b border-white/5 pb-2 font-black italic uppercase">
             <button onClick={() => setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth() - 1)))}><ChevronLeft size={16}/></button>
-            <span className="tracking-widest uppercase">{selectedDate.toLocaleString('pt-BR', { month: 'short', year: 'numeric' })}</span>
+            <span className="tracking-widest">{selectedDate.toLocaleString('pt-BR', { month: 'short', year: 'numeric' })}</span>
             <button onClick={() => setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth() + 1)))}><ChevronRight size={16}/></button>
           </div>
           <div className="relative mt-2">
