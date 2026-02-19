@@ -86,27 +86,31 @@ export default function DetalhesGastos() {
     if (!error) { setShowUndo(false); setLastUpdatedIds([]); fetchData(user.id); showAlert("Revertido!"); }
   };
 
-  // --- LÓGICA DE EXCLUSÃO CORRIGIDA E TESTADA ---
+  // --- LÓGICA DE EXCLUSÃO CORRIGIDA (SEM ERRO TYPESCRIPT) ---
   const excluirRecorrencia = async (descricaoFull: string, valor: number, dataRef: string) => {
-    // Pegamos a base do nome (ex: "ALUGUEL" de "ALUGUEL - 01/12")
-    const nomeBase = descricaoFull.split(' - ')[0].trim();
+    // 1. Criamos a string limpa primeiro (remove raios, emojis e o sufixo de parcelas)
+    const nomeLimpo = descricaoFull
+      .replace(/[^\w\s]/gi, '') 
+      .split(' - ')[0]          
+      .trim();
     
-    if (confirm(`DESEJA EXCLUIR TODAS AS RECORRÊNCIAS DE "${nomeBase}" DESTE MÊS EM DIANTE?`)) {
+    // 2. Usamos a variável diretamente no confirm
+    if (confirm(`DESEJA EXCLUIR TODAS AS RECORRÊNCIAS DE "${nomeLimpo}" DESTE MÊS EM DIANTE?`)) {
       try {
         const { error } = await supabase
           .from('transacoes')
           .delete()
           .eq('user_id', user.id)
-          .ilike('descricao', `${nomeBase}%`) // Busca qualquer descrição que comece com o nome base
-          .eq('valor', valor)                // Garante que o valor é o mesmo
-          .gte('data_ordenacao', dataRef);   // Somente desta data para a frente
+          .ilike('descricao', `%${nomeLimpo}%`) 
+          .eq('valor', valor)                
+          .gte('data_ordenacao', dataRef);   
 
         if (!error) {
           showAlert("RECORRÊNCIAS APAGADAS!");
-          await fetchData(user.id); // Recarrega a lista
+          await fetchData(user.id); 
         } else {
           console.error("Erro Supabase:", error);
-          showAlert("ERRO AO EXCLUIR NO BANCO.", "error");
+          showAlert("ERRO NO BANCO.", "error");
         }
       } catch (err) {
         console.error("Erro Catch:", err);
@@ -135,7 +139,7 @@ export default function DetalhesGastos() {
             <button onClick={() => router.push('/')} className="p-2 bg-slate-800 rounded-full hover:bg-blue-600 transition-all"><ChevronLeft size={20}/></button>
             <div className="leading-none">
               <h1 className="text-lg md:text-xl font-black tracking-tighter italic uppercase">WOLF FINANCE</h1>
-              <p className="text-[9px] text-blue-400 italic uppercase font-black">FATURA DETALHADA</p>
+              <p className="text-[9px] text-blue-400 italic uppercase font-black tracking-widest">FATURA DETALHADA</p>
             </div>
           </div>
           <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="bg-slate-800 p-2.5 rounded-full border border-slate-700 hover:bg-blue-600 transition-all"><UserCircle size={20} /></button>
@@ -152,7 +156,7 @@ export default function DetalhesGastos() {
         <div className="bg-[#111827] p-5 rounded-[2.5rem] border-b-4 border-amber-500 flex flex-col justify-between h-32 shadow-2xl relative">
           <div className="flex items-center justify-between text-[10px] border-b border-white/5 pb-2 font-black italic uppercase">
             <button onClick={() => setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth() - 1)))}><ChevronLeft size={16}/></button>
-            <span className="tracking-widest">{selectedDate.toLocaleString('pt-BR', { month: 'short', year: 'numeric' })}</span>
+            <span className="tracking-widest uppercase">{selectedDate.toLocaleString('pt-BR', { month: 'short', year: 'numeric' })}</span>
             <button onClick={() => setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth() + 1)))}><ChevronRight size={16}/></button>
           </div>
           <div className="relative mt-2">
@@ -178,7 +182,7 @@ export default function DetalhesGastos() {
             <span className="text-white/20 text-[8px] uppercase tracking-[0.2em] font-black italic">Pendente no Filtro</span>
             <ArrowDownCircle size={14} className="text-rose-500 opacity-30" />
           </div>
-          <div className="text-xl md:text-3xl font-black text-rose-500 italic leading-none tracking-tighter">
+          <div className="text-xl md:text-3xl font-black text-rose-500 italic leading-none tracking-tighter uppercase">
             R$ {totalPendente.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </div>
         </div>
@@ -186,7 +190,7 @@ export default function DetalhesGastos() {
 
       <button 
         onClick={pagarTudo} 
-        className="w-full mb-8 p-5 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-[2rem] flex items-center justify-center gap-4 shadow-xl active:scale-95 transition-all font-black uppercase tracking-widest text-[11px] border-b-4 border-emerald-800 italic"
+        className="w-full mb-8 p-5 bg-gradient-to-r from-emerald-600 to-teal-600 rounded-[2rem] flex items-center justify-center gap-4 shadow-xl active:scale-95 transition-all font-black uppercase tracking-widest text-[11px] border-b-4 border-emerald-800 italic shadow-emerald-500/10"
       >
         <CheckCheck size={18} className="text-white" />
         <span>Liquidar Fatura Selecionada</span>
@@ -207,14 +211,14 @@ export default function DetalhesGastos() {
                         {t.valor > 0 ? <ArrowUpCircle size={18} /> : <ArrowDownCircle size={18} />}
                       </div>
                       {cartaoInfo && (
-                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-slate-800 rounded-full border border-slate-700 p-1 flex items-center justify-center overflow-hidden">
+                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-slate-800 rounded-full border border-slate-700 p-1 flex items-center justify-center overflow-hidden shadow-lg">
                            <img src={cartaoInfo.logo_url} className="w-full h-full object-contain" onError={(e: any) => e.currentTarget.style.display = 'none'} />
                         </div>
                       )}
                     </div>
                     <div className="max-w-[120px] md:max-w-none">
                       <h3 className="text-[10px] md:text-xs leading-none mb-1 truncate font-black italic uppercase">{t.descricao}</h3>
-                      <p className="text-[7px] font-black opacity-50 uppercase tracking-tighter italic">
+                      <p className="text-[7px] font-black opacity-50 uppercase tracking-tighter italic font-black">
                         {t.data_ordenacao.split('-').reverse().join('/')} • {t.forma_pagamento}
                       </p>
                     </div>
@@ -230,7 +234,6 @@ export default function DetalhesGastos() {
                       </span>
                     </div>
                     
-                    {/* BOTÃO DE EXCLUSÃO DE RECORRÊNCIA EM MASSA - PASSANDO DATA CORRETA */}
                     <button 
                       onClick={() => excluirRecorrencia(t.descricao, t.valor, t.data_ordenacao)}
                       className="p-3 bg-rose-950/30 text-rose-500 rounded-2xl hover:bg-rose-600 hover:text-white transition-all active:scale-90 shadow-lg"
@@ -246,7 +249,7 @@ export default function DetalhesGastos() {
 
       <footer className="mt-12 flex flex-col items-center opacity-30 font-black italic uppercase text-center">
         <p className="text-[7px] tracking-[0.4em] mb-1">Engineered by</p>
-        <p className="text-[10px] text-blue-500 italic font-black">Jhonatha <span className="text-white">| Wolf Finance © 2026</span></p>
+        <p className="text-[10px] text-blue-500 font-black italic">Jhonatha <span className="text-white">| Wolf Finance © 2026</span></p>
       </footer>
     </div>
   );
