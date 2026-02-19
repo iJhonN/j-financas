@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { 
   ChevronLeft, ChevronRight, CheckCheck, CreditCard, 
   ArrowUpCircle, ArrowDownCircle, Loader2,
-  UserCircle, LogOut, Settings, Layers, Zap
+  UserCircle, LogOut, Settings, Layers
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -86,28 +86,28 @@ export default function DetalhesGastos() {
     if (!error) { setShowUndo(false); setLastUpdatedIds([]); fetchData(user.id); showAlert("Revertido!"); }
   };
 
-  // --- LÓGICA DE EXCLUSÃO 100% CORRIGIDA ---
+  // --- LÓGICA DE EXCLUSÃO DEFINITIVA (DA DATA ATUAL PARA FRENTE) ---
   const excluirRecorrencia = async (descricaoFull: string, valor: number, dataRef: string) => {
-    // 1. Remove emojis e limpa o nome base para a busca
-    // Se a descrição for "⚡ ALUGUEL - 01/12", o nomeBase será "ALUGUEL"
+    // 1. Limpeza agressiva para encontrar o padrão no banco
     const nomeBase = descricaoFull
-      .replace(/[⚡]/g, '')     // Remove especificamente o raio do Pix
-      .split(' - ')[0]          // Remove o sufixo de parcelas
+      .replace(/[⚡]/g, '')     
+      .split(' - ')[0]          
       .trim();
     
-    if (confirm(`DESEJA EXCLUIR TODAS AS RECORRÊNCIAS DE "${nomeBase}" DESTE MÊS EM DIANTE?`)) {
+    if (confirm(`ATENÇÃO: DESEJA APAGAR "${nomeBase}" DESTE MÊS E DE TODOS OS MESES FUTUROS?`)) {
       try {
-        const { error } = await supabase
+        // Chamada ao Supabase focada no "Maior ou Igual" (gte) à data do registro clicado
+        const { error, data } = await supabase
           .from('transacoes')
           .delete()
           .eq('user_id', user.id)
-          .ilike('descricao', `%${nomeBase}%`) // Busca parcial para ignorar espaços ou símbolos extras
-          .eq('valor', valor)                  // Filtra pelo mesmo valor (segurança)
-          .gte('data_ordenacao', dataRef);     // APAGA DO MÊS CLICADO PARA FRENTE
+          .eq('valor', valor)
+          .ilike('descricao', `%${nomeBase}%`)
+          .gte('data_ordenacao', dataRef); // Aqui está o segredo: apaga tudo >= data clicada
 
         if (!error) {
-          showAlert("RECORRÊNCIAS APAGADAS!");
-          await fetchData(user.id); 
+          showAlert("RECORRÊNCIAS FUTURAS REMOVIDAS!");
+          await fetchData(user.id); // Atualiza a lista local
         } else {
           console.error("Erro Supabase:", error);
           showAlert("ERRO AO EXCLUIR.", "error");
@@ -155,7 +155,7 @@ export default function DetalhesGastos() {
         <div className="bg-[#111827] p-5 rounded-[2.5rem] border-b-4 border-amber-500 flex flex-col justify-between h-32 shadow-2xl relative">
           <div className="flex items-center justify-between text-[10px] border-b border-white/5 pb-2 font-black italic uppercase">
             <button onClick={() => setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth() - 1)))}><ChevronLeft size={16}/></button>
-            <span className="tracking-widest">{selectedDate.toLocaleString('pt-BR', { month: 'short', year: 'numeric' })}</span>
+            <span className="tracking-widest uppercase">{selectedDate.toLocaleString('pt-BR', { month: 'short', year: 'numeric' })}</span>
             <button onClick={() => setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth() + 1)))}><ChevronRight size={16}/></button>
           </div>
           <div className="relative mt-2">
