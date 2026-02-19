@@ -58,6 +58,8 @@ export default function NovoGanhoPage() {
       if (data && data.length > 0) {
         setVeiculos(data);
         setVeiculoId(data[0].id);
+        // Sugere o KM atual do veículo como KM inicial
+        setKmInicial(data[0].km_atual?.toString() || '');
       }
       setLoading(false);
     };
@@ -76,29 +78,53 @@ export default function NovoGanhoPage() {
     if (!veiculoId) return alert("CADASTRE UM VEÍCULO PRIMEIRO!");
     
     setSaving(true);
-    const vEspecie = Number(valorEspecie.replace(/\./g, '').replace(',', '.'));
-    const vCartao = Number(valorCartao.replace(/\./g, '').replace(',', '.'));
 
-    const { error } = await supabase.from('driver_ganhos').insert([{
-      user_id: user.id,
-      veiculo_id: veiculoId,
-      plataforma: plataformaSel.nome,
-      data_trabalho: dataTrabalho,
-      valor_especie: vEspecie,
-      valor_cartao: vCartao,
-      km_inicial: parseFloat(kmInicial) || 0,
-      km_final: parseFloat(kmFinal) || 0
-    }]);
+    // TRATAMENTO DE VALORES: Garante que sejam números válidos
+    const vEspecie = Number(valorEspecie.replace(/\./g, '').replace(',', '.')) || 0;
+    const vCartao = Number(valorCartao.replace(/\./g, '').replace(',', '.')) || 0;
+    const totalGanho = vEspecie + vCartao;
 
-    if (!error && kmFinal) {
-      await supabase.from('veiculos').update({ km_atual: parseFloat(kmFinal) }).eq('id', veiculoId);
+    if (totalGanho <= 0) {
+      setSaving(false);
+      return alert("INSIRA UM VALOR DE GANHO!");
     }
 
-    if (!error) {
+    try {
+      // 1. Salva na tabela do Driver
+      const { error: errorDriver } = await supabase.from('driver_ganhos').insert([{
+        user_id: user.id,
+        veiculo_id: veiculoId,
+        plataforma: plataformaSel.nome,
+        data_trabalho: dataTrabalho,
+        valor_especie: vEspecie,
+        valor_cartao: vCartao,
+        km_inicial: parseFloat(kmInicial) || 0,
+        km_final: parseFloat(kmFinal) || 0
+      }]);
+
+      if (errorDriver) throw errorDriver;
+
+      // 2. Atualiza KM do veículo
+      if (kmFinal) {
+        await supabase.from('veiculos').update({ km_atual: parseFloat(kmFinal) }).eq('id', veiculoId);
+      }
+
+      // 3. INTEGRAÇÃO: Salva como RECEITA na tabela principal para aparecer no Saldo
+      await supabase.from('transacoes').insert([{
+        user_id: user.id,
+        descricao: `CORRIDAS: ${plataformaSel.nome.toUpperCase()}`,
+        valor: totalGanho,
+        tipo: 'receita',
+        data_ordenacao: dataTrabalho,
+        pago: true,
+        forma_pagamento: vEspecie > vCartao ? 'Dinheiro' : 'Pix'
+      }]);
+
       router.push('/driver');
-    } else {
+    } catch (err: any) {
+      console.error(err);
       setSaving(false);
-      alert("ERRO AO SALVAR.");
+      alert(`ERRO: ${err.message || "TENTE NOVAMENTE"}`);
     }
   };
 
@@ -135,7 +161,6 @@ export default function NovoGanhoPage() {
           <TabBtn active={tabAtiva === 'encomendas'} label="Cargas" icon={<Truck size={12}/>} onClick={() => setTabAtiva('encomendas')} />
         </div>
 
-        {/* SELETOR DE PLATAFORMAS - Reduzi a altura máxima para sobrar espaço */}
         <div className="grid grid-cols-4 gap-2 bg-[#111827] p-3 rounded-[2rem] border-2 border-slate-800 max-h-40 overflow-y-auto custom-scrollbar shadow-inner">
           {plataformasFiltradas.map((p) => (
             <button
@@ -214,7 +239,7 @@ export default function NovoGanhoPage() {
 
       <footer className="mt-8 flex flex-col items-center opacity-30 font-black italic">
         <p className="text-[6px] tracking-[0.4em] mb-1">Engineered by</p>
-        <p className="text-[9px] text-blue-500">Jhonatha <span className="text-white">| Wolf Driver © 2026</span></p>
+        <p className="text-[10px] text-blue-500 uppercase">Jhonatha <span className="text-white">| Wolf Driver © 2026</span></p>
       </footer>
 
       <style jsx global>{`
