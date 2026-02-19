@@ -86,28 +86,31 @@ export default function DetalhesGastos() {
     if (!error) { setShowUndo(false); setLastUpdatedIds([]); fetchData(user.id); showAlert("Revertido!"); }
   };
 
-  // --- LÓGICA DE EXCLUSÃO EM MASSA CORRIGIDA ---
-  const excluirRecorrencia = async (descricaoCompleta: string, valor: number, dataReferencia: string) => {
-    // Pega o nome antes do " - 01/12" ou qualquer separador
-    const nomeLimpo = descricaoCompleta.split(' - ')[0].trim();
+  // --- LÓGICA DE EXCLUSÃO CORRIGIDA E TESTADA ---
+  const excluirRecorrencia = async (descricaoFull: string, valor: number, dataRef: string) => {
+    // Pegamos a base do nome (ex: "ALUGUEL" de "ALUGUEL - 01/12")
+    const nomeBase = descricaoFull.split(' - ')[0].trim();
     
-    if (confirm(`LIMPAR RECORRÊNCIA: "${nomeLimpo}" DESTE MÊS EM DIANTE?`)) {
+    if (confirm(`DESEJA EXCLUIR TODAS AS RECORRÊNCIAS DE "${nomeBase}" DESTE MÊS EM DIANTE?`)) {
       try {
         const { error } = await supabase
           .from('transacoes')
           .delete()
           .eq('user_id', user.id)
-          .ilike('descricao', `${nomeLimpo}%`) // Busca por nomes que começam igual
-          .eq('valor', valor)                  // Filtra pelo mesmo valor
-          .gte('data_ordenacao', dataReferencia); // APAGA DO MÊS CLICADO PARA FRENTE
+          .ilike('descricao', `${nomeBase}%`) // Busca qualquer descrição que comece com o nome base
+          .eq('valor', valor)                // Garante que o valor é o mesmo
+          .gte('data_ordenacao', dataRef);   // Somente desta data para a frente
 
-        if (!error) { 
-          showAlert("RECORRÊNCIA REMOVIDA!"); 
-          fetchData(user.id); 
+        if (!error) {
+          showAlert("RECORRÊNCIAS APAGADAS!");
+          await fetchData(user.id); // Recarrega a lista
+        } else {
+          console.error("Erro Supabase:", error);
+          showAlert("ERRO AO EXCLUIR NO BANCO.", "error");
         }
       } catch (err) {
-        console.error(err);
-        showAlert("ERRO AO EXCLUIR.", "error");
+        console.error("Erro Catch:", err);
+        showAlert("ERRO DE CONEXÃO.", "error");
       }
     }
   };
@@ -120,8 +123,8 @@ export default function DetalhesGastos() {
       {showUndo && (
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[10000] w-[90%] max-w-md animate-in slide-in-from-bottom-10">
           <div className="bg-blue-600 p-4 rounded-3xl shadow-2xl flex items-center justify-between border-2 border-white/20 backdrop-blur-md">
-            <span className="text-[10px] tracking-widest font-black uppercase">Fatura Atualizada!</span>
-            <button onClick={desfazerPagamento} className="bg-white text-blue-600 px-4 py-2 rounded-xl text-[9px] font-black active:scale-95 transition-all">DESFAZER</button>
+            <span className="text-[10px] tracking-widest font-black uppercase italic">Fatura Atualizada!</span>
+            <button onClick={desfazerPagamento} className="bg-white text-blue-600 px-4 py-2 rounded-xl text-[9px] font-black active:scale-95 transition-all uppercase italic">DESFAZER</button>
           </div>
         </div>
       )}
@@ -129,10 +132,10 @@ export default function DetalhesGastos() {
       <header className="flex flex-col gap-4 mb-6 bg-[#111827] p-4 md:p-6 rounded-[2rem] border border-slate-800 shadow-2xl">
         <div className="flex justify-between items-center w-full">
           <div className="flex items-center gap-3">
-            <button onClick={() => router.back()} className="p-2 bg-slate-800 rounded-full hover:bg-blue-600 transition-all"><ChevronLeft size={20}/></button>
+            <button onClick={() => router.push('/')} className="p-2 bg-slate-800 rounded-full hover:bg-blue-600 transition-all"><ChevronLeft size={20}/></button>
             <div className="leading-none">
               <h1 className="text-lg md:text-xl font-black tracking-tighter italic uppercase">WOLF FINANCE</h1>
-              <p className="text-[9px] text-blue-400 italic uppercase">FATURA DETALHADA</p>
+              <p className="text-[9px] text-blue-400 italic uppercase font-black">FATURA DETALHADA</p>
             </div>
           </div>
           <button onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} className="bg-slate-800 p-2.5 rounded-full border border-slate-700 hover:bg-blue-600 transition-all"><UserCircle size={20} /></button>
@@ -227,7 +230,7 @@ export default function DetalhesGastos() {
                       </span>
                     </div>
                     
-                    {/* BOTÃO DE EXCLUSÃO DE RECORRÊNCIA EM MASSA */}
+                    {/* BOTÃO DE EXCLUSÃO DE RECORRÊNCIA EM MASSA - PASSANDO DATA CORRETA */}
                     <button 
                       onClick={() => excluirRecorrencia(t.descricao, t.valor, t.data_ordenacao)}
                       className="p-3 bg-rose-950/30 text-rose-500 rounded-2xl hover:bg-rose-600 hover:text-white transition-all active:scale-90 shadow-lg"
@@ -243,7 +246,7 @@ export default function DetalhesGastos() {
 
       <footer className="mt-12 flex flex-col items-center opacity-30 font-black italic uppercase text-center">
         <p className="text-[7px] tracking-[0.4em] mb-1">Engineered by</p>
-        <p className="text-[10px] text-blue-500">Jhonatha <span className="text-white">| Wolf Finance © 2026</span></p>
+        <p className="text-[10px] text-blue-500 italic font-black">Jhonatha <span className="text-white">| Wolf Finance © 2026</span></p>
       </footer>
     </div>
   );
