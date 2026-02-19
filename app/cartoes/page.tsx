@@ -41,7 +41,6 @@ export default function CartoesPage() {
   const [loading, setLoading] = useState(true);
   const [cartoes, setCartoes] = useState<any[]>([]);
   
-  // Estados do formulário
   const [bancoSelecionado, setBancoSelecionado] = useState(BANCOS_SUPORTADOS[0]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -67,16 +66,12 @@ export default function CartoesPage() {
     setLoading(false);
   };
 
-  // LOGICA DE BLOQUEIO E AVISO
   const handleNomeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    
-    // Verifica se o usuário tentou digitar um número
     if (/\d/.test(value)) {
       setShowNumberAlert(true);
       setTimeout(() => setShowNumberAlert(false), 3000);
     }
-
     const apenasLetras = value.replace(/[0-9]/g, '');
     setNomeCartao(apenasLetras);
   };
@@ -112,7 +107,7 @@ export default function CartoesPage() {
   };
 
   const handleDeletar = async (id: string) => {
-    if (!confirm("REMOVER CARTÃO DA ALCATEIA?")) return;
+    if (!confirm("REMOVER ESTE CARTÃO?")) return;
     await supabase.from('cartoes').delete().eq('id', id);
     fetchCartoes(user.id);
   };
@@ -135,7 +130,6 @@ export default function CartoesPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
         
-        {/* FORMULÁRIO */}
         <section className="bg-[#111827] p-6 rounded-[2.5rem] border-2 border-slate-800 shadow-2xl h-fit relative">
           <div className="flex items-center gap-3 mb-6 text-blue-500">
             <Plus size={24} />
@@ -145,7 +139,7 @@ export default function CartoesPage() {
           <form onSubmit={handleSalvar} className="space-y-4">
             
             <div className="space-y-1 relative">
-              <label className="text-[7px] opacity-40 ml-1 uppercase">Instituição Financeira</label>
+              <label className="text-[7px] opacity-40 ml-1 uppercase font-black">Instituição Financeira</label>
               <button 
                 type="button"
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -197,7 +191,6 @@ export default function CartoesPage() {
             <div className="space-y-1 relative">
               <label className="text-[7px] opacity-40 ml-1 uppercase font-black">Apelido do Cartão</label>
               
-              {/* AVISO DE SOMENTE LETRAS */}
               {showNumberAlert && (
                 <div className="absolute -top-6 right-0 animate-bounce flex items-center gap-1 text-rose-500 font-black text-[8px] bg-rose-500/10 px-2 py-1 rounded-lg border border-rose-500/20">
                   <XCircle size={10} /> PROIBIDO NÚMEROS! DIGITE APENAS UM NOME.
@@ -207,14 +200,14 @@ export default function CartoesPage() {
               <input 
                 value={nomeCartao} 
                 onChange={handleNomeChange}
-                placeholder="EX: NUBANK PESSOAL" 
+                placeholder="EX: MEU CARTÃO PRINCIPAL" 
                 className={`w-full p-4 bg-slate-800 rounded-xl border-2 outline-none font-black uppercase text-xs transition-all ${showNumberAlert ? 'border-rose-500 ring-4 ring-rose-500/10' : 'border-slate-700 focus:border-blue-500'}`} 
                 required 
               />
             </div>
             
             <div className="relative">
-              <label className="absolute -top-2 left-4 bg-[#111827] px-2 text-[7px] text-slate-500 font-black italic">DIA DE VENCIMENTO</label>
+              <label className="absolute -top-2 left-4 bg-[#111827] px-2 text-[7px] text-slate-500 font-black italic uppercase">Dia de Vencimento</label>
               <input 
                 type="text" 
                 value={vencimento} 
@@ -228,17 +221,16 @@ export default function CartoesPage() {
             <div className="bg-amber-900/20 p-4 rounded-2xl border border-amber-500/30 flex gap-3 items-center">
                <ShieldCheck size={20} className="text-amber-500 shrink-0" />
                <p className="text-[8px] text-amber-200 leading-tight font-black italic uppercase">
-                 NÃO DIGITE O NÚMERO REAL. O SISTEMA É APENAS PARA ORGANIZAÇÃO DA OFICINA.
+                 NÃO DIGITE O NÚMERO REAL DO CARTÃO. O SISTEMA É APENAS PARA ORGANIZAÇÃO PESSOAL.
                </p>
             </div>
             
             <button type="submit" className="w-full bg-blue-600 py-5 rounded-2xl shadow-xl text-[11px] font-black active:scale-95 transition-all flex items-center justify-center gap-2 uppercase italic">
-              <Save size={18} /> Cadastrar Cartão na Alcateia
+              <Save size={18} /> Cadastrar Cartão
             </button>
           </form>
         </section>
 
-        {/* LISTAGEM */}
         <section className="space-y-4">
           <h2 className="text-slate-500 text-[10px] tracking-widest ml-4 font-black uppercase italic">Cartões Ativos</h2>
           <div className="grid gap-3 overflow-y-auto max-h-[550px] pr-2 custom-scrollbar">
@@ -268,15 +260,10 @@ export default function CartoesPage() {
         </section>
       </div>
 
-      <div className="relative mt-12 pb-8 flex flex-col items-center opacity-30 hover:opacity-100 transition-all duration-700 pointer-events-none z-[10] font-black italic">
-        <p className="text-[7px] tracking-[0.4em] mb-1">Engineered by</p>
-        <p className="text-[10px] text-blue-500 font-black italic">Jhonatha <span className="text-white">| Wolf Finance © 2026</span></p>
-      </div>
-
-      <style jsx global>{` 
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; } 
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; } 
-      `}</style>
+      <footer className="relative mt-12 pb-8 flex flex-col items-center opacity-30 hover:opacity-100 transition-all duration-700 pointer-events-none z-[10] font-black italic">
+        <p className="text-[7px] tracking-[0.4em] mb-1 uppercase font-black">Engineered by</p>
+        <p className="text-[10px] text-blue-500 font-black italic uppercase">Jhonatha <span className="text-white">| Wolf Finance © 2026</span></p>
+      </footer>
     </div>
   );
 }
