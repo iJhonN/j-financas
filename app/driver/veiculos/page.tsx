@@ -140,7 +140,7 @@ export default function VeiculosPage() {
           <button onClick={() => router.push('/driver')} className="p-3 bg-slate-800 rounded-full text-slate-400 hover:text-white transition-all active:scale-90 border border-slate-700">
             <ArrowLeft size={22} />
           </button>
-          <h1 className="text-xl tracking-tighter">FROTA WOLF</h1>
+          <h1 className="text-xl tracking-tighter">GARAGEM WOLF</h1>
         </div>
         <button onClick={() => setShowModal(true)} className="bg-amber-600 hover:bg-amber-500 text-white p-4 rounded-2xl shadow-lg active:scale-95 transition-all">
           <Plus size={26} />

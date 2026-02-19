@@ -95,8 +95,8 @@ export default function DriverDashboard() {
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="text-xl tracking-tighter italic font-black">DRIVER DASHBOARD</h1>
-            <p className="text-[9px] text-amber-500 tracking-widest font-black italic">SISTEMA DE OPERAÇÃO WOLF</p>
+            <h1 className="text-xl tracking-tighter italic font-black">WOLF DRIVER</h1>
+            <p className="text-[9px] text-amber-500 tracking-widest font-black italic">SUA GARAGEM NA ALCATEIA</p>
           </div>
         </div>
         <div className="bg-amber-500/10 text-amber-500 p-3 rounded-2xl border border-amber-500/20 shadow-lg">
@@ -133,7 +133,7 @@ export default function DriverDashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <MenuButton icon={<TrendingUp />} label="Lançar Ganho" color="bg-emerald-600" onClick={() => router.push('/driver/ganhos')} />
         <MenuButton icon={<Wrench />} label="Nova Despesa" color="bg-rose-600" onClick={() => router.push('/driver/despesas')} />
-        <MenuButton icon={<Car />} label="Minha Frota" color="bg-slate-800" onClick={() => router.push('/driver/veiculos')} />
+        <MenuButton icon={<Car />} label="Minha Garagem" color="bg-slate-800" onClick={() => router.push('/driver/veiculos')} />
         <MenuButton icon={<PieChart />} label="Relatórios" color="bg-slate-800" onClick={() => router.push('/driver/relatorios')} />
       </div>
 
@@ -174,7 +174,7 @@ export default function DriverDashboard() {
         ) : (
           <div className="text-center py-6 relative z-10 border-2 border-dashed border-slate-800 rounded-[2rem]">
             <p className="text-xs text-slate-500 mb-4 font-black italic uppercase tracking-widest">NENHUM VEÍCULO VINCULADO</p>
-            <button onClick={() => router.push('/driver/veiculos')} className="bg-amber-600 text-white px-8 py-4 rounded-2xl text-[10px] font-black hover:bg-amber-500 transition-all shadow-lg active:scale-95 italic">CONFIGURAR FROTA</button>
+            <button onClick={() => router.push('/driver/veiculos')} className="bg-amber-600 text-white px-8 py-4 rounded-2xl text-[10px] font-black hover:bg-amber-500 transition-all shadow-lg active:scale-95 italic">ADICIONAR À GARAGEM</button>
           </div>
         )}
       </div>
