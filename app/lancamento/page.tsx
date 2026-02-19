@@ -50,21 +50,13 @@ export default function LancamentoPage() {
       const valorComSinal = tipoMovimento === 'receita' ? Math.abs(vTotal) : -Math.abs(vTotal);
       const isPix = metodoPagamento === 'Pix';
       
-      // --- LÓGICA DE VALOR CORRIGIDA ---
-      // Se for RECORRENTE: numRepeticoes é 12 e o VALOR É INTEGRAL (sem divisão).
-      // Se NÃO for recorrente e for CRÉDITO: numRepeticoes são as parcelas e DIVIDIMOS o valor.
-      // Caso contrário: numRepeticoes é 1 e valor é INTEGRAL.
-      
-      let numRepeticoes = 1;
-      let valorPorLancamento = valorComSinal;
-
-      if (recorrente) {
-        numRepeticoes = 12;
-        valorPorLancamento = valorComSinal; // Valor cheio todo mês
-      } else if (tipoPagamento === 'Crédito') {
-        numRepeticoes = parcelas;
-        valorPorLancamento = parseFloat((valorComSinal / numRepeticoes).toFixed(2)); // Divide o valor
-      }
+      // LÓGICA CORRIGIDA:
+      // Se for RECORRENTE: Repetimos 12x com o valor CHEIO em cada mês.
+      // Se for CRÉDITO (não recorrente): Dividimos o valor total pelas parcelas.
+      const numRepeticoes = recorrente ? 12 : (tipoPagamento === 'Crédito' ? parcelas : 1);
+      const valorPorLancamento = recorrente 
+        ? valorComSinal 
+        : parseFloat((valorComSinal / numRepeticoes).toFixed(2));
 
       const novosLancamentos = [];
       const hoje = new Date();
@@ -72,7 +64,6 @@ export default function LancamentoPage() {
       for (let i = 0; i < numRepeticoes; i++) {
         let d = new Date(dataLancamento + 'T12:00:00');
         
-        // Lógica de Vencimento de Cartão (Somente para Parcelamento, não para Recorrência)
         if (!recorrente && !isPix && tipoPagamento === 'Crédito') {
           const cartao = cartoes.find(c => `${c.banco} - ${c.nome_cartao}` === metodoPagamento);
           if (cartao) {
@@ -116,7 +107,7 @@ export default function LancamentoPage() {
           <button onClick={() => router.push('/')} className="bg-slate-800 p-2.5 rounded-full border border-slate-700 hover:bg-slate-700 transition-all active:scale-90">
             <ChevronLeft size={20}/>
           </button>
-          <h1 className="text-lg tracking-tighter italic">NOVO LANÇAMENTO</h1>
+          <h1 className="text-lg tracking-tighter">NOVO LANÇAMENTO</h1>
         </div>
         <Zap size={20} className="text-emerald-500 animate-pulse" />
       </header>
@@ -142,7 +133,7 @@ export default function LancamentoPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1 relative">
-            <label className="text-[7px] opacity-40 ml-1 uppercase">FORMA DE PAGAMENTO</label>
+            <label className="text-[7px] opacity-40 ml-1">FORMA DE PAGAMENTO</label>
             <button type="button" onClick={() => setIsCardDropdownOpen(!isCardDropdownOpen)} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 flex items-center justify-between hover:bg-slate-700 transition-all active:scale-95">
               <div className="flex items-center gap-2">
                 {metodoPagamento === 'Pix' ? <Zap size={14} className="text-emerald-500" /> : <CreditCard size={14} className="text-blue-500" />}
@@ -162,7 +153,7 @@ export default function LancamentoPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-[7px] opacity-40 ml-1 uppercase">MODALIDADE</label>
+            <label className="text-[7px] opacity-40 ml-1">MODALIDADE</label>
             <select value={tipoPagamento} onChange={(e) => setTipoPagamento(e.target.value as any)} className="w-full p-4 bg-slate-800 rounded-xl border-2 border-slate-700 text-[10px] font-black outline-none appearance-none cursor-pointer focus:border-blue-500 uppercase" disabled={metodoPagamento === 'Pix'}>
               {metodoPagamento === 'Pix' ? <option value="Dinheiro">À VISTA</option> : <><option value="Crédito">CRÉDITO</option><option value="Débito">DÉBITO</option></>}
             </select>
@@ -173,24 +164,24 @@ export default function LancamentoPage() {
           <div className="space-y-1">
               <label className="text-[7px] opacity-40 ml-1 uppercase">{recorrente ? 'DIA DO MÊS' : (tipoPagamento === 'Crédito' ? 'PARCELAS' : 'MODO')}</label>
               {tipoPagamento === 'Crédito' && !recorrente ? (
-                 <input type="number" min="1" max="48" value={parcelas} onChange={(e) => setParcelas(Number(e.target.value))} className="w-full p-3.5 bg-slate-800 rounded-xl border-2 border-slate-700 text-center font-black text-xs focus:border-blue-500 outline-none italic" />
+                 <input type="number" min="1" max="48" value={parcelas} onChange={(e) => setParcelas(Number(e.target.value))} className="w-full p-3.5 bg-slate-800 rounded-xl border-2 border-slate-700 text-center font-black text-xs focus:border-blue-500 outline-none" />
               ) : recorrente ? (
-                 <input type="number" min="1" max="31" value={diaRecorrencia} onChange={(e) => setDiaRecorrencia(Number(e.target.value))} className="w-full p-3.5 bg-slate-800 rounded-xl border-2 border-purple-500/50 text-center font-black text-xs text-purple-400 outline-none italic" />
+                 <input type="number" min="1" max="31" value={diaRecorrencia} onChange={(e) => setDiaRecorrencia(Number(e.target.value))} className="w-full p-3.5 bg-slate-800 rounded-xl border-2 border-purple-500/50 text-center font-black text-xs text-purple-400 outline-none" />
               ) : (
-                 <div className="p-3.5 rounded-xl border-2 border-slate-800 text-[9px] font-black text-center text-slate-600 bg-slate-900/50 uppercase italic">À VISTA</div>
+                 <div className="p-3.5 rounded-xl border-2 border-slate-800 text-[9px] font-black text-center text-slate-600 bg-slate-900/50 uppercase">À VISTA</div>
               )}
           </div>
           <div className="space-y-1">
               <label className="text-[7px] opacity-40 ml-1 uppercase">DATA DE REFERÊNCIA</label>
               {(metodoPagamento === 'Pix' || tipoPagamento !== 'Crédito') ? (
-                 <input type="date" value={dataLancamento} onChange={(e) => setDataLancamento(e.target.value)} className="w-full p-3.5 bg-slate-800 rounded-xl border-2 border-slate-700 text-center font-black text-[10px] focus:border-blue-500 outline-none italic uppercase" required />
+                 <input type="date" value={dataLancamento} onChange={(e) => setDataLancamento(e.target.value)} className="w-full p-3.5 bg-slate-800 rounded-xl border-2 border-slate-700 text-center font-black text-[10px] focus:border-blue-500 outline-none uppercase" required />
               ) : (
                  <div className="p-3.5 rounded-xl border-2 border-blue-900/30 text-[9px] font-black text-center text-blue-500 bg-blue-900/10 uppercase italic">Automática</div>
               )}
           </div>
         </div>
 
-        <button type="button" onClick={() => setRecorrente(!recorrente)} className={`w-full py-4 rounded-xl border-2 transition-all flex items-center justify-center gap-3 font-black text-[9px] hover:-translate-y-1 italic ${recorrente ? 'border-purple-600 bg-purple-900/20 text-purple-400 shadow-xl' : 'border-slate-800 bg-slate-900/30 text-slate-500'}`}>
+        <button type="button" onClick={() => setRecorrente(!recorrente)} className={`w-full py-4 rounded-xl border-2 transition-all flex items-center justify-center gap-3 font-black text-[9px] hover:-translate-y-1 ${recorrente ? 'border-purple-600 bg-purple-900/20 text-purple-400 shadow-xl' : 'border-slate-800 bg-slate-900/30 text-slate-500'}`}>
           <RefreshCcw size={16} className={recorrente ? 'animate-spin' : ''} style={{animationDuration: '3s'}} />
           {recorrente ? 'CONFIGURAÇÃO RECORRENTE ATIVA' : 'ATIVAR LANÇAMENTO MENSAL?'}
         </button>
@@ -211,14 +202,13 @@ export default function LancamentoPage() {
   );
 }
 
-// Subcomponentes
 function TypeBtn({ active, onClick, color, icon, label }: any) {
   const styles: any = {
     rose: active ? 'bg-rose-600 shadow-lg shadow-rose-900/20' : 'text-slate-500 hover:text-rose-400',
     emerald: active ? 'bg-emerald-600 shadow-lg shadow-emerald-900/20' : 'text-slate-500 hover:text-emerald-400'
   };
   return (
-    <button type="button" onClick={onClick} className={`flex-1 py-3.5 rounded-xl text-[10px] font-black flex items-center justify-center gap-2 transition-all italic ${styles[color]}`}>
+    <button type="button" onClick={onClick} className={`flex-1 py-3.5 rounded-xl text-[10px] font-black flex items-center justify-center gap-2 transition-all ${styles[color]}`}>
       {icon} {label}
     </button>
   );
@@ -230,8 +220,8 @@ function DropdownItem({ icon, label, sublabel, onClick }: any) {
       <div className="flex items-center gap-3">
         {icon}
         <div className="text-left leading-none">
-          <p className="text-[10px] font-black uppercase italic">{label}</p>
-          {sublabel && <p className="text-[7px] text-slate-500 uppercase mt-1 italic">{sublabel}</p>}
+          <p className="text-[10px] font-black uppercase">{label}</p>
+          {sublabel && <p className="text-[7px] text-slate-500 uppercase mt-1">{sublabel}</p>}
         </div>
       </div>
       <Check size={14} className="text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
