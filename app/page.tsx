@@ -82,7 +82,6 @@ export default function HomePage() {
 
   const formatarMoeda = (v: number) => Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  // Filtro de Transações por Mês e Busca
   const transacoesFiltradas = useMemo(() => transacoes.filter(t => {
     const d = new Date(t.data_ordenacao + 'T12:00:00');
     return d.getMonth() === selectedDate.getMonth() && 
@@ -146,10 +145,25 @@ export default function HomePage() {
       {/* DASHBOARD CARDS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6">
         <Card title="Saldo Pago" value={`R$ ${formatarMoeda(saldoCalculado)}`} icon={<Banknote size={20}/>} border={theme.border} onClick={() => router.push('/saldo')} />
-        <Card title="Saídas Mês" value={`R$ ${formatarMoeda(transacoesFiltradas.filter(t=>t.valor < 0).reduce((a,b)=>a+b.valor,0))}`} icon={<Minus size={20}/>} border="border-rose-600" onClick={() => router.push('/lancamento')} />
-        <Card title="Entradas Mês" value={`R$ ${formatarMoeda(transacoesFiltradas.filter(t=>t.valor > 0).reduce((a,b)=>a+b.valor,0))}`} icon={<TrendingUp size={20}/>} border="border-emerald-600" onClick={() => router.push('/receita')} />
         
-        {/* FILTRO DE DATA */}
+        {/* SAÍDAS MÊS - REDIRECIONA PARA DETALHES-GASTOS */}
+        <Card 
+          title="Saídas Mês" 
+          value={`R$ ${formatarMoeda(transacoesFiltradas.filter(t=>t.valor < 0).reduce((a,b)=>a+b.valor,0))}`} 
+          icon={<Minus size={20}/>} 
+          border="border-rose-600" 
+          onClick={() => router.push('/detalhes-gastos')} 
+        />
+        
+        {/* ENTRADAS MÊS - REDIRECIONA PARA RECEITA */}
+        <Card 
+          title="Entradas Mês" 
+          value={`R$ ${formatarMoeda(transacoesFiltradas.filter(t=>t.valor > 0).reduce((a,b)=>a+b.valor,0))}`} 
+          icon={<TrendingUp size={20}/>} 
+          border="border-emerald-600" 
+          onClick={() => router.push('/receita')} 
+        />
+        
         <div className="bg-[#111827] p-4 rounded-[1.5rem] border-b-8 border-amber-500 h-32 flex flex-col justify-between shadow-2xl relative">
             <div className="flex justify-between items-center text-[9px] border-b border-white/10 pb-2 font-black italic">
               <button onClick={() => setSelectedDate(new Date(selectedDate.setMonth(selectedDate.getMonth() - 1)))}><ChevronLeft size={16}/></button>
@@ -185,7 +199,6 @@ export default function HomePage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* MEUS CARTÕES */}
         <div className="lg:col-span-2 bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 shadow-2xl">
           <h2 className="mb-6 text-[10px] tracking-[0.3em] uppercase opacity-40">Cartões Ativos</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -206,7 +219,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* ATIVIDADE RECENTE */}
         <div className="bg-[#111827] p-5 md:p-8 rounded-[2rem] border border-slate-800 shadow-2xl flex flex-col h-[500px]">
           <h2 className="mb-4 text-[10px] tracking-[0.3em] uppercase opacity-40">Atividade Recente</h2>
           <div className="relative mb-4">
