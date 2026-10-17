@@ -80,7 +80,7 @@ export default function PerfilPage() {
   return (
     <div className="min-h-screen bg-[#0a0f1d] p-4 md:p-8 text-white font-black italic uppercase antialiased pb-20 leading-none">
       
-      {/* ALERTAS PREMIUM */}
+      {/* Co-authored-by: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> */}
       {alertConfig.show && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] px-4 w-full max-w-sm animate-in fade-in slide-in-from-top-4">
           <div className={`flex items-center gap-3 p-4 rounded-2xl border-2 shadow-2xl backdrop-blur-xl ${alertConfig.type === 'error' ? 'bg-rose-950/80 border-rose-500 text-rose-200' : 'bg-emerald-950/80 border-emerald-500 text-emerald-200'}`}>
